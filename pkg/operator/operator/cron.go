@@ -84,7 +84,6 @@ func ClusterTelemetry() error {
 	}
 	telemetry.Event("operator.cron", properties,
 		config.ClusterConfig.CoreConfig.TelemetryEvent(),
-		config.ClusterConfig.ManagedConfig.TelemetryEvent(),
 	)
 
 	return nil

@@ -35,6 +35,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libhash "github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -45,8 +46,12 @@ import (
 )
 
 const (
-	// MaxNodePoolsOrGroups represents the max number of node groups in a cluster
-	MaxNodePoolsOrGroups = 100
+	// MaxNodeGroups represents the max number of node groups in a cluster
+	MaxNodeGroups = 100
+	// MaxNodesToAddOnClusterUp represents the max number of nodes to add on cluster up
+	MaxNodesToAddOnClusterUp = 250
+	// MaxNodesToAddOnClusterConfigure represents the max number of nodes to add on cluster up/configure
+	MaxNodesToAddOnClusterConfigure = 100
 	// ClusterNameTag is the tag used for storing a cluster's name in AWS resources
 	ClusterNameTag = "cortex.dev/cluster-name"
 	// SQSQueueDelimiter is the delimiter character used for naming cortex SQS queues (e.g. cx_<cluster_hash>_b_<api_name>_<jon_id>)
@@ -78,19 +83,10 @@ var (
 )
 
 type CoreConfig struct {
-	// Non-user-specifiable fields
-	ClusterUID     string `json:"cluster_uid" yaml:"cluster_uid"`
-	Bucket         string `json:"bucket" yaml:"bucket"`
-	Telemetry      bool   `json:"telemetry" yaml:"telemetry"`
-	Namespace      string `json:"namespace" yaml:"namespace"`
-	IstioNamespace string `json:"istio_namespace" yaml:"istio_namespace"`
-
-	// User-specifiable fields
 	ClusterName            string `json:"cluster_name" yaml:"cluster_name"`
 	Region                 string `json:"region" yaml:"region"`
 	PrometheusInstanceType string `json:"prometheus_instance_type" yaml:"prometheus_instance_type"`
 
-	// User-specifiable fields
 	ImageOperator                   string `json:"image_operator" yaml:"image_operator"`
 	ImageControllerManager          string `json:"image_controller_manager" yaml:"image_controller_manager"`
 	ImageManager                    string `json:"image_manager" yaml:"image_manager"`
@@ -119,9 +115,7 @@ type CoreConfig struct {
 	ImageKubeRBACProxy              string `json:"image_kube_rbac_proxy" yaml:"image_kube_rbac_proxy"`
 	ImageGrafana                    string `json:"image_grafana" yaml:"image_grafana"`
 	ImageEventExporter              string `json:"image_event_exporter" yaml:"image_event_exporter"`
-}
 
-type ManagedConfig struct {
 	NodeGroups                        []*NodeGroup       `json:"node_groups" yaml:"node_groups"`
 	Tags                              map[string]string  `json:"tags" yaml:"tags"`
 	AvailabilityZones                 []string           `json:"availability_zones" yaml:"availability_zones"`
@@ -135,8 +129,15 @@ type ManagedConfig struct {
 	APILoadBalancerCIDRWhiteList      []string           `json:"api_load_balancer_cidr_white_list,omitempty" yaml:"api_load_balancer_cidr_white_list,omitempty"`
 	OperatorLoadBalancerCIDRWhiteList []string           `json:"operator_load_balancer_cidr_white_list,omitempty" yaml:"operator_load_balancer_cidr_white_list,omitempty"`
 	VPCCIDR                           *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
-	CortexPolicyARN                   string             `json:"cortex_policy_arn" yaml:"cortex_policy_arn"` // this field is not user facing
-	AccountID                         string             `json:"account_id" yaml:"account_id"`               // this field is not user facing
+	Telemetry                         bool               `json:"telemetry" yaml:"telemetry"`
+}
+
+type ManagedConfig struct {
+	// fields that must be set by Cortex
+	CortexPolicyARN string `json:"cortex_policy_arn" yaml:"cortex_policy_arn"`
+	AccountID       string `json:"account_id" yaml:"account_id"`
+	ClusterUID      string `json:"cluster_uid" yaml:"cluster_uid"`
+	Bucket          string `json:"bucket" yaml:"bucket"`
 }
 
 type NodeGroup struct {
@@ -222,22 +223,13 @@ func (c *ConfigureChanges) GetGhostEKSNodeGroups() []string {
 
 // NewForFile initializes and validates the cluster config from the YAML config file
 func NewForFile(clusterConfigPath string) (*Config, error) {
-	coreConfig := CoreConfig{}
-	errs := cr.ParseYAMLFile(&coreConfig, CoreConfigValidations(true), clusterConfigPath)
+	config := Config{}
+	errs := cr.ParseYAMLFile(&config, FullConfigValidation, clusterConfigPath)
 	if errors.HasError(errs) {
 		return nil, errors.FirstError(errs...)
 	}
 
-	managedConfig := ManagedConfig{}
-	errs = cr.ParseYAMLFile(&managedConfig, ManagedConfigValidations(true), clusterConfigPath)
-	if errors.HasError(errs) {
-		return nil, errors.FirstError(errs...)
-	}
-
-	return &Config{
-		CoreConfig:    coreConfig,
-		ManagedConfig: managedConfig,
-	}, nil
+	return &config, nil
 }
 
 func ValidateRegion(region string) error {
@@ -276,51 +268,6 @@ func (cc *Config) Hash() (string, error) {
 }
 
 var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
-	{
-		Key: "provider",
-		StringValidation: &cr.StringValidation{
-			AllowEmpty: true,
-			Validator: func(provider string) (string, error) {
-				if provider == "" || provider == "aws" {
-					return "", nil
-				}
-				if provider == "gcp" || provider == "local" {
-					return "", ErrorInvalidLegacyProvider(provider)
-				}
-				return "", ErrorInvalidProvider(provider)
-			},
-		},
-	},
-	{
-		StructField: "ClusterUID",
-		StringValidation: &cr.StringValidation{
-			Default:          "",
-			AllowEmpty:       true,
-			TreatNullAsEmpty: true,
-		},
-	},
-	{
-		StructField: "Bucket",
-		StringValidation: &cr.StringValidation{
-			Default:          "",
-			AllowEmpty:       true,
-			TreatNullAsEmpty: true,
-		},
-	},
-	{
-		StructField: "Namespace",
-		StringValidation: &cr.StringValidation{
-			Default:       "default",
-			AllowedValues: []string{"default"},
-		},
-	},
-	{
-		StructField: "IstioNamespace",
-		StringValidation: &cr.StringValidation{
-			Default:       "istio-system",
-			AllowedValues: []string{"istio-system"},
-		},
-	},
 	{
 		StructField: "ClusterName",
 		StringValidation: &cr.StringValidation{
@@ -548,9 +495,6 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 			Validator: validateImageVersion,
 		},
 	},
-}
-
-var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "NodeGroups",
 		StructListValidation: &cr.StructListValidation{
@@ -711,6 +655,25 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 			Validator: validateCIDR,
 		},
 	},
+}
+
+var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
+	{
+		StructField: "ClusterUID",
+		StringValidation: &cr.StringValidation{
+			Default:          "",
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
+	{
+		StructField: "Bucket",
+		StringValidation: &cr.StringValidation{
+			Default:          "",
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
 	{
 		StructField: "CortexPolicyARN",
 		StringValidation: &cr.StringValidation{
@@ -858,25 +821,10 @@ var nodeGroupsFieldValidation *cr.StructValidation = &cr.StructValidation{
 	},
 }
 
-func CoreConfigValidations(allowExtraFields bool) *cr.StructValidation {
-	return &cr.StructValidation{
-		Required:               true,
-		StructFieldValidations: CoreConfigStructFieldValidations,
-		AllowExtraFields:       allowExtraFields,
-	}
-}
-
-func ManagedConfigValidations(allowExtraFields bool) *cr.StructValidation {
-	return &cr.StructValidation{
-		Required:               true,
-		StructFieldValidations: ManagedConfigStructFieldValidations,
-		AllowExtraFields:       allowExtraFields,
-	}
-}
-
-var FullManagedValidation = &cr.StructValidation{
+var FullConfigValidation = &cr.StructValidation{
 	Required:               true,
-	StructFieldValidations: append([]*cr.StructFieldValidation{}, append(CoreConfigStructFieldValidations, ManagedConfigStructFieldValidations...)...),
+	StructFieldValidations: append(CoreConfigStructFieldValidations, ManagedConfigStructFieldValidations...),
+	AllowExtraFields:       false,
 }
 
 var AccessValidation = &cr.StructValidation{
@@ -929,8 +877,8 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 
 func (cc *Config) validate(awsClient *aws.Client) error {
 	numNodeGroups := len(cc.NodeGroups)
-	if numNodeGroups > MaxNodePoolsOrGroups {
-		return ErrorMaxNumOfNodeGroupsReached(MaxNodePoolsOrGroups)
+	if numNodeGroups > MaxNodeGroups {
+		return ErrorMaxNumOfNodeGroupsReached(MaxNodeGroups)
 	}
 
 	ngNames := []string{}
@@ -1147,6 +1095,21 @@ func (cc *Config) validateSharedNodeGroupsDiff(oldConfig Config) error {
 	return nil
 }
 
+func (cc *Config) validateNodeAdditionRate(k8sClient *k8s.Client) error {
+	workloadNodes, err := k8sClient.ListNodesByLabel("workload", "true")
+	if err != nil {
+		return err
+	}
+	totalCurrentNodes := int64(len(workloadNodes))
+	totalRequestedNodes := getTotalMinInstances(cc.NodeGroups)
+
+	if totalRequestedNodes-totalCurrentNodes > MaxNodesToAddOnClusterConfigure {
+		return ErrorMaxNodesToAddOnClusterConfigure(totalRequestedNodes, totalCurrentNodes, MaxNodesToAddOnClusterConfigure)
+	}
+
+	return nil
+}
+
 // this validates the user-provided cluster config
 func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration ...\n\n")
@@ -1154,6 +1117,11 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 	err := cc.validate(awsClient)
 	if err != nil {
 		return err
+	}
+
+	requestedTotalMinInstances := getTotalMinInstances(cc.NodeGroups)
+	if requestedTotalMinInstances > MaxNodesToAddOnClusterUp {
+		return errors.Wrap(ErrorMaxNodesToAddOnClusterUp(requestedTotalMinInstances, MaxNodesToAddOnClusterUp), NodeGroupsKey)
 	}
 
 	// setting max_instances to 0 during cluster creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
@@ -1183,7 +1151,7 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 	return nil
 }
 
-func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, eksNodeGroupStacks []*cloudformation.StackSummary) (ConfigureChanges, error) {
+func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, k8sClient *k8s.Client, oldConfig Config, eksNodeGroupStacks []*cloudformation.StackSummary) (ConfigureChanges, error) {
 	fmt.Print("verifying your configuration ...\n\n")
 
 	cc.ClusterUID = oldConfig.ClusterUID
@@ -1200,6 +1168,11 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, e
 	err = cc.validateSharedNodeGroupsDiff(oldConfig)
 	if err != nil {
 		return ConfigureChanges{}, err
+	}
+
+	err = cc.validateNodeAdditionRate(k8sClient)
+	if err != nil {
+		return ConfigureChanges{}, errors.Wrap(err, NodeGroupsKey)
 	}
 
 	ngsToBeAdded := cc.getNewNodeGroups(oldConfig)
@@ -1398,6 +1371,14 @@ func (cc *Config) getCommonNodeGroups(oldConfig Config) ([]*NodeGroup, []*NodeGr
 		}
 	}
 	return commonNewNodeGroups, commonOldNodeGroups
+}
+
+func getTotalMinInstances(nodeGroups []*NodeGroup) int64 {
+	totalMinInstances := int64(0)
+	for _, ng := range nodeGroups {
+		totalMinInstances += ng.MinInstances
+	}
+	return totalMinInstances
 }
 
 func GetNodeGroupNames(nodeGroups []*NodeGroup) []string {
@@ -1689,13 +1670,6 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 		event["cluster_name._is_custom"] = true
 	}
 
-	if cc.Namespace != "default" {
-		event["namespace._is_custom"] = true
-	}
-	if cc.IstioNamespace != "istio-system" {
-		event["istio_namespace._is_custom"] = true
-	}
-
 	event["region"] = cc.Region
 	event["prometheus_instance_type"] = cc.PrometheusInstanceType
 
@@ -1784,40 +1758,35 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 		event["image_event_exporter._is_custom"] = true
 	}
 
-	return event
-}
-
-func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
-	event := map[string]interface{}{}
-	if len(mc.Tags) > 0 {
+	if len(cc.Tags) > 0 {
 		event["tags._is_defined"] = true
-		event["tags._len"] = len(mc.Tags)
+		event["tags._len"] = len(cc.Tags)
 	}
-	if len(mc.AvailabilityZones) > 0 {
+	if len(cc.AvailabilityZones) > 0 {
 		event["availability_zones._is_defined"] = true
-		event["availability_zones._len"] = len(mc.AvailabilityZones)
-		event["availability_zones"] = mc.AvailabilityZones
+		event["availability_zones._len"] = len(cc.AvailabilityZones)
+		event["availability_zones"] = cc.AvailabilityZones
 	}
-	if len(mc.Subnets) > 0 {
+	if len(cc.Subnets) > 0 {
 		event["subnets._is_defined"] = true
-		event["subnets._len"] = len(mc.Subnets)
-		event["subnets"] = mc.Subnets
+		event["subnets._len"] = len(cc.Subnets)
+		event["subnets"] = cc.Subnets
 	}
-	if mc.SSLCertificateARN != nil {
+	if cc.SSLCertificateARN != nil {
 		event["ssl_certificate_arn._is_defined"] = true
 	}
 
 	// CortexPolicyARN should be managed by cortex
-	if !strset.New(_defaultIAMPolicies...).IsEqual(strset.New(mc.IAMPolicyARNs...)) {
+	if !strset.New(_defaultIAMPolicies...).IsEqual(strset.New(cc.IAMPolicyARNs...)) {
 		event["iam_policy_arns._is_custom"] = true
 	}
-	event["iam_policy_arns._len"] = len(mc.IAMPolicyARNs)
+	event["iam_policy_arns._len"] = len(cc.IAMPolicyARNs)
 
-	event["subnet_visibility"] = mc.SubnetVisibility
-	event["nat_gateway"] = mc.NATGateway
-	event["api_load_balancer_scheme"] = mc.APILoadBalancerScheme
-	event["operator_load_balancer_scheme"] = mc.OperatorLoadBalancerScheme
-	if mc.VPCCIDR != nil {
+	event["subnet_visibility"] = cc.SubnetVisibility
+	event["nat_gateway"] = cc.NATGateway
+	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
+	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
+	if cc.VPCCIDR != nil {
 		event["vpc_cidr._is_defined"] = true
 	}
 
@@ -1825,11 +1794,12 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	spotInstanceTypes := strset.New()
 	var totalMinSize, totalMaxSize int
 
-	event["node_groups._len"] = len(mc.NodeGroups)
-	for i, ng := range mc.NodeGroups {
+	event["node_groups._len"] = len(cc.NodeGroups)
+	for i, ng := range cc.NodeGroups {
 		nodeGroupKey := func(field string) string {
 			return fmt.Sprintf("node_groups.%d.%s", i, field)
 		}
+
 		event[nodeGroupKey("_is_defined")] = true
 		event[nodeGroupKey("name")] = ng.Name
 		event[nodeGroupKey("instance_type")] = ng.InstanceType
@@ -1892,8 +1862,8 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	return event
 }
 
-func (mc *ManagedConfig) GetNodeGroupByName(name string) *NodeGroup {
-	for _, ng := range mc.NodeGroups {
+func (cc *CoreConfig) GetNodeGroupByName(name string) *NodeGroup {
+	for _, ng := range cc.NodeGroups {
 		if ng.Name == name {
 			matchedNodeGroup := *ng
 			return &matchedNodeGroup
@@ -1903,10 +1873,10 @@ func (mc *ManagedConfig) GetNodeGroupByName(name string) *NodeGroup {
 	return nil
 }
 
-func (mc *ManagedConfig) GetNodeGroupNames() []string {
-	allNodeGroupNames := make([]string, len(mc.NodeGroups))
-	for i := range mc.NodeGroups {
-		allNodeGroupNames[i] = mc.NodeGroups[i].Name
+func (cc *CoreConfig) GetNodeGroupNames() []string {
+	allNodeGroupNames := make([]string, len(cc.NodeGroups))
+	for i := range cc.NodeGroups {
+		allNodeGroupNames[i] = cc.NodeGroups[i].Name
 	}
 
 	return allNodeGroupNames

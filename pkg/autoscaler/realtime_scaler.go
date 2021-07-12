@@ -36,21 +36,21 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type realtimeScaler struct {
+type RealtimeScaler struct {
 	k8s        *k8s.Client
 	prometheus promv1.API
 	logger     *zap.SugaredLogger
 }
 
-func NewRealtimeScaler(k8sClient *k8s.Client, promClient promv1.API, logger *zap.SugaredLogger) Scaler {
-	return &realtimeScaler{
+func NewRealtimeScaler(k8sClient *k8s.Client, promClient promv1.API, logger *zap.SugaredLogger) *RealtimeScaler {
+	return &RealtimeScaler{
 		k8s:        k8sClient,
 		prometheus: promClient,
 		logger:     logger,
 	}
 }
 
-func (s *realtimeScaler) Scale(apiName string, request int32) error {
+func (s *RealtimeScaler) Scale(apiName string, request int32) error {
 	ctx := context.Background()
 
 	// we use the controller-runtime client to make use of the cache mechanism
@@ -96,7 +96,7 @@ func (s *realtimeScaler) Scale(apiName string, request int32) error {
 	return nil
 }
 
-func (s *realtimeScaler) GetInFlightRequests(apiName string, window time.Duration) (*float64, error) {
+func (s *RealtimeScaler) GetInFlightRequests(apiName string, window time.Duration) (*float64, error) {
 	windowSeconds := int64(window.Seconds())
 
 	// PromQL query:
@@ -132,7 +132,7 @@ func (s *realtimeScaler) GetInFlightRequests(apiName string, window time.Duratio
 	return &avgInflightRequests, nil
 }
 
-func (s *realtimeScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autoscaling, error) {
+func (s *RealtimeScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autoscaling, error) {
 	deployment, err := s.k8s.GetDeployment(workloads.K8sName(apiName))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get deployment")
@@ -150,7 +150,7 @@ func (s *realtimeScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autosca
 	return autoscalingSpec, nil
 }
 
-func (s *realtimeScaler) CurrentReplicas(apiName string) (int32, error) {
+func (s *RealtimeScaler) CurrentReplicas(apiName string) (int32, error) {
 	ctx := context.Background()
 
 	// we use the controller-runtime client to make use of the cache mechanism
@@ -166,7 +166,7 @@ func (s *realtimeScaler) CurrentReplicas(apiName string) (int32, error) {
 	return deployment.Status.Replicas, nil
 }
 
-func (s *realtimeScaler) routeToService(deployment *kapps.Deployment) error {
+func (s *RealtimeScaler) routeToService(deployment *kapps.Deployment) error {
 	ctx := context.Background()
 	vs, err := s.k8s.GetVirtualService(deployment.Name)
 	if err != nil {
@@ -198,7 +198,7 @@ func (s *realtimeScaler) routeToService(deployment *kapps.Deployment) error {
 	return nil
 }
 
-func (s *realtimeScaler) routeToActivator(deployment *kapps.Deployment) error {
+func (s *RealtimeScaler) routeToActivator(deployment *kapps.Deployment) error {
 	ctx := context.Background()
 	vs, err := s.k8s.GetVirtualService(deployment.Name)
 	if err != nil {
@@ -226,7 +226,7 @@ func (s *realtimeScaler) routeToActivator(deployment *kapps.Deployment) error {
 	return nil
 }
 
-func (s *realtimeScaler) waitForReadyReplicas(ctx context.Context, deployment *kapps.Deployment) error {
+func (s *RealtimeScaler) waitForReadyReplicas(ctx context.Context, deployment *kapps.Deployment) error {
 	watcher, err := s.k8s.ClientSet().AppsV1().Deployments(s.k8s.Namespace).Watch(
 		ctx,
 		kmeta.ListOptions{

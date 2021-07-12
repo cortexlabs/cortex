@@ -19,7 +19,6 @@ package realtimeapi
 import (
 	"fmt"
 
-	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -135,7 +134,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 							consts.CortexTargetServiceHeader: fmt.Sprintf(
 								"http://%s.%s:%d",
 								workloads.K8sName(api.Name),
-								config.ClusterConfig.Namespace,
+								consts.DefaultNamespace,
 								consts.ProxyPortInt32,
 							),
 						},
