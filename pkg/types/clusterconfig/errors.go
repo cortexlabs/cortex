@@ -132,7 +132,7 @@ func ErrorDuplicateNodeGroupName(duplicateNgName string) error {
 func ErrorMaxNodesToAddOnClusterUp(requestedNodes, maxNodes int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMaxNodesToAddOnClusterUp,
-		Message: fmt.Sprintf("cannot add (%d requested nodes) more than %d nodes during cluster up; reduce the %s values on your nodegroups to accomomdate for this figure", requestedNodes, maxNodes, MinInstancesKey),
+		Message: fmt.Sprintf("cannot add (%d requested nodes) more than %d nodes during cluster up; reduce the %s values on your nodegroups to accommodate for this figure", requestedNodes, maxNodes, MinInstancesKey),
 	})
 }
 

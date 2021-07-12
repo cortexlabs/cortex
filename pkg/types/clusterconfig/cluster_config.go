@@ -1152,7 +1152,7 @@ func (cc *Config) validateSharedNodeGroupsDiff(oldConfig Config) error {
 	return nil
 }
 
-func (cc *Config) validateNodeAdditionQuota(k8sClient *k8s.Client) error {
+func (cc *Config) validateNodeAdditionRate(k8sClient *k8s.Client) error {
 	workloadNodes, err := k8sClient.ListNodesByLabel("workload", "true")
 	if err != nil {
 		return err
@@ -1227,9 +1227,9 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, k8sClient *k8s.Clie
 		return ConfigureChanges{}, err
 	}
 
-	err = cc.validateNodeAdditionQuota(k8sClient)
+	err = cc.validateNodeAdditionRate(k8sClient)
 	if err != nil {
-		return ConfigureChanges{}, err
+		return ConfigureChanges{}, errors.Wrap(err, NodeGroupsKey)
 	}
 
 	ngsToBeAdded := cc.getNewNodeGroups(oldConfig)
