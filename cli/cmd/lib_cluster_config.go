@@ -61,7 +61,7 @@ func existingCachedClusterConfigPaths() []string {
 }
 
 func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath string) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.FullManagedValidation, filePath)
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.FullConfigValidation, filePath)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -70,7 +70,7 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath s
 }
 
 func readUserClusterConfigFile(clusterConfig *clusterconfig.Config, filePath string) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.FullManagedValidation, filePath)
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.FullConfigValidation, filePath)
 	if errors.HasError(errs) {
 		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 	}
