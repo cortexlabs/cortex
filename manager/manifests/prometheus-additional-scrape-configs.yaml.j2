@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{% if env.get("CORTEX_DEV_HAS_CONTROL_PLANE_DASHBOARD") == "true" %}
+{% if env.get("CORTEX_DEV_ADD_CONTROL_PLANE_DASHBOARD") == "true" %}
 - job_name: "kubernetes-apiservers"
   kubernetes_sd_configs:
     - role: endpoints

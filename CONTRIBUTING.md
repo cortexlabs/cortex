@@ -167,7 +167,7 @@ Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashr
 export CORTEX_DEV_DEFAULT_IMAGE_REGISTRY="<account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs"
 
 # enable api server monitoring in grafana
-export CORTEX_DEV_HAS_CONTROL_PLANE_DASHBOARD="true"
+export CORTEX_DEV_ADD_CONTROL_PLANE_DASHBOARD="true"
 
 # redirect analytics and error reporting to our dev environment
 export CORTEX_TELEMETRY_SENTRY_DSN="https://c334df915c014ffa93f2076769e5b334@sentry.io/1848098"

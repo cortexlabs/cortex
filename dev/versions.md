@@ -184,6 +184,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 1. Pull the release branch from the upstream repo to Cortex's fork on [Github](https://github.com/cortexlabs/autoscaler).
 1. Apply the rate-limiter changes from the previous version to the new one (currently sitting on `cluster-autoscaler-release-1.20` branch).
 1. Update `-b` flag's value from `git clone` command in `images/cluster-autoscaler/Dockerfile` to the branch name of the latest release from Cortex's fork.
+1. Match the Go version of the builder in `images/cluster-autoscaler/Dockerfile` with that of the [cluster autoscaler](https://github.com/kubernetes/autoscaler)'s Dockerfile.
 
 ## FluentBit
 

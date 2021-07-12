@@ -1178,7 +1178,7 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 
 	requestedTotalMinInstances := getTotalMinInstances(cc.NodeGroups)
 	if requestedTotalMinInstances > MaxNodesToAddOnClusterUp {
-		return ErrorMaxNodesToAddOnClusterUp(requestedTotalMinInstances, MaxNodesToAddOnClusterUp)
+		return errors.Wrap(ErrorMaxNodesToAddOnClusterUp(requestedTotalMinInstances, MaxNodesToAddOnClusterUp), NodeGroupsKey)
 	}
 
 	// setting max_instances to 0 during cluster creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
