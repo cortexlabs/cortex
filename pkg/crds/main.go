@@ -105,7 +105,7 @@ func main() {
 	}
 
 	if prometheusURL == "" {
-		prometheusURL = fmt.Sprintf("http://prometheus.%s:9090", clusterConfig.Namespace)
+		prometheusURL = fmt.Sprintf("http://prometheus.%s:9090", consts.DefaultNamespace)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
