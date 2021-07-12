@@ -132,14 +132,14 @@ func ErrorDuplicateNodeGroupName(duplicateNgName string) error {
 func ErrorMaxNodesToAddOnClusterUp(requestedNodes, maxNodes int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMaxNodesToAddOnClusterUp,
-		Message: fmt.Sprintf("cannot add (%d requested nodes) more than %d nodes during cluster up; reduce the %s values on your nodegroups to accommodate for this figure", requestedNodes, maxNodes, MinInstancesKey),
+		Message: fmt.Sprintf("cannot create a cluster with %d instances (at most %d instances can be created initially); reduce %s for your nodegroups (you may add additional instances via the `cortex cluster configure` command after your cluster has been created)", requestedNodes, maxNodes, MinInstancesKey),
 	})
 }
 
 func ErrorMaxNodesToAddOnClusterConfigure(requestedNodes, currentNodes, maxNodes int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMaxNodesToAddOnClusterConfigure,
-		Message: fmt.Sprintf("cannot add (%d requested nodes) more than %d nodes to your cluster (%d current nodes); reduce the %s values on your nodegroups by %d to accommodate for this figure", requestedNodes, maxNodes, currentNodes, MinInstancesKey, requestedNodes-maxNodes-currentNodes),
+		Message: fmt.Sprintf("cannot add %d instances to your cluster (you requested %d total instances, but your cluster currently has %d instances); only %d instances can be added at time, so reduce the sum of %s across all nodegroups by %d", requestedNodes-currentNodes, requestedNodes, currentNodes, maxNodes, MinInstancesKey, requestedNodes-currentNodes-maxNodes),
 	})
 }
 
