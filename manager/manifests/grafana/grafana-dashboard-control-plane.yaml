@@ -36,7 +36,6 @@ data:
       "editable": true,
       "gnetId": 10907,
       "graphTooltip": 0,
-      "id": 8,
       "links": [],
       "panels": [
         {
@@ -269,7 +268,7 @@ data:
           "targets": [
             {
               "exemplar": true,
-              "expr": "histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket{verb!~\"WATCH|CONNECT\"}[5m])) by (le) ) / 1e+06",
+              "expr": "histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket{verb!~\"WATCH|CONNECT\"}[5m])) by (le) )",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
@@ -281,7 +280,7 @@ data:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "Latency - p99 (ms)",
+          "title": "Latency - p99",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -297,8 +296,9 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:45",
               "decimals": 2,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -306,6 +306,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:46",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -404,6 +405,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:101",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -412,6 +414,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:102",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -510,6 +513,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:157",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -518,6 +522,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:158",
               "decimals": 1,
               "format": "short",
               "label": null,
@@ -914,7 +919,7 @@ data:
           "targets": [
             {
               "exemplar": true,
-              "expr": "histogram_quantile(0.90, sum(rate(apiserver_request_duration_seconds_bucket{verb!~\"WATCH|CONNECT\"}[5m])) by (le, resource) ) / 1e+06",
+              "expr": "histogram_quantile(0.90, sum(rate(apiserver_request_duration_seconds_bucket{verb!~\"WATCH|CONNECT\"}[5m])) by (le, resource) )",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
@@ -942,7 +947,8 @@ data:
           },
           "yaxes": [
             {
-              "format": "short",
+              "$$hashKey": "object:252",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -950,6 +956,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:253",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -1017,7 +1024,7 @@ data:
           "targets": [
             {
               "exemplar": true,
-              "expr": "histogram_quantile(0.90, sum(rate(apiserver_request_duration_seconds_bucket{verb!~\"WATCH|CONNECT\"}[5m])) by (le, verb) ) / 1e+06",
+              "expr": "histogram_quantile(0.90, sum(rate(apiserver_request_duration_seconds_bucket{verb!~\"WATCH|CONNECT\"}[5m])) by (le, verb) )",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
@@ -1045,7 +1052,8 @@ data:
           },
           "yaxes": [
             {
-              "format": "short",
+              "$$hashKey": "object:194",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1053,6 +1061,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:195",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -1158,6 +1167,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:223",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -1166,6 +1176,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:224",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -1180,7 +1191,7 @@ data:
           }
         }
       ],
-      "refresh": "5s",
+      "refresh": "30s",
       "schemaVersion": 30,
       "style": "dark",
       "tags": [],
@@ -1219,5 +1230,5 @@ data:
       "timezone": "",
       "title": "K8S Control Plane",
       "uid": "k8scontrolplane",
-      "version": 5
+      "version": 2
     }

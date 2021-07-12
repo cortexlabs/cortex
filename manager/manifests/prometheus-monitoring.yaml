@@ -12,58 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{% if env.get("CORTEX_DEV_HAS_CONTROL_PLANE_DASHBOARD") == "true" %}
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: prometheus-file-config
-  namespace: default
-data:
-  prometheus.env.yaml: |
-    scrape_configs:
-    - job_name: "kubernetes-apiservers"
-
-      kubernetes_sd_configs:
-        - role: endpoints
-
-      # Default to scraping over https. If required, just disable this or change to
-      # `http`.
-      scheme: https
-
-      # This TLS & authorization config is used to connect to the actual scrape
-      # endpoints for cluster components. This is separate to discovery auth
-      # configuration because discovery & scraping are two separate concerns in
-      # Prometheus. The discovery auth config is automatic if Prometheus runs inside
-      # the cluster. Otherwise, more config options have to be provided within the
-      # <kubernetes_sd_config>.
-      tls_config:
-        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        # If your node certificates are self-signed or use a different CA to the
-        # master CA, then disable certificate verification below. Note that
-        # certificate verification is an integral part of a secure infrastructure
-        # so this should only be disabled in a controlled environment. You can
-        # disable certificate verification by uncommenting the line below.
-        #
-        # insecure_skip_verify: true
-      authorization:
-        credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-
-      # Keep only the default/kubernetes service endpoints for the https port. This
-      # will add targets for each API server which Kubernetes adds an endpoint to
-      # the default/kubernetes service.
-      relabel_configs:
-        - source_labels:
-            [
-              __meta_kubernetes_namespace,
-              __meta_kubernetes_service_name,
-              __meta_kubernetes_endpoint_port_name,
-            ]
-          action: keep
-          regex: default;kubernetes;https
-
----
-{% endif %}
-
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -80,7 +28,7 @@ kind: Prometheus
 metadata:
   name: prometheus
 spec:
-  image: {{ config['image_prometheus'] }}
+  image: $CORTEX_IMAGE_PROMETHEUS
   serviceAccountName: prometheus
   nodeSelector:
     prometheus: "true"
@@ -110,19 +58,9 @@ spec:
         resources:
           requests:
             storage: 40Gi
-  {% if env.get("CORTEX_DEV_HAS_CONTROL_PLANE_DASHBOARD") == "true" %}
-  volumes:
-  - configMap:
-      items:
-      - key: prometheus.env.yaml
-        path: prometheus.env.yaml
-      name: prometheus-file-config
-    name: prometheus-file-config
-  volumeMounts:
-  - mountPath: /etc/prometheus/config_out/prometheus.env.yaml
-    name: prometheus-file-config
-    subPath: prometheus.env.yaml
-  {% endif %}
+  additionalScrapeConfigs:
+    name: additional-scrape-configs
+    key: prometheus-additional-scrape-configs.yaml
   retention: 2w
   retentionSize: 35GB
   securityContext:
