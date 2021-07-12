@@ -49,7 +49,7 @@ const (
 	// MaxNodeGroups represents the max number of node groups in a cluster
 	MaxNodeGroups = 100
 	// MaxNodesToAddOnClusterUp represents the max number of nodes to add on cluster up
-	MaxNodesToAddOnClusterUp = 150
+	MaxNodesToAddOnClusterUp = 250
 	// MaxNodesToAddOnClusterConfigure represents the max number of nodes to add on cluster up/configure
 	MaxNodesToAddOnClusterConfigure = 100
 	// ClusterNameTag is the tag used for storing a cluster's name in AWS resources
