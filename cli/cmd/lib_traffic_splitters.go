@@ -85,9 +85,6 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 			apiRes.Status.Message(),
 			apiRes.Status.Requested,
 			libtime.SinceStr(&lastUpdated),
-			latencyStr(apiRes.Metrics),
-			code2XXStr(apiRes.Metrics),
-			code5XXStr(apiRes.Metrics),
 		})
 	}
 

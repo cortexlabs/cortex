@@ -76,19 +76,10 @@ func asyncAPIsTable(asyncAPIs []schema.APIResponse, envNames []string) table.Tab
 			asyncAPI.Status.Requested,
 			asyncAPI.Status.Updated.TotalFailed(),
 			libtime.SinceStr(&lastUpdated),
-			latencyStr(asyncAPI.Metrics),
-			code2XXStr(asyncAPI.Metrics),
-			code4XXStr(asyncAPI.Metrics),
-			code5XXStr(asyncAPI.Metrics),
 		})
 
 		totalFailed += asyncAPI.Status.Updated.TotalFailed()
 		totalStale += asyncAPI.Status.Stale.Ready
-
-		if asyncAPI.Metrics.NetworkStats != nil {
-			total4XX += asyncAPI.Metrics.NetworkStats.Code4XX
-			total5XX += asyncAPI.Metrics.NetworkStats.Code5XX
-		}
 	}
 
 	return table.Table{
