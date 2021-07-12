@@ -1,0 +1,7 @@
+apiVersion: api.cortex.dev/v1alpha1
+kind: RealtimeAPI
+metadata:
+  name: realtimeapi-sample
+spec:
+  # Add fields here
+  foo: bar

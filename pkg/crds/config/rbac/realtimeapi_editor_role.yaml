@@ -1,0 +1,24 @@
+# permissions for end users to edit realtimeapis.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: realtimeapi-editor-role
+rules:
+- apiGroups:
+  - api.cortex.dev
+  resources:
+  - realtimeapis
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - api.cortex.dev
+  resources:
+  - realtimeapis/status
+  verbs:
+  - get
