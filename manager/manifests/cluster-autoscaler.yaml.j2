@@ -199,7 +199,7 @@ spec:
             - --scan-interval=20s
             - --scale-up-rate-limit-enabled=true
             - --scale-up-max-number-nodes-per-min=50
-            - --scale-up-burst-number-nodes-per-min=100
+            - --scale-up-burst-number-nodes-per-min=75
             - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/{{ config['cluster_name'] }}
           volumeMounts:
             - name: ssl-certs
