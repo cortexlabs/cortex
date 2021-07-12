@@ -24,6 +24,32 @@ rules:
   - list
   - watch
 - apiGroups:
+  - api.cortex.dev
+  resources:
+  - realtimeapis
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - api.cortex.dev
+  resources:
+  - realtimeapis/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - api.cortex.dev
+  resources:
+  - realtimeapis/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - batch
   resources:
   - jobs
