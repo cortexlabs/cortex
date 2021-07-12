@@ -76,7 +76,7 @@ You can export both the Cortex system logs and your application logs to your des
 
 ### Configure kubectl
 
-Follow these [instructions](../../clusters/advanced/kubectl.md) to set up kubectl.
+Follow these [instructions](../../guides/kubectl.md) to set up kubectl.
 
 ### Find supported destinations in FluentBit
 

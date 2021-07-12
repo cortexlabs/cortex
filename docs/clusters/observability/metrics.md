@@ -18,7 +18,7 @@ If your operator load balancer is configured to be internal, there are a few opt
 1. Access the dashboard from a machine that has VPC Peering configured to your cluster's VPC, or which is inside of your
    cluster's VPC.
 1. Run `kubectl port-forward -n default grafana-0 3000:3000` to forward Grafana's port to your local machine, and access
-   the dashboard on [http://localhost:3000](http://localhost:3000) (see instructions for setting up `kubectl` [here](../advanced/kubectl.md)).
+   the dashboard on [http://localhost:3000](http://localhost:3000) (see instructions for setting up `kubectl` [here](../../guides/kubectl.md)).
 1. Set up VPN access to your cluster's
    VPC ([docs](https://docs.aws.amazon.com/vpc/latest/userguide/vpn-connections.html)).
 
@@ -77,7 +77,7 @@ The steps for exporting metrics from Prometheus will vary based on your monitori
 
 ### Configure kubectl
 
-Follow these [instructions](../../clusters/advanced/kubectl.md) to set up kubectl.
+Follow these [instructions](../../guides/kubectl.md) to set up kubectl.
 
 ### Install agent
 
@@ -121,7 +121,7 @@ Once you've found an adapter that works for you, follow the steps below:
 
 ### Configure kubectl
 
-Follow these [instructions](../../clusters/advanced/kubectl.md) to set up kubectl.
+Follow these [instructions](../../guides/kubectl.md) to set up kubectl.
 
 ### Update Prometheus
 

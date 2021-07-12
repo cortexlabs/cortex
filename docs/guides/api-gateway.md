@@ -1,4 +1,4 @@
-# HTTPS
+# API Gateway
 
 If you would like to support HTTPS endpoints for your Cortex APIs, here are a few options:
 

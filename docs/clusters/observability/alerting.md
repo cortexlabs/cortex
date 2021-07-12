@@ -117,11 +117,11 @@ Due to how Grafana was built, you'll need to re-do the steps of setting a given 
 
 ## Enabling email alerts
 
-It is possible to manually configure SMTP to enable email alerts (we plan on automating this proccess, see [#2210](https://github.com/cortexlabs/cortex/issues/2210)).
+It is possible to manually configure SMTP to enable email alerts (we plan on automating this process, see [#2210](https://github.com/cortexlabs/cortex/issues/2210)).
 
 **Step 1**
 
-Install [kubectl](../advanced/kubectl.md).
+Install [kubectl](../../guides/kubectl.md).
 
 **Step 2**
 

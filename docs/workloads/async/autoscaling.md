@@ -54,7 +54,7 @@ For example, setting `target_in_flight` to 1 (the default) causes the cluster to
 
 ## Autoscaling instances
 
-Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` for each node group (configured during installation and modifiable via `cortex cluster scale`).
+Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` for each node group (configured during installation and modifiable via `cortex cluster configure`).
 
 ## Overprovisioning
 

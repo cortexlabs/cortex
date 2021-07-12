@@ -33,7 +33,7 @@ Feel free to modify the script if you would like to export the images to a diffe
 ./cortex/dev/export_images.sh <AWS_REGION> <AWS_ACCOUNT_ID>
 ```
 
-You can now configure Cortex to use your images when creating a cluster (see [here](../management/create.md) for instructions).
+You can now configure Cortex to use your images when creating a cluster (see [here](../clusters/management/create.md) for instructions).
 
 ## Cleanup
 

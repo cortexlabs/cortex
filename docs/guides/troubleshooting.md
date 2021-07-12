@@ -23,7 +23,7 @@ When you created your Cortex cluster, you configured `max_instances` for each no
 
 You can check the current value of `max_instances` for the selected node group by running `cortex cluster info --config cluster.yaml` (or `cortex cluster info --name <CLUSTER-NAME> --region <CLUSTER-REGION>` if you have the name and region of the cluster).
 
-Once you have the name and region of the cluster, you can update `max_instances` by specifying the desired number of `max_instances` for your node group with `cortex cluster scale --name <CLUSTER-NAME> --region <CLUSTER-REGION> --node-group <NG-NAME> --max-instances <MAX-INSTANCES>`.
+Once you have the name and region of the cluster, you can update `max_instances` by specifying the desired number of `max_instances` for your node group with `cortex cluster configure --name <CLUSTER-NAME> --region <CLUSTER-REGION> --node-group <NG-NAME> --max-instances <MAX-INSTANCES>`.
 
 ## Check your AWS auto scaling group activity history
 

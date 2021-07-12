@@ -1,6 +1,6 @@
 # Custom domain
 
-You can use any custom domain for your endpoints. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and, if desired, configure your API load balancer to use an SSL certificate provisioned by AWS Certificate Manager.
+You can set up DNS to point to a custom domain you own to route traffic to your Cortex APIs. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and, if desired, configure your API load balancer to use an SSL certificate provisioned by AWS Certificate Manager.
 
 ## Configure DNS
 
@@ -25,6 +25,18 @@ We are going to add an NS (name server) record that specifies that any traffic t
 `cortexlabs.dev` is managed by Google Domains. The image below is a screenshot for adding a DNS record in Google Domains (your UI may differ based on your DNS service provider).
 
 ![](https://user-images.githubusercontent.com/808475/109039458-abcb0580-7681-11eb-8644-76436328687e.png)
+
+## Add DNS record
+
+Navigate to your [EC2 Load Balancer console](https://us-west-2.console.aws.amazon.com/ec2/v2/home#LoadBalancers:sort=loadBalancerName) and locate the Cortex API load balancer. You can determine which is the API load balancer by inspecting the `kubernetes.io/service-name` tag.
+
+Take note of the load balancer's name.
+
+![](https://user-images.githubusercontent.com/808475/80142777-961c1980-8560-11ea-9202-40964dbff5e9.png)
+
+Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and select the hosted zone you created earlier. Click "Create Record Set", and add an Alias record that routes traffic to your Cortex cluster's API load balancer (leave "Name" blank).
+
+![](https://user-images.githubusercontent.com/808475/84083422-6ac97e80-a996-11ea-9679-be37268a2133.png)
 
 ## Generate an SSL certificate
 
@@ -81,18 +93,6 @@ Create a Cortex cluster:
 ```bash
 cortex cluster up cluster.yaml
 ```
-
-## Add DNS record
-
-Navigate to your [EC2 Load Balancer console](https://us-west-2.console.aws.amazon.com/ec2/v2/home#LoadBalancers:sort=loadBalancerName) and locate the Cortex API load balancer. You can determine which is the API load balancer by inspecting the `kubernetes.io/service-name` tag.
-
-Take note of the load balancer's name.
-
-![](https://user-images.githubusercontent.com/808475/80142777-961c1980-8560-11ea-9202-40964dbff5e9.png)
-
-Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and select the hosted zone you created earlier. Click "Create Record Set", and add an Alias record that routes traffic to your Cortex cluster's API load balancer (leave "Name" blank).
-
-![](https://user-images.githubusercontent.com/808475/84083422-6ac97e80-a996-11ea-9679-be37268a2133.png)
 
 ## Use your new endpoint
 

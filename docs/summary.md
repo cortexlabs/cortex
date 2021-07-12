@@ -20,13 +20,6 @@
   * [Alerting](clusters/observability/alerting.md)
 * Networking
   * [Load balancers](clusters/networking/load-balancers.md)
-  * [VPC peering](clusters/networking/vpc-peering.md)
-  * [HTTPS](clusters/networking/https.md)
-  * [Custom domain](clusters/networking/custom-domain.md)
-* Advanced
-  * [Setting up kubectl](clusters/advanced/kubectl.md)
-  * [Private Docker registry](clusters/advanced/registry.md)
-  * [Self hosted images](clusters/advanced/self-hosted-images.md)
 
 ## Workloads
 
@@ -38,7 +31,6 @@
   * [Traffic Splitter](workloads/realtime/traffic-splitter.md)
   * [Metrics](workloads/realtime/metrics.md)
   * [Statuses](workloads/realtime/statuses.md)
-  * [Troubleshooting](workloads/realtime/troubleshooting.md)
 * [Async](workloads/async/async.md)
   * [Example](workloads/async/example.md)
   * [Configuration](workloads/async/configuration.md)
@@ -63,3 +55,14 @@
 * [Uninstall](clients/uninstall.md)
 * [CLI commands](clients/cli.md)
 * [Python client](clients/python.md)
+
+* Guides
+  * [Production Guide](guides/prod-guide.md)
+  * [Migrating to new Cortex clusters](guides/migrating.md)
+  * [Setting up kubectl](guides/kubectl.md)
+  * [Private docker registry](guides/registry.md)
+  * [Self-hosted images](guides/self-hosted-images.md)
+  * [Custom domain and HTTPS](guides/custom-domain.md)
+  * [HTTPS with API Gateway](guides/api-gateway.md)
+  * [VPC peering](guides/vpc-peering.md)
+  * [troubleshooting](guides/troubleshooting.md)
