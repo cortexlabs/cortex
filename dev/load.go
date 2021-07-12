@@ -23,41 +23,45 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"go.uber.org/atomic"
 )
 
 // usage: go run load.go <url> <sample.json OR sample json string>
 
-// either set _numConcurrent > 0 or _requestInterval > 0 (and configure the corresponding sections)
-
-// constant in-flight requests
+// configuration options (either set _numConcurrent > 0 or _requestInterval > 0, and configure the corresponding section)
 const (
+	// constant in-flight requests
 	_numConcurrent        = 3
-	_numRequestsPerThread = -1 // -1 means loop infinitely
-	_requestDelay         = 0 * time.Second
-	_numMainLoops         = 10 // only relevant if _numRequestsPerThread != -1
-)
+	_requestDelay         = 0 * time.Millisecond
+	_numRequestsPerThread = 0 // 0 means loop infinitely
+	_numMainLoops         = 1 // only relevant if _numRequestsPerThread > 0
 
-// constant requests per second
-const (
-	_requestInterval = -1 * time.Millisecond
-	_maxInFlight     = 5
-)
+	// constant requests per second
+	_requestInterval        = 0 * time.Millisecond
+	_numRequests     uint64 = 0 // 0 means loop infinitely
+	_maxInFlight            = 5
 
-// other options
-const (
+	// other options
 	_printSuccessDots = true
+	_printFailures    = true
 )
 
 type Counter struct {
 	sync.Mutex
-	count int
+	count int64
 }
+
+var _requestCount = atomic.Uint64{}
+var _successCount = atomic.Uint64{}
+var _failureCount = atomic.Uint64{}
 
 var _client = &http.Client{
 	Timeout: 0, // no timeout
@@ -68,12 +72,12 @@ var _client = &http.Client{
 
 func main() {
 	if _numConcurrent > 0 && _requestInterval > 0 {
-		fmt.Println("error: you must set either _numConcurrent or _requestInterval, but not both")
+		fmt.Println("error: you must set either _numConcurrent or _requestInterval > 0, but not both")
 		os.Exit(1)
 	}
 
 	if _numConcurrent == 0 && _requestInterval == 0 {
-		fmt.Println("error: you must set either _numConcurrent or _requestInterval")
+		fmt.Println("error: you must set either _numConcurrent or _requestInterval > 0")
 		os.Exit(1)
 	}
 
@@ -99,17 +103,31 @@ func runConstantRequestsPerSecond(url string, jsonBytes []byte) {
 	ticker := time.NewTicker(_requestInterval)
 	done := make(chan bool)
 
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		done <- true
+	}()
+
+	start := time.Now()
+
+FOR_LOOP:
 	for {
 		select {
 		case <-done:
-			return
+			break FOR_LOOP
 		case <-ticker.C:
-			go runConstantRequestsPerSecondIteration(url, jsonBytes, &inFlightCount)
+			go runConstantRequestsPerSecondIteration(url, jsonBytes, &inFlightCount, done)
 		}
 	}
+
+	elapsed := time.Since(start)
+	requestRate := float64(_requestCount.Load()) / elapsed.Seconds()
+	fmt.Printf("\nelapsed time: %s | %d requests @ %f req/s | %d succeeded | %d failed\n", elapsed, _requestCount.Load(), requestRate, _successCount.Load(), _failureCount.Load())
 }
 
-func runConstantRequestsPerSecondIteration(url string, jsonBytes []byte, inFlightCount *Counter) {
+func runConstantRequestsPerSecondIteration(url string, jsonBytes []byte, inFlightCount *Counter, done chan bool) {
 	if _maxInFlight > 0 {
 		inFlightCount.Lock()
 		if inFlightCount.count >= _maxInFlight {
@@ -123,6 +141,10 @@ func runConstantRequestsPerSecondIteration(url string, jsonBytes []byte, inFligh
 
 	makeRequest(url, jsonBytes)
 
+	if _numRequests > 0 && _requestCount.Load() >= _numRequests {
+		done <- true
+	}
+
 	if _maxInFlight > 0 {
 		inFlightCount.Lock()
 		inFlightCount.count--
@@ -131,26 +153,52 @@ func runConstantRequestsPerSecondIteration(url string, jsonBytes []byte, inFligh
 }
 
 func runConstantInFlight(url string, jsonBytes []byte) {
-	start := time.Now()
-	loopNum := 1
-	for {
-		runConstantInFlightIteration(url, jsonBytes)
-		if loopNum >= _numMainLoops {
-			break
-		}
-		loopNum++
-	}
-	fmt.Println("total elapsed time:", time.Since(start))
-}
-
-func runConstantInFlightIteration(url string, jsonBytes []byte) {
-	start := time.Now()
-
 	if _numRequestsPerThread > 0 {
 		fmt.Printf("spawning %d threads, %d requests each, %s delay on each\n", _numConcurrent, _numRequestsPerThread, _requestDelay.String())
 	} else {
 		fmt.Printf("spawning %d infinite threads, %s delay on each\n", _numConcurrent, _requestDelay.String())
 	}
+
+	var summedRequestCount uint64
+	var summedSuccessCount uint64
+	var summedFailureCount uint64
+
+	start := time.Now()
+	loopNum := 1
+	for {
+		wasKilled := runConstantInFlightIteration(url, jsonBytes, loopNum)
+
+		summedRequestCount += _requestCount.Load()
+		summedSuccessCount += _successCount.Load()
+		summedFailureCount += _failureCount.Load()
+		_requestCount.Store(0)
+		_successCount.Store(0)
+		_failureCount.Store(0)
+
+		if loopNum >= _numMainLoops || wasKilled {
+			break
+		}
+		loopNum++
+	}
+
+	if _numMainLoops > 1 {
+		elapsed := time.Since(start)
+		requestRate := float64(summedRequestCount) / elapsed.Seconds()
+		fmt.Printf("\ntotal elapsed time: %s | %d requests @ %f req/s | %d succeeded | %d failed\n", elapsed, summedRequestCount, requestRate, summedSuccessCount, summedFailureCount)
+	}
+}
+
+func runConstantInFlightIteration(url string, jsonBytes []byte, loopNum int) bool {
+	start := time.Now()
+
+	wasKilled := false
+	killed := make(chan bool)
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		killed <- true
+	}()
 
 	doneChans := make([]chan struct{}, _numConcurrent)
 	for i := range doneChans {
@@ -166,12 +214,22 @@ func runConstantInFlightIteration(url string, jsonBytes []byte) {
 		}()
 	}
 
+LOOP:
 	for _, doneChan := range doneChans {
-		<-doneChan
+		select {
+		case <-killed:
+			wasKilled = true
+			break LOOP
+		case <-doneChan:
+			continue
+		}
 	}
 
-	fmt.Println()
-	fmt.Println("elapsed time:", time.Now().Sub(start))
+	elapsed := time.Now().Sub(start)
+	requestRate := float64(_requestCount.Load()) / elapsed.Seconds()
+	fmt.Printf("\nelapsed time: %s | %d requests @ %f req/s | %d succeeded | %d failed\n", elapsed, _requestCount.Load(), requestRate, _successCount.Load(), _failureCount.Load())
+
+	return wasKilled
 }
 
 func makeRequestLoop(url string, jsonBytes []byte) {
@@ -211,13 +269,20 @@ func makeRequest(url string, jsonBytes []byte) {
 	body, bodyReadErr := ioutil.ReadAll(response.Body)
 	response.Body.Close()
 
-	if response.StatusCode != 200 {
-		if bodyReadErr == nil {
-			fmt.Printf("\nstatus code: %d; body: %s\n", response.StatusCode, string(body))
-		} else {
-			fmt.Printf("\nstatus code: %d; error reading body: %s\n", response.StatusCode, bodyReadErr.Error())
+	_requestCount.Inc()
+
+	if response.StatusCode == 200 {
+		_successCount.Inc()
+	} else {
+		_failureCount.Inc()
+		if _printFailures {
+			if bodyReadErr == nil {
+				fmt.Printf("\nstatus code: %d; body: %s\n", response.StatusCode, string(body))
+			} else {
+				fmt.Printf("\nstatus code: %d; error reading body: %s\n", response.StatusCode, bodyReadErr.Error())
+			}
+			return
 		}
-		return
 	}
 
 	if _printSuccessDots {
