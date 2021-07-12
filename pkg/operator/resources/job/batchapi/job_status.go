@@ -73,6 +73,13 @@ func getJobFromS3(jobKey spec.JobKey) (*schema.BatchJobResponse, error) {
 		}
 	}
 
+	if jobMetrics == nil {
+		jobMetrics, err = batch.GetMetrics(config.Prometheus, jobStatus.JobKey, time.Now())
+		if err != nil {
+			telemetry.Error(err)
+		}
+	}
+
 	apiSpec, err := operator.DownloadAPISpec(jobStatus.APIName, jobStatus.APIID)
 	if err != nil {
 		return nil, err

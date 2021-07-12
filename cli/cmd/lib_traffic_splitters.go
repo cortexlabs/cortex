@@ -96,9 +96,6 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 			{Title: _titleStatus},
 			{Title: _titleRequested},
 			{Title: _titleLastupdated},
-			{Title: _titleAvgRequest},
-			{Title: _title2XX},
-			{Title: _title5XX},
 		},
 		Rows: rows,
 	}, nil

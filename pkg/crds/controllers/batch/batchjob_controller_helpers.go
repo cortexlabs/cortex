@@ -697,7 +697,7 @@ func getMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMe
 		return metrics.BatchMetrics{}, err
 	}
 
-	return jobMetrics, nil
+	return *jobMetrics, nil
 }
 
 func saveJobMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) error {
