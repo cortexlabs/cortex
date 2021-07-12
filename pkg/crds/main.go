@@ -41,7 +41,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	apiv1alpha1 "github.com/cortexlabs/cortex/pkg/crds/apis/api/v1alpha1"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
+	apicontrollers "github.com/cortexlabs/cortex/pkg/crds/controllers/api"
 	batchcontrollers "github.com/cortexlabs/cortex/pkg/crds/controllers/batch"
 	//+kubebuilder:scaffold:imports
 )
@@ -55,6 +57,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(batch.AddToScheme(scheme))
+	utilruntime.Must(apiv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -158,6 +161,14 @@ func main() {
 		Scheme:        mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BatchJob")
+		os.Exit(1)
+	}
+	if err = (&apicontrollers.RealtimeAPIReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("api").WithName("RealtimeAPI"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "RealtimeAPI")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
