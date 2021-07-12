@@ -228,6 +228,7 @@ function setup_prometheus() {
   envsubst < manifests/prometheus-monitoring.yaml | kubectl apply -f - >/dev/null
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-additional-scrape-configs.yaml.j2 > prometheus-additional-scrape-configs.yaml
   kubectl create secret generic additional-scrape-configs --from-file=prometheus-additional-scrape-configs.yaml
+}
 
 function setup_grafana() {
   kubectl apply -f manifests/grafana/grafana-dashboard-realtime.yaml >/dev/null
