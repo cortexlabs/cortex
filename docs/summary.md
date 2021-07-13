@@ -35,6 +35,7 @@
   * [Example](workloads/async/example.md)
   * [Configuration](workloads/async/configuration.md)
   * [Containers](workloads/async/containers.md)
+  * [Autoscaling](workloads/async/autoscaling.md)
   * [Statuses](workloads/async/statuses.md)
 * [Batch](workloads/batch/batch.md)
   * [Example](workloads/batch/example.md)

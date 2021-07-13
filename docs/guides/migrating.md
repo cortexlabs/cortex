@@ -10,6 +10,14 @@ If you've already setup a subdomain with route 53 hosted zone pointing to a clus
 
 Setting up a route 53 hosted zone allows you to transfer traffic seamlessly from from an existing cluster to a new cluster and minimize downtime. You can find the instructions for setting up a subdomain [here](./custom-domain.md). You will need to update clients interacting with your Cortex APIs to point to the subdomain.
 
+## Export all of the APIs from previous cluster
+
+The export command can be used to get a list the API yaml specifications deployed in the previous cluster.
+
+```bash
+cortex cluster export --name <previous_cluster_name> --region <region>
+```
+
 ## Spin up a new cortex cluster
 
 If you are spinning up a new cluster with the same version:
@@ -18,21 +26,18 @@ If you are spinning up a new cluster with the same version:
 cortex cluster up new-cluster.yaml --configure-env cortex2
 ```
 
-Otherwise install a new version of the Cortex CLI:
-
-```bash
-
-
-```
-
 This will create a CLI environment named `cortex2` for accessing the new cluster.
 
-## Export all of the APIs from previous cluster
-
-The export command can be used to get a list the API yaml specifications deployed in the previous cluster.
+Otherwise install a new version of the Cortex CLI. You will have to use a new virtual env or conda env to switch between the two versions of Cortex.
 
 ```bash
-cortex cluster export --name <previous_cluster_name> --region <region>
+pip install cortex==<desired version>
+
+# confirm version
+cortex version
+
+# spin up your cluster and setup a new environment named cortex2
+cortex cluster up cluster.yaml --configure-env cortex2
 ```
 
 ## Deploy the APIs to your new cluster
