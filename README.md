@@ -6,23 +6,23 @@
 
 <br>
 
-# Upgrade your Kubernetes cluster
+# Build your own serverless platform on AWS
 
-Cortex helps platform engineering teams build modern internal developer platforms, faster. It builds on top of Kubernetes and AWS services to provide serverless container deployments, streamlined cluster management, CI/CD and observability integrations, enterprise-grade security, and AWS spend management. Organizations worldwide use Cortex to scale microservices, data processing, machine learning, and other compute-intensive workloads in production.
-
-<br>
-
-## Enable serverless container deployments
-
-**Realtime APIs** - respond to requests in real-time and autoscale based on in-flight request volumes.
-
-**Async APIs** - process requests asynchronously and autoscale based on request queue length.
-
-**Batch APIs** - run distributed and fault-tolerant batch processing jobs on-demand.
+Cortex enables platform engineering teams to build modern internal developer platforms, faster. It provides serverless building blocks, simple cluster management, CI/CD and observability integrations, enterprise-grade security, and AWS spend management. Organizations worldwide use Cortex to build platforms for microservices, data processing, machine learning, and other compute-intensive applications.
 
 <br>
 
-## Streamline cluster management
+## Serverless building blocks
+
+**Realtime workloads** - respond to requests in real-time and autoscale based on in-flight request volumes.
+
+**Async workloads** - process requests asynchronously and autoscale based on request queue length.
+
+**Batch workloads** - run distributed and fault-tolerant batch processing jobs on-demand.
+
+<br>
+
+## Simple cluster management
 
 **Autoscaling** - elastically scale your cluster to meet demand.
 
@@ -32,7 +32,7 @@ Cortex helps platform engineering teams build modern internal developer platform
 
 <br>
 
-## Integrate with CI/CD and observability tools
+## CI/CD and observability integrations
 
 **Provisioning** - provision clusters with declarative configuration or a Terraform provider.
 
@@ -42,7 +42,7 @@ Cortex helps platform engineering teams build modern internal developer platform
 
 <br>
 
-## Run workloads securely on your AWS account
+## Enterprise-grade security
 
 **EKS** - run on top of EKS to scale workloads reliably and cost-effectively.
 
@@ -52,7 +52,7 @@ Cortex helps platform engineering teams build modern internal developer platform
 
 <br>
 
-## Reduce your AWS spend
+## AWS spend management
 
 **Spot instances** - run workloads on spot instances with automated on-demand backups.
 
