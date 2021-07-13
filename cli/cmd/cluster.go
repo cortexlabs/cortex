@@ -348,6 +348,21 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		restConfig, err := getClusterRESTConfig(awsClient, accessConfig.ClusterName)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		scheme := runtime.NewScheme()
+		if err := clientgoscheme.AddToScheme(scheme); err != nil {
+			exit.Error(err)
+		}
+
+		k8sClient, err := k8s.New("default", false, restConfig, scheme)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
 		if err != nil {
 			exit.Error(err)
@@ -362,7 +377,7 @@ var _clusterConfigureCmd = &cobra.Command{
 
 		promptIfNotAdmin(awsClient, _flagClusterDisallowPrompt)
 
-		newClusterConfig, configureChanges, err := getConfigureClusterConfig(awsClient, stacks, oldClusterConfig, clusterConfigFile)
+		newClusterConfig, configureChanges, err := getConfigureClusterConfig(awsClient, k8sClient, stacks, oldClusterConfig, clusterConfigFile)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -440,8 +455,10 @@ var _clusterInfoCmd = &cobra.Command{
 
 		if _flagClusterInfoDebug {
 			cmdDebug(awsClient, accessConfig)
+		} else if _flagClusterInfoPrintConfig {
+			cmdPrintConfig(awsClient, accessConfig, _flagOutput)
 		} else {
-			cmdInfo(awsClient, accessConfig, stacks, _flagClusterInfoPrintConfig, _flagOutput, _flagClusterDisallowPrompt)
+			cmdInfo(awsClient, accessConfig, stacks, _flagOutput, _flagClusterDisallowPrompt)
 		}
 	},
 }
@@ -838,7 +855,27 @@ var _clusterHealthCmd = &cobra.Command{
 	},
 }
 
-func cmdInfo(awsClient *awslib.Client, accessConfig *clusterconfig.AccessConfig, stacks clusterstate.ClusterStacks, printConfig bool, outputType flags.OutputType, disallowPrompt bool) {
+func cmdPrintConfig(awsClient *awslib.Client, accessConfig *clusterconfig.AccessConfig, outputType flags.OutputType) {
+	clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, outputType == flags.PrettyOutputType)
+
+	infoInterface := clusterConfig.CoreConfig
+
+	if outputType == flags.JSONOutputType {
+		outputBytes, err := libjson.Marshal(infoInterface)
+		if err != nil {
+			exit.Error(err)
+		}
+		fmt.Println(string(outputBytes))
+	} else {
+		outputBytes, err := yaml.Marshal(infoInterface)
+		if err != nil {
+			exit.Error(err)
+		}
+		fmt.Println(string(outputBytes))
+	}
+}
+
+func cmdInfo(awsClient *awslib.Client, accessConfig *clusterconfig.AccessConfig, stacks clusterstate.ClusterStacks, outputType flags.OutputType, disallowPrompt bool) {
 	clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, outputType == flags.PrettyOutputType)
 
 	operatorLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
@@ -860,18 +897,13 @@ func cmdInfo(awsClient *awslib.Client, accessConfig *clusterconfig.AccessConfig,
 		}
 		infoResponse.ClusterConfig.Config = clusterConfig
 
-		var infoInterface interface{}
-		if printConfig {
-			infoInterface = infoResponse.ClusterConfig.Config
-		} else {
-			infoInterface = map[string]interface{}{
-				"cluster_config":      infoResponse.ClusterConfig.Config,
-				"cluster_metadata":    infoResponse.ClusterConfig.OperatorMetadata,
-				"worker_node_infos":   infoResponse.WorkerNodeInfos,
-				"operator_node_infos": infoResponse.OperatorNodeInfos,
-				"endpoint_operator":   operatorEndpoint,
-				"endpoint_api":        apiEndpoint,
-			}
+		infoInterface := map[string]interface{}{
+			"cluster_config":      infoResponse.ClusterConfig.Config,
+			"cluster_metadata":    infoResponse.ClusterConfig.OperatorMetadata,
+			"worker_node_infos":   infoResponse.WorkerNodeInfos,
+			"operator_node_infos": infoResponse.OperatorNodeInfos,
+			"endpoint_operator":   operatorEndpoint,
+			"endpoint_api":        apiEndpoint,
 		}
 
 		var outputBytes []byte
