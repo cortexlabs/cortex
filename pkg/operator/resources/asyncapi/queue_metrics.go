@@ -33,10 +33,26 @@ const (
 	_sqsQueryTimeoutSeconds = 10
 )
 
-var queueLengthGauge = promauto.NewGaugeVec(
+var activeGauge = promauto.NewGaugeVec(
 	prometheus.GaugeOpts{
-		Name:        "cortex_async_queue_length",
-		Help:        "The number of in-queue messages for a cortex AsyncAPI",
+		Name:        "cortex_async_active",
+		Help:        "The number of messages that are actively being processed by an AsyncAPI",
+		ConstLabels: map[string]string{"api_kind": userconfig.AsyncAPIKind.String()},
+	}, []string{"api_name"},
+)
+
+var queuedGauge = promauto.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name:        "cortex_async_queued",
+		Help:        "The number queued messages for an AsyncAPI",
+		ConstLabels: map[string]string{"api_kind": userconfig.AsyncAPIKind.String()},
+	}, []string{"api_name"},
+)
+
+var inFlightGauge = promauto.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name:        "cortex_async_in_flight",
+		Help:        "The number of in-flight messages for an AsyncAPI (including active and queued)",
 		ConstLabels: map[string]string{"api_kind": userconfig.AsyncAPIKind.String()},
 	}, []string{"api_name"},
 )
@@ -74,8 +90,9 @@ func updateQueueLengthMetricsFn(apiName, queueURL string) func() error {
 			return err
 		}
 
-		queueLength := visibleMessages + invisibleMessages
-		queueLengthGauge.WithLabelValues(apiName).Set(queueLength)
+		activeGauge.WithLabelValues(apiName).Set(invisibleMessages)
+		queuedGauge.WithLabelValues(apiName).Set(visibleMessages)
+		inFlightGauge.WithLabelValues(apiName).Set(invisibleMessages + visibleMessages)
 
 		return nil
 	}
