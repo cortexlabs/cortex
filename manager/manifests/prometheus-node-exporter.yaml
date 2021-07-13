@@ -356,6 +356,6 @@ spec:
               max without (fstype, mountpoint) (
                 node_filesystem_size_bytes{job="node-exporter", fstype!=""} - node_filesystem_avail_bytes{job="node-exporter", fstype!=""}
               )
-            ) 
+            )
             / scalar(sum(max without (fstype, mountpoint) (node_filesystem_size_bytes{job="node-exporter", fstype!=""})))
           record: cluster:disk_space_utilization:ratio
