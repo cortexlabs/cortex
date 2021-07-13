@@ -147,7 +147,7 @@ data:
             {
               "$$hashKey": "object:117",
               "decimals": 0,
-              "format": "Nodes",
+              "format": "none",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -213,7 +213,7 @@ data:
           "targets": [
             {
               "exemplar": true,
-              "expr": "sum(kube_pod_info{exported_pod!~\"(aws-node|grafana|autoscaler|cluster-autoscaler|coredns|event-exporter|fluent-bit|kube-proxy|k8s-neuron-scheduler|kube-state-metrics|metrics-server|node-exporter|operator|operator-controller-manager|prometheus-operator|prometheus-prometheus|prometheus-statsd-exporter|dcgm-exporter|ingressgateway|istiod|activator)-(.+)\"})",
+              "expr": "sum(kube_pod_info{exported_pod!~\"(aws-node|grafana|autoscaler|cluster-autoscaler|coredns|event-exporter|fluent-bit|kube-proxy|k8s-neuron-scheduler|kube-state-metrics|metrics-server|node-exporter|operator|operator-controller-manager|prometheus-operator|prometheus-prometheus|prometheus-statsd-exporter|dcgm-exporter|ingressgateway|istiod|activator|enqueuer|gateway|nvidia-device-plugin-daemonset|neuron-device-plugin-daemonset)-(.+)\"})",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 2,
@@ -245,7 +245,7 @@ data:
             {
               "$$hashKey": "object:142",
               "decimals": 0,
-              "format": "Pods",
+              "format": "none",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1298,5 +1298,5 @@ data:
       "timezone": "",
       "title": "Cluster",
       "uid": "cluster",
-      "version": 2
+      "version": 3
     }
