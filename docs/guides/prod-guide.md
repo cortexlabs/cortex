@@ -4,13 +4,13 @@ As you try to take Cortex from development to production, here are a few recomme
 
 ## Use images from a colocated ECR
 
-Configure your cluster configuration and API spec to use images from ECR in the same region as your cluster to accelerate scale ups, reduce ingress costs and remove dependency on Cortex's public quay.io registry.
+Configure your cluster configuration and API spec to use images from ECR in the same region as your cluster to accelerate scale-ups, reduce ingress costs and remove dependency on Cortex's public quay.io registry.
 
 You can find instructions for mirroring Cortex images [here](./self-hosted-images.md)
 
 ## Handling Cortex updates/upgrades
 
-Use a route 53 hosted zone as proxy in front of your Cortex cluster. Every new Cortex cluster provisions a new API loadbalancer with a unique endpoint. Using a route 53 hosted zone configured with a subdomain will expose your Cortex cluster API endpoint as a single endpoint e.g. `cortex.your-company.com`. You will be able to upgrade Cortex versions with minimal downtime and avoid needing to change your client code every time you migrate to a new cluster. You can find instructions for setting up a custom domain with route 53 hosted zone [here](./custom-domain.md).
+Use a route 53 hosted zone as a proxy in front of your Cortex cluster. Every new Cortex cluster provisions a new API load balancer with a unique endpoint. Using a route 53 hosted zone configured with a subdomain will expose your Cortex cluster API endpoint as a single endpoint e.g. `cortex.your-company.com`. You will be able to upgrade Cortex versions with minimal downtime and avoid needing to change your client code every time you migrate to a new cluster. You can find instructions for setting up a custom domain with route 53 hosted zone [here](./custom-domain.md).
 
 ## Production cluster configuration
 
@@ -24,13 +24,13 @@ subnet_visibility: private
 nat_gateway: single # for large clusters making requests to services outside the cluster (e.g. S3 or database) use highly_available
 ```
 
-You can make your loadbalancers private to prevent your APIs from being publicly access. In order to access your APIs, you will need to setup VPC peering between the Cortex cluster's VPC and the VPC containing the consumers of the Cortex APIs. See the [VPC peering guide](./vpc-peering.md) for more details.
+You can make your load balancers private to prevent your APIs from being publicly accessed. In order to access your APIs, you will need to set up VPC peering between the Cortex cluster's VPC and the VPC containing the consumers of the Cortex APIs. See the [VPC peering guide](./vpc-peering.md) for more details.
 
 ```yaml
 api_load_balancer_scheme: internal
 ```
 
-You can also restrict access to your loadbalancers by IP address to improve security even further. This can be done if the API loadbalancer is public or private.
+You can also restrict access to your load balancers by IP address to improve security even further. This can be done if the API load balancer is public or private.
 
 ```yaml
 api_load_balancer_cidr_white_list: [0.0.0.0/0]
@@ -38,11 +38,11 @@ api_load_balancer_cidr_white_list: [0.0.0.0/0]
 
 ### Ensure node provisioning
 
-You can get the cost savings of spot instances and the reliability of on-demand instances by taking advantage of the priority field in nodegroups. You can deploy two nodegroups, one that is spot and another that is on-demand. Set the priority of the spot nodegroup to be higher than the priority of the on-demand nodegroup. This encourages the cluster-autoscaler to try to spin up instances from the spot nodegroup first. If after 5 minutes, the spot nodegroup is unable to scale up because there are no more spot instances available, the on-demand nodegroup  will be used instead.
+You can get the cost savings of spot instances and the reliability of on-demand instances by taking advantage of the priority field in node groups. You can deploy two node groups, one that is spot and another that is on-demand. Set the priority of the spot node group to be higher than the priority of the on-demand node group. This encourages the cluster-autoscaler to try to spin up instances from the spot node group first. If after 5 minutes, the spot node group is unable to scale up because there are no more spot instances available, the on-demand node group  will be used instead.
 
 ```yaml
 node_groups:
-  - name: gpu-spit
+  - name: gpu-spot
     instance_type: g4dn.xlarge
     min_instances: 0
     max_instances: 5
@@ -57,13 +57,13 @@ node_groups:
 
 ### Considerations for large clusters
 
-If you plan on spinning up a Cortex cluster reaching 400 nodes or a 1000 pods, you might want to consider setting `prometheus_instance_type: ` to a larger instance type. A good rule of thumb is a t3.medium instance can reliably handle 400 nodes and 800 pods.
+If you plan on spinning up a Cortex cluster reaching 400 nodes or 1000 pods, you might want to consider setting `prometheus_instance_type` to a larger instance type. A good rule of thumb is a t3.medium instance can reliably handle 400 nodes and 800 pods.
 
 ## API Spec
 
 ### Container design
 
-Configure your healthchecks to be as accurate as possible to mitigate the chances of requests being routed to pods that are not ready yet.
+Configure your health checks to be as accurate as possible to mitigate the chances of requests being routed to pods that are not ready yet.
 
 ### Pods section
 
@@ -77,4 +77,4 @@ Make sure to specify all of the relevant compute resources, especially the cpu a
 
 ### Autoscaling
 
-Revisit the autoscaling docs for your [Realtime APIs](../workloads/realtime/autoscaling.md) and [Async APIs](../workloads/async/autoscaling.md) to effectively handle your production traffic by tuning the sensitivity, rate of autoscaling and over-provisioning.
+Revisit the autoscaling docs for your [Realtime APIs](../workloads/realtime/autoscaling.md) and [Async APIs](../workloads/async/autoscaling.md) to effectively handle production traffic by tuning the sensitivity, scaling rate and over-provisioning.

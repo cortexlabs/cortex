@@ -2,12 +2,12 @@
 
 ## Modify existing cluster
 
-You can add/remove nodegroups, resize existing nodegroups and update a subset of the cluster configuration on a running cluster.
+You can add/remove node groups, resize existing node groups and update a subset of the cluster configuration on a running cluster.
 
 Fetch the current cluster configuration
 
 ```bash
-cortex cluster info --print-config --name <cluster_name> --region <region> > cluster.yaml # fetch the previous cluster configuration
+cortex cluster info --print-config --name <cluster_name> --region <region> > cluster.yaml # fetch the current cluster configuration
 ```
 
 Make the desired changes and apply your modifications
@@ -33,9 +33,9 @@ pip install --upgrade cortex
 cortex version
 
 # spin up your cluster
-cortex
+cortex cluster up cluster.yaml
 ```
 
-## Update/Upgrade without downtime
+## Update or upgrade without downtime
 
 See [migration guide](../../guides/migrating.md) for details.

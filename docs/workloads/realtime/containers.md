@@ -4,7 +4,7 @@
 
 In order to handle requests to your Realtime API, one of your containers must run a web server which is listening for HTTP requests on the port which is configured in the `pod.port` field of your [API configuration](configuration.md) (default: 8080).
 
-Subpaths are supported; for example, if your API is named `my-api`, a request to `<loadbalancer_url>/my-api` will be routed to the root (`/`) of your web server, and a request to `<loadbalancer_url>/my-api/subpatch` will be routed to `/subpath` on your web server.
+Subpaths are supported; for example, if your API is named `my-api`, a request to `<load_balancer_url>/my-api` will be routed to the root (`/`) of your web server, and a request to `<load_balancer_url>/my-api/subpatch` will be routed to `/subpath` on your web server.
 
 ## Readiness checks
 

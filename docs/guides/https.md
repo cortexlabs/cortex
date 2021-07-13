@@ -2,7 +2,7 @@
 
 This guide is meant for supporting HTTPS traffic to Cortex APIs. In order to create valid SSL certificates for HTTPS, you must own the domain and configure your DNS to satisfy the DNS challenges which prove that you own the domain.
 
-This guide assumes that you are using a route 53 hosted zone to manage a subdomain. The HTTPS certificate will be created for the subdomain managed by a route 53 hosted zone. Follow this [guide](./custom-domain.md) to setup a subdomain managed by a route 53 hosted zone.
+This guide assumes that you are using a route 53 hosted zone to manage a subdomain. The HTTPS certificate will be created for the subdomain managed by a route 53 hosted zone. Follow this [guide](./custom-domain.md) to set up a subdomain managed by a route 53 hosted zone.
 
 ## Generate an SSL certificate
 

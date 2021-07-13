@@ -2,7 +2,7 @@
 
 If you would like to support HTTPS endpoints for your Cortex APIs, here are a few options:
 
-* Setup a [custom domain](custom-domain.md) with an [SSL certificate](https.md)
+* Set up a [custom domain](custom-domain.md) with an [SSL certificate](https.md)
 * AWS API Gateway: This is the simplest approach if a custom domain is not required; continue reading this guide for instructions.
 
 Please note that one limitation of API Gateway is that there is a 30-second time limit for all requests.
