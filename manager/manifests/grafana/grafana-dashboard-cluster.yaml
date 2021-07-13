@@ -60,15 +60,221 @@ data:
         {
           "collapsed": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          },
           "gridPos": {
             "h": 1,
             "w": 24,
             "x": 0,
             "y": 2
+          },
+          "id": 18,
+          "panels": [],
+          "title": "Size",
+          "type": "row"
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "fill": 10,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 0,
+            "y": 3
+          },
+          "hiddenSeries": false,
+          "id": 20,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 0,
+          "links": [],
+          "nullPointMode": "null as zero",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "8.0.4",
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": true,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "count(instance:node_cpu_utilisation:rate1m)",
+              "format": "time_series",
+              "interval": "",
+              "intervalFactor": 2,
+              "legendFormat": "Total Nodes",
+              "legendLink": "/dashboard/file/node-rsrc-use.json",
+              "refId": "A",
+              "step": 10
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Nodes",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:117",
+              "decimals": 0,
+              "format": "Nodes",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:118",
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": false
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "fill": 10,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 12,
+            "y": 3
+          },
+          "hiddenSeries": false,
+          "id": 21,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 0,
+          "links": [],
+          "nullPointMode": "null as zero",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "8.0.4",
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": true,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "sum(kube_pod_info{exported_pod!~\"(aws-node|grafana|autoscaler|cluster-autoscaler|coredns|event-exporter|fluent-bit|kube-proxy|k8s-neuron-scheduler|kube-state-metrics|metrics-server|node-exporter|operator|operator-controller-manager|prometheus-operator|prometheus-prometheus|prometheus-statsd-exporter|dcgm-exporter|ingressgateway|istiod|activator)-(.+)\"})",
+              "format": "time_series",
+              "interval": "",
+              "intervalFactor": 2,
+              "legendFormat": "User Workload Pods",
+              "legendLink": "/dashboard/file/node-rsrc-use.json",
+              "refId": "A",
+              "step": 10
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Pods",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:142",
+              "decimals": 0,
+              "format": "Pods",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:143",
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": false
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "collapsed": false,
+          "datasource": null,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 10
           },
           "id": 10,
           "panels": [],
@@ -88,7 +294,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 3
+            "y": 11
           },
           "hiddenSeries": false,
           "id": 1,
@@ -119,10 +325,12 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "(\n  instance:node_cpu_utilisation:rate1m{job=\"node-exporter\"}\n*\n  instance:node_num_cpu:sum{job=\"node-exporter\"}\n)\n/ scalar(sum(instance:node_num_cpu:sum{job=\"node-exporter\"}))\n",
+              "exemplar": true,
+              "expr": "cluster:cpu_utilization:ratio{}\n",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "",
               "legendLink": "/dashboard/file/node-rsrc-use.json",
               "refId": "A",
               "step": 10
@@ -148,6 +356,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:156",
               "format": "percentunit",
               "label": null,
               "logBase": 1,
@@ -156,6 +365,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:157",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -181,7 +391,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 3
+            "y": 11
           },
           "hiddenSeries": false,
           "id": 2,
@@ -212,10 +422,12 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "instance:node_load1_per_cpu:ratio{job=\"node-exporter\"}\n/ scalar(count(instance:node_load1_per_cpu:ratio{job=\"node-exporter\"}))\n",
+              "exemplar": true,
+              "expr": "cluster:load1:ratio{}\n",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "",
               "legendLink": "/dashboard/file/node-rsrc-use.json",
               "refId": "A",
               "step": 10
@@ -241,6 +453,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:181",
               "format": "percentunit",
               "label": null,
               "logBase": 1,
@@ -249,6 +462,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:182",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -265,15 +479,11 @@ data:
         {
           "collapsed": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          },
           "gridPos": {
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 10
+            "y": 18
           },
           "id": 11,
           "panels": [],
@@ -293,7 +503,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 11
+            "y": 19
           },
           "hiddenSeries": false,
           "id": 3,
@@ -324,10 +534,12 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "instance:node_memory_utilisation:ratio{job=\"node-exporter\"}\n/ scalar(count(instance:node_memory_utilisation:ratio{job=\"node-exporter\"}))\n",
+              "exemplar": true,
+              "expr": "cluster:memory_utilization:ratio{}\n",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "",
               "legendLink": "/dashboard/file/node-rsrc-use.json",
               "refId": "A",
               "step": 10
@@ -353,6 +565,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:210",
               "format": "percentunit",
               "label": null,
               "logBase": 1,
@@ -361,6 +574,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:211",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -386,7 +600,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 11
+            "y": 19
           },
           "hiddenSeries": false,
           "id": 4,
@@ -417,10 +631,12 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "instance:node_vmstat_pgmajfault:rate1m{job=\"node-exporter\"}",
+              "exemplar": true,
+              "expr": "cluster:vmstat_pgmajfault:rate1m{}",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "",
               "legendLink": "/dashboard/file/node-rsrc-use.json",
               "refId": "A",
               "step": 10
@@ -446,6 +662,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:398",
               "format": "rps",
               "label": null,
               "logBase": 1,
@@ -454,6 +671,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:399",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -470,15 +688,11 @@ data:
         {
           "collapsed": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          },
           "gridPos": {
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 18
+            "y": 26
           },
           "id": 12,
           "panels": [],
@@ -498,7 +712,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 19
+            "y": 27
           },
           "hiddenSeries": false,
           "id": 5,
@@ -539,19 +753,24 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "instance:node_network_receive_bytes_excluding_lo:rate1m{job=\"node-exporter\"}",
+              "exemplar": true,
+              "expr": "cluster:network_receive_bytes_excluding_low:rate1m{}",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} Receive",
+              "legendFormat": "{{some-non-existent-label}} Receive",
               "legendLink": "/dashboard/file/node-rsrc-use.json",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "instance:node_network_transmit_bytes_excluding_lo:rate1m{job=\"node-exporter\"}",
+              "exemplar": true,
+              "expr": "cluster:network_transmit_bytes_excluding_lo:rate1m{}",
               "format": "time_series",
+              "instant": false,
+              "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} Transmit",
+              "legendFormat": "{{some-non-existent-label}} Transmit",
               "legendLink": "/dashboard/file/node-rsrc-use.json",
               "refId": "B",
               "step": 10
@@ -577,6 +796,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:235",
               "format": "Bps",
               "label": null,
               "logBase": 1,
@@ -585,6 +805,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:236",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -610,7 +831,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 19
+            "y": 27
           },
           "hiddenSeries": false,
           "id": 6,
@@ -651,19 +872,23 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "instance:node_network_receive_drop_excluding_lo:rate1m{job=\"node-exporter\"}",
+              "exemplar": true,
+              "expr": "cluster:network_receive_drop_excluding_lo:rate1m{}",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} Receive",
+              "legendFormat": "{{some-non-existent-label}} Receive",
               "legendLink": "/dashboard/file/node-rsrc-use.json",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "instance:node_network_transmit_drop_excluding_lo:rate1m{job=\"node-exporter\"}",
+              "exemplar": true,
+              "expr": "cluster:network_transmit_drop_excluding_lo:rate1m{}",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} Transmit",
+              "legendFormat": "{{some-non-existent-label}} Transmit",
               "legendLink": "/dashboard/file/node-rsrc-use.json",
               "refId": "B",
               "step": 10
@@ -689,6 +914,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:521",
               "format": "rps",
               "label": null,
               "logBase": 1,
@@ -697,6 +923,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:522",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -713,15 +940,11 @@ data:
         {
           "collapsed": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          },
           "gridPos": {
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 26
+            "y": 34
           },
           "id": 13,
           "panels": [],
@@ -741,7 +964,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 27
+            "y": 35
           },
           "hiddenSeries": false,
           "id": 7,
@@ -772,10 +995,12 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "instance_device:node_disk_io_time_seconds:rate1m{job=\"node-exporter\"}\n/ scalar(count(instance_device:node_disk_io_time_seconds:rate1m{job=\"node-exporter\"}))\n",
+              "exemplar": true,
+              "expr": "cluster:disk_io_utilization:ratio{}\n",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} {{device}}",
+              "legendFormat": "",
               "legendLink": "/dashboard/file/node-rsrc-use.json",
               "refId": "A",
               "step": 10
@@ -801,6 +1026,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:446",
               "format": "percentunit",
               "label": null,
               "logBase": 1,
@@ -809,6 +1035,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:447",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -834,7 +1061,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 27
+            "y": 35
           },
           "hiddenSeries": false,
           "id": 8,
@@ -865,10 +1092,12 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "instance_device:node_disk_io_time_weighted_seconds:rate1m{job=\"node-exporter\"}\n/ scalar(count(instance_device:node_disk_io_time_weighted_seconds:rate1m{job=\"node-exporter\"}))\n",
+              "exemplar": true,
+              "expr": "cluster:disk_io_saturation:ratio{}\n",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} {{device}}",
+              "legendFormat": "",
               "legendLink": "/dashboard/file/node-rsrc-use.json",
               "refId": "A",
               "step": 10
@@ -894,6 +1123,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:471",
               "format": "percentunit",
               "label": null,
               "logBase": 1,
@@ -902,6 +1132,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:472",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -918,15 +1149,11 @@ data:
         {
           "collapsed": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          },
           "gridPos": {
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 34
+            "y": 42
           },
           "id": 14,
           "panels": [],
@@ -946,7 +1173,7 @@ data:
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 35
+            "y": 43
           },
           "hiddenSeries": false,
           "id": 9,
@@ -977,10 +1204,12 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum without (device) (\n  max without (fstype, mountpoint) (\n    node_filesystem_size_bytes{job=\"node-exporter\", fstype!=\"\"} - node_filesystem_avail_bytes{job=\"node-exporter\", fstype!=\"\"}\n  )\n) \n/ scalar(sum(max without (fstype, mountpoint) (node_filesystem_size_bytes{job=\"node-exporter\", fstype!=\"\"})))\n",
+              "exemplar": true,
+              "expr": "cluster:disk_space_utilization:ratio{}\n",
               "format": "time_series",
+              "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "",
               "legendLink": "/dashboard/file/node-rsrc-use.json",
               "refId": "A",
               "step": 10
@@ -1006,6 +1235,7 @@ data:
           },
           "yaxes": [
             {
+              "$$hashKey": "object:496",
               "format": "percentunit",
               "label": null,
               "logBase": 1,
@@ -1014,6 +1244,7 @@ data:
               "show": true
             },
             {
+              "$$hashKey": "object:497",
               "format": "short",
               "label": null,
               "logBase": 1,
@@ -1067,5 +1298,5 @@ data:
       "timezone": "",
       "title": "Cluster",
       "uid": "cluster",
-      "version": 1
+      "version": 2
     }
