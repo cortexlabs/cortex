@@ -254,4 +254,6 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 	if err != nil && !errors.IsNoPrint(err) {
 		log.Fatal(err)
 	}
+
+	os.Exit(1)
 }
