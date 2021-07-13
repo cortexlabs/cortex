@@ -64,9 +64,6 @@ spec:
               - name: https
                 port: 443
                 targetPort: 443
-              - name: tls  # used for SNI
-                port: 15443
-                targetPort: 15443
           resources:
             requests:
               cpu: 100m
@@ -123,9 +120,6 @@ spec:
               - name: https
                 port: 443
                 targetPort: 443
-              - name: tls  # used for SNI
-                port: 15443
-                targetPort: 15443
           resources:
             requests:
               cpu: 400m
