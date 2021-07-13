@@ -553,18 +553,6 @@ def test_load_realtime(
             client=client, api_names=[api_name], timeout=deploy_timeout
         ), f"api {api_name} not ready"
 
-        network_stats = client.get_api(api_name)["metrics"]["network_stats"]
-        offset_2xx = network_stats["code_2xx"]
-        offset_4xx = network_stats["code_4xx"]
-        offset_5xx = network_stats["code_5xx"]
-
-        if offset_2xx is None:
-            offset_2xx = 0
-        if offset_4xx is None:
-            offset_4xx = 0
-        if offset_5xx is None:
-            offset_5xx = 0
-
         # give the APIs some time to prevent getting high latency spikes in the beginning
         time.sleep(5)
 
@@ -582,30 +570,12 @@ def test_load_realtime(
         )
 
         while not request_stopper.is_set():
-            api_info = client.get_api(api_name)
-            network_stats = api_info["metrics"]["network_stats"]
-
-            assert (
-                network_stats["code_4xx"] - offset_4xx == 0
-            ), f"detected 4xx response codes ({network_stats['code_4xx'] - offset_4xx}) in cortex get"
-            assert (
-                network_stats["code_5xx"] - offset_5xx == 0
-            ), f"detected 5xx response codes ({network_stats['code_5xx'] - offset_5xx}) in cortex get"
-
             # check if the requesting threads are still healthy
             # if not, they'll raise an exception
             check_futures_healthy(threads_futures)
 
             # don't stress the CPU too hard
             time.sleep(1)
-
-        printer(
-            f"verifying number of processed requests ({total_requests}, with an offset of {offset_2xx}) using the client"
-        )
-        assert api_requests(
-            client, api_name, total_requests + offset_2xx, timeout=status_code_timeout
-        ), f"the number of 2xx response codes for api {api_name} doesn't match the expected number {total_requests}"
-
     except:
         # best effort
         failed = True
@@ -831,7 +801,7 @@ def test_load_batch(
             assert (
                 job_status["batches_in_queue"] == 0
             ), f"there are still batches in queue ({job_status['batches_in_queue']}) for job ID {job_id}"
-            assert job_status["batch_metrics"]["succeeded"] == math.ceil(items_per_job / batch_size)
+            assert job_spec["metrics"]["succeeded"] == math.ceil(items_per_job / batch_size)
 
             num_objects = 0
             for page in paginator.paginate(Bucket=bucket, Prefix=os.path.join(key, job_id)):
