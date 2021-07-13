@@ -4,27 +4,27 @@ As you try to take Cortex from development to production, here are a few recomme
 
 ## Use images from a colocated ECR
 
-It is recommended to configure your cluster configuration and API spec to use images from ECR in the same region as your cluster to accelerate scale ups, reduce ingress costs and remove dependency on Cortex's public quay.io registry.
+Configure your cluster configuration and API spec to use images from ECR in the same region as your cluster to accelerate scale ups, reduce ingress costs and remove dependency on Cortex's public quay.io registry.
 
 You can find instructions for mirroring Cortex images [here](./self-hosted-images.md)
 
 ## Handling Cortex updates/upgrades
 
-It is recommended to use a route 53 hosted zone as proxy in front of your Cortex cluster. Every new Cortex cluster provisions a new API loadbalancer with a unique endpoint. Using a route 53 hosted zone configured with a subdomain will expose your Cortex cluster API endpoint as a single endpoint e.g. `cortex.your-company.com`. You will be able to upgrade Cortex versions with minimal downtime and avoid needing to change your client code every time you migrate to a new cluster. You can find instructions for setting up a custom domain with route 53 hosted zone [here](./custom-domain.md).
+Use a route 53 hosted zone as proxy in front of your Cortex cluster. Every new Cortex cluster provisions a new API loadbalancer with a unique endpoint. Using a route 53 hosted zone configured with a subdomain will expose your Cortex cluster API endpoint as a single endpoint e.g. `cortex.your-company.com`. You will be able to upgrade Cortex versions with minimal downtime and avoid needing to change your client code every time you migrate to a new cluster. You can find instructions for setting up a custom domain with route 53 hosted zone [here](./custom-domain.md).
 
 ## Production cluster configuration
 
 ### Securing your cluster
 
-The following configuration will improve security by preventing your cluster's nodes from being publicly accessible. All traffic to your cluster will be forced to go through the loadbalancers.
+The following configuration will improve security by preventing your cluster's nodes from being publicly accessible.
 
 ```yaml
 subnet_visibility: private
 
-nat_gateway: single # for large cluster use highly_available
+nat_gateway: single # for large clusters making requests to services outside the cluster (e.g. S3 or database) use highly_available
 ```
 
-You can make your loadbalancers private to prevent public access. In order to access your APIs, you will need to setup VPC peering between the Cortex cluster's VPC and the VPC containing the consumers of the Cortex APIs. See the [VPC peering guide](./vpc-peering.md) for more details.
+You can make your loadbalancers private to prevent your APIs from being publicly access. In order to access your APIs, you will need to setup VPC peering between the Cortex cluster's VPC and the VPC containing the consumers of the Cortex APIs. See the [VPC peering guide](./vpc-peering.md) for more details.
 
 ```yaml
 api_load_balancer_scheme: internal

@@ -56,13 +56,16 @@
 * [CLI commands](clients/cli.md)
 * [Python client](clients/python.md)
 
+## Resources
+
 * Guides
   * [Production Guide](guides/prod-guide.md)
   * [Migrating to new Cortex clusters](guides/migrating.md)
   * [Setting up kubectl](guides/kubectl.md)
   * [Private docker registry](guides/registry.md)
   * [Self-hosted images](guides/self-hosted-images.md)
-  * [Custom domain and HTTPS](guides/custom-domain.md)
+  * [Custom domain](guides/custom-domain.md)
+  * [HTTPS](guides/https.md)
   * [HTTPS with API Gateway](guides/api-gateway.md)
   * [VPC peering](guides/vpc-peering.md)
   * [troubleshooting](guides/troubleshooting.md)
