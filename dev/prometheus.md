@@ -14,7 +14,13 @@ The following is a list of metrics that are currently in use.
     1. api_name
     1. api_kind
     1. status_code
-1. cortex_async_queue_length with the following labels:
+1. cortex_async_active with the following labels:
+    1. api_name
+    1. api_kind
+1. cortex_async_queued with the following labels:
+    1. api_name
+    1. api_kind
+1. cortex_async_in_flight with the following labels:
     1. api_name
     1. api_kind
 1. cortex_async_latency_bucket with the following labels:
