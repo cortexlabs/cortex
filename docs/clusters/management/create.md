@@ -9,7 +9,11 @@
 
 ## Create a cluster on your AWS account
 
+<!-- CORTEX_VERSION_README -->
 ```bash
+# install cortex CLI
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.38.0/get-cli.sh)"
+
 # create a cluster
 cortex cluster up cluster.yaml
 ```

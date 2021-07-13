@@ -27,8 +27,8 @@
   * [VPC peering](clusters/networking/vpc-peering.md)
 * Advanced
   * [Setting up kubectl](clusters/advanced/kubectl.md)
-  * [Private docker registry](clusters/advanced/registry.md)
-  * [Self-hosted images](clusters/advanced/self-hosted-images.md)
+  * [Private Docker registry](clusters/advanced/registry.md)
+  * [Self hosted images](clusters/advanced/self-hosted-images.md)
 
 ## Workloads
 
