@@ -66,8 +66,10 @@ func TestAutoscaler_Awake(t *testing.T) {
 				MaxReplicas:                  1,
 				InitReplicas:                 1,
 				TargetInFlight:               pointer.Float64(1),
-				Window:                       time.Second,
+				Window:                       500 * time.Millisecond,
 				DownscaleStabilizationPeriod: downscaleStabilizationPeriod,
+				MaxDownscaleFactor:           0.75,
+				MaxUpscaleFactor:             1.5,
 			}, nil
 		},
 		CurrentReplicasFunc: func(apiName string) (int32, error) {
@@ -91,7 +93,7 @@ func TestAutoscaler_Awake(t *testing.T) {
 	autoscaleFn, err := autoScaler.autoscaleFn(api)
 	require.NoError(t, err)
 
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(250 * time.Millisecond)
 	go func() {
 		for {
 			select {
@@ -138,11 +140,13 @@ func TestAutoscaler_MinReplicas(t *testing.T) {
 		},
 		GetAutoscalingSpecFunc: func(apiName string) (*userconfig.Autoscaling, error) {
 			return &userconfig.Autoscaling{
-				MinReplicas:    minReplicas,
-				MaxReplicas:    maxReplicas,
-				InitReplicas:   minReplicas,
-				TargetInFlight: pointer.Float64(1),
-				Window:         time.Second,
+				MinReplicas:        minReplicas,
+				MaxReplicas:        maxReplicas,
+				InitReplicas:       minReplicas,
+				TargetInFlight:     pointer.Float64(1),
+				Window:             500 * time.Millisecond,
+				MaxDownscaleFactor: 0.75,
+				MaxUpscaleFactor:   1.5,
 			}, nil
 		},
 		CurrentReplicasFunc: func(apiName string) (int32, error) {
@@ -166,7 +170,7 @@ func TestAutoscaler_MinReplicas(t *testing.T) {
 	autoscaleFn, err := autoScaler.autoscaleFn(api)
 	require.NoError(t, err)
 
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(250 * time.Millisecond)
 	go func() {
 		for {
 			select {
@@ -207,11 +211,13 @@ func TestAutoscaler_MaxReplicas(t *testing.T) {
 		},
 		GetAutoscalingSpecFunc: func(apiName string) (*userconfig.Autoscaling, error) {
 			return &userconfig.Autoscaling{
-				MinReplicas:    minReplicas,
-				MaxReplicas:    maxReplicas,
-				InitReplicas:   minReplicas,
-				TargetInFlight: pointer.Float64(1),
-				Window:         time.Second,
+				MinReplicas:        minReplicas,
+				MaxReplicas:        maxReplicas,
+				InitReplicas:       minReplicas,
+				TargetInFlight:     pointer.Float64(1),
+				Window:             500 * time.Millisecond,
+				MaxDownscaleFactor: 0.75,
+				MaxUpscaleFactor:   1.5,
 			}, nil
 		},
 		CurrentReplicasFunc: func(apiName string) (int32, error) {
@@ -235,7 +241,7 @@ func TestAutoscaler_MaxReplicas(t *testing.T) {
 	autoscaleFn, err := autoScaler.autoscaleFn(api)
 	require.NoError(t, err)
 
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(250 * time.Millisecond)
 	go func() {
 		for {
 			select {
