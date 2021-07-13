@@ -43,7 +43,12 @@ sudo apt install -y docker-ce docker-ce-cli containerd.io && \
 sudo usermod -aG docker $USER
 ```
 
-And then log out and back in.
+And then log out and back in. Then, bootstrap a buildx builder:
+
+```bash
+docker buildx create --driver-opt image=moby/buildkit:master --name builder --platform linux/amd64,linux/arm64 --use
+docker buildx inspect --bootstrap builder
+```
 
 ### kubectl
 
