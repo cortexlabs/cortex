@@ -157,6 +157,22 @@ Flags:
   -h, --help            help for export
 ```
 
+## cluster health
+
+```text
+inspect the health of components in the cluster
+
+Usage:
+  cortex cluster health [flags]
+
+Flags:
+  -c, --config string   path to a cluster configuration file
+  -n, --name string     name of the cluster
+  -r, --region string   aws region of the cluster
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for health
+```
+
 ## env configure
 
 ```text

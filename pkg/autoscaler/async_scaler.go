@@ -70,11 +70,11 @@ func (s *AsyncScaler) GetInFlightRequests(apiName string, window time.Duration) 
 	windowSeconds := int64(window.Seconds())
 
 	// PromQL query:
-	// 	sum(sum_over_time(cortex_async_queue_length{api_name="<apiName>"}[60s])) /
-	//	sum(count_over_time(cortex_async_queue_length{api_name="<apiName>"}[60s]))
+	// 	sum(sum_over_time(cortex_async_in_flight{api_name="<apiName>"}[60s])) /
+	//	sum(count_over_time(cortex_async_in_flight{api_name="<apiName>"}[60s]))
 	query := fmt.Sprintf(
-		"sum(sum_over_time(cortex_async_queue_length{api_name=\"%s\"}[%ds])) / "+
-			"max(count_over_time(cortex_async_queue_length{api_name=\"%s\"}[%ds]))",
+		"sum(sum_over_time(cortex_async_in_flight{api_name=\"%s\"}[%ds])) / "+
+			"max(count_over_time(cortex_async_in_flight{api_name=\"%s\"}[%ds]))",
 		apiName, windowSeconds,
 		apiName, windowSeconds,
 	)

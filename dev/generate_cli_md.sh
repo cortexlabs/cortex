@@ -41,6 +41,7 @@ commands=(
   "cluster configure"
   "cluster down"
   "cluster export"
+  "cluster health"
   "env configure"
   "env list"
   "env default"
