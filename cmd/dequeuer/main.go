@@ -242,6 +242,10 @@ func main() {
 }
 
 func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
+	if err == nil {
+		os.Exit(0)
+	}
+
 	for _, str := range wrapStrs {
 		err = errors.Wrap(err, str)
 	}
