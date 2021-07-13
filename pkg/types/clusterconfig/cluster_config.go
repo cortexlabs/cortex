@@ -50,13 +50,13 @@ const (
 	MaxNodeGroups = 100
 
 	// MaxNodesToAddOnClusterUp represents the max number of nodes to add on cluster up
-	// Limited to 150 nodes (rounded down from 164 nodes) for two reasons:
+	// Limited to 200 nodes (rounded down from 248 nodes) for two reasons:
 	//
 	// * To prevent overloading the API servers when the nodes are being added.
 	//
 	// * To prevent hitting the 500 targets per LB (when the cross-load balancing is enabled) limit (quota code L-B211E961);
-	//   500 divided by 3 target listeners - 1 operator node - 1 prometheus node => 164
-	MaxNodesToAddOnClusterUp = 150
+	//   500 divided by 2 target listeners - 1 operator node - 1 prometheus node => 248
+	MaxNodesToAddOnClusterUp = 200
 
 	// MaxNodesToAddOnClusterConfigure represents the max number of nodes to add on cluster up/configure
 	MaxNodesToAddOnClusterConfigure = 100

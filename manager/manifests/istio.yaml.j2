@@ -55,9 +55,6 @@ spec:
               app: operator-istio-gateway
               istio: ingressgateway-operator
             ports:
-              - name: status-port  # should be first in the list, see https://github.com/istio/istio/issues/12503
-                port: 15021
-                targetPort: 15021
               - name: http2
                 port: 80
                 targetPort: 80
@@ -111,9 +108,6 @@ spec:
               app: apis-istio-gateway
               istio: ingressgateway-apis
             ports:
-              - name: status-port  # should be first in the list, see https://github.com/istio/istio/issues/12503
-                port: 15021
-                targetPort: 15021
               - name: http2
                 port: 80
                 targetPort: 80
