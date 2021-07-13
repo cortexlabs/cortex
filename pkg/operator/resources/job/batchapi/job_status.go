@@ -74,6 +74,7 @@ func getJobFromS3(jobKey spec.JobKey) (*schema.BatchJobResponse, error) {
 	}
 
 	if jobMetrics == nil {
+		// try to get metrics from prometheus if they aren't available in S3 because there might be a delay
 		jobMetrics, err = batch.GetMetrics(config.Prometheus, jobStatus.JobKey, time.Now())
 		if err != nil {
 			telemetry.Error(err)
