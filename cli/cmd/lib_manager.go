@@ -191,6 +191,7 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 		"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 		"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
 		"CORTEX_DEV_DEFAULT_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_IMAGE_REGISTRY"),
+		"CORTEX_DEV_ADD_CONTROL_PLANE_DASHBOARD=" + os.Getenv("CORTEX_DEV_ADD_CONTROL_PLANE_DASHBOARD"),
 		"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
 	}
 	envs = append(envs, extraEnvs...)
