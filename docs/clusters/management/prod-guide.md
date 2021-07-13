@@ -6,11 +6,11 @@ As you try to take Cortex from development to production, here are a few recomme
 
 Configure your cluster configuration and API spec to use images from ECR in the same region as your cluster to accelerate scale-ups, reduce ingress costs and remove dependency on Cortex's public quay.io registry.
 
-You can find instructions for mirroring Cortex images [here](./self-hosted-images.md)
+You can find instructions for mirroring Cortex images [here](../advanced/self-hosted-images.md)
 
 ## Handling Cortex updates/upgrades
 
-Use a route 53 hosted zone as a proxy in front of your Cortex cluster. Every new Cortex cluster provisions a new API load balancer with a unique endpoint. Using a route 53 hosted zone configured with a subdomain will expose your Cortex cluster API endpoint as a single endpoint e.g. `cortex.your-company.com`. You will be able to upgrade Cortex versions with minimal downtime and avoid needing to change your client code every time you migrate to a new cluster. You can find instructions for setting up a custom domain with route 53 hosted zone [here](./custom-domain.md).
+Use a route 53 hosted zone as a proxy in front of your Cortex cluster. Every new Cortex cluster provisions a new API load balancer with a unique endpoint. Using a route 53 hosted zone configured with a subdomain will expose your Cortex cluster API endpoint as a single endpoint e.g. `cortex.your-company.com`. You will be able to upgrade Cortex versions with minimal downtime and avoid needing to change your client code every time you migrate to a new cluster. You can find instructions for setting up a custom domain with route 53 hosted zone [here](../networking/custom-domain.md).
 
 ## Production cluster configuration
 
@@ -24,7 +24,7 @@ subnet_visibility: private
 nat_gateway: single # for large clusters making requests to services outside the cluster (e.g. S3 or database) use highly_available
 ```
 
-You can make your load balancers private to prevent your APIs from being publicly accessed. In order to access your APIs, you will need to set up VPC peering between the Cortex cluster's VPC and the VPC containing the consumers of the Cortex APIs. See the [VPC peering guide](./vpc-peering.md) for more details.
+You can make your load balancers private to prevent your APIs from being publicly accessed. In order to access your APIs, you will need to set up VPC peering between the Cortex cluster's VPC and the VPC containing the consumers of the Cortex APIs. See the [VPC peering guide](../networking/vpc-peering.md) for more details.
 
 ```yaml
 api_load_balancer_scheme: internal
@@ -77,4 +77,4 @@ Make sure to specify all of the relevant compute resources, especially the cpu a
 
 ### Autoscaling
 
-Revisit the autoscaling docs for your [Realtime APIs](../workloads/realtime/autoscaling.md) and [Async APIs](../workloads/async/autoscaling.md) to effectively handle production traffic by tuning the sensitivity, scaling rate and over-provisioning.
+Revisit the autoscaling docs for your [Realtime APIs](../../workloads/realtime/autoscaling.md) and [Async APIs](../../workloads/async/autoscaling.md) to effectively handle production traffic by tuning the sensitivity, scaling rate and over-provisioning.

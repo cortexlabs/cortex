@@ -8,7 +8,7 @@ Recommendation: do not spin down your existing Cortex cluster until your new clu
 
 If you've already set up a subdomain with route 53 hosted zone pointing to a cluster, skip this step.
 
-Setting up a route 53 hosted zone allows you to transfer traffic seamlessly from from an existing cluster to a new cluster and minimize downtime. You can find the instructions for setting up a subdomain [here](./custom-domain.md). You will need to update clients interacting with your Cortex APIs to point to the subdomain.
+Setting up a route 53 hosted zone allows you to transfer traffic seamlessly from from an existing cluster to a new cluster and minimize downtime. You can find the instructions for setting up a subdomain [here](../networking/custom-domain.md). You will need to update clients interacting with your Cortex APIs to point to the subdomain.
 
 ## Export all of the APIs from previous cluster
 

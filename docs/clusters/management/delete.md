@@ -10,11 +10,11 @@ When a Cortex cluster is created, an S3 bucket is created for its internal use. 
 
 ## Delete SSL Certificate
 
-If you've set up HTTPS, you can remove the SSL Certificate by following these [instructions](../../guides/https.md#cleanup).
+If you've set up HTTPS, you can remove the SSL Certificate by following these [instructions](../networking/https.md#cleanup).
 
 ## Delete Hosted Zone
 
-If you've configured a custom domain for your APIs, follow these [instructions](../../guides/custom-domain.md#cleanup) to delete the Hosted Zone.
+If you've configured a custom domain for your APIs, follow these [instructions](../networking/custom-domain.md#cleanup) to delete the Hosted Zone.
 
 ## Keep Cortex Resources
 

@@ -10,9 +10,6 @@
 ## Create a cluster on your AWS account
 
 ```bash
-# install the CLI
-pip install cortex
-
 # create a cluster
 cortex cluster up cluster.yaml
 ```

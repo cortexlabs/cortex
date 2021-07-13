@@ -121,7 +121,7 @@ It is possible to manually configure SMTP to enable email alerts (we plan on aut
 
 **Step 1**
 
-Install [kubectl](../../guides/kubectl.md).
+Install [kubectl](../advanced/kubectl.md).
 
 **Step 2**
 
