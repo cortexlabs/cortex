@@ -56,7 +56,7 @@
     max_downscale_factor: <float>  # maximum factor by which to scale down the API on a single scaling event (default: 0.75)
     max_upscale_factor: <float>  # maximum factor by which to scale up the API on a single scaling event (default: 1.5)
     downscale_tolerance: <float>  # any recommendation falling within this factor below the current number of replicas will not trigger a scale down event (default: 0.05)
-    upscale_tolerance: <float>  # any recommendation falling within this factor above the current number of replicas will not trigger a scale up event (default: 0.05)
+    upscale_tolerance: <float>  # any recommendation falling within this factor above the current number of replicas will not trigger a scale-up event (default: 0.05)
   node_groups: <list[string]>  # a list of node groups on which this API can run (default: all node groups are eligible)
   update_strategy:  # deployment strategy to use when replacing existing replicas with new ones (default: see below)
     max_surge: <string|int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%) (set to 0 to disable rolling updates)

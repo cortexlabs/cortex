@@ -77,7 +77,7 @@ The steps for exporting metrics from Prometheus will vary based on your monitori
 
 ### Configure kubectl
 
-Follow these [instructions](../../clusters/advanced/kubectl.md) to set up kubectl.
+Follow these [instructions](../advanced/kubectl.md) to set up kubectl.
 
 ### Install agent
 
@@ -121,7 +121,7 @@ Once you've found an adapter that works for you, follow the steps below:
 
 ### Configure kubectl
 
-Follow these [instructions](../../clusters/advanced/kubectl.md) to set up kubectl.
+Follow these [instructions](../advanced/kubectl.md) to set up kubectl.
 
 ### Update Prometheus
 
