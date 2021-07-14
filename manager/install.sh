@@ -33,7 +33,11 @@ function main() {
 }
 
 function cluster_up() {
-  create_eks
+  check_eks
+
+  echo -n "￮ creating namespaces "
+  setup_namespaces
+  echo "✓"
 
   echo -n "￮ updating cluster configuration "
   setup_configmap
@@ -195,6 +199,14 @@ function write_kubeconfig() {
   out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
 }
 
+function setup_namespaces() {
+  # to apply the istio-discovery label
+  kubectl apply -f manifests/namespaces/default.yaml >/dev/null
+  kubectl apply -f manifests/namespaces/istio.yaml >/dev/null
+  kubectl apply -f manifests/namespaces/prometheus.yaml >/dev/null
+  kubectl apply -f manifests/namespaces/logging.yaml >/dev/null
+}
+
 function setup_configmap() {
   envsubst < manifests/default_cortex_cli_config.yaml > tmp_cli_config.yaml
   kubectl -n=default create configmap 'client-config' \
@@ -220,7 +232,6 @@ function setup_configmap() {
 }
 
 function setup_prometheus() {
-  kubectl apply -f manifests/namespaces/prometheus.yaml >/dev/null
   envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-kubelet-exporter.yaml | kubectl apply -f - >/dev/null
@@ -361,10 +372,6 @@ function remove_nodegroups() {
 }
 
 function setup_istio() {
-  kubectl apply -f manifests/namespaces/istio.yaml >/dev/null
-  # to apply the istio-discovery label
-  kubectl apply -f manifests/namespaces/default.yaml >/dev/null
-
   if ! grep -q "istio-customgateway-certs" <<< $(kubectl get secret -n istio-system); then
     WEBSITE=localhost
     openssl req -subj "/C=US/CN=$WEBSITE" -newkey rsa:2048 -nodes -keyout $WEBSITE.key -x509 -days 3650 -out $WEBSITE.crt >/dev/null 2>&1

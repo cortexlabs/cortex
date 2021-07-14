@@ -61,7 +61,7 @@ const (
 	_clusterConfigConfigMap = "cluster-config"
 	_clusterConfigDir       = "/configs/cluster"
 
-	_statsdAddress = "prometheus-statsd-exporter.default:9125"
+	_statsdAddress = "prometheus-statsd-exporter.prometheus:9125"
 )
 
 var (
