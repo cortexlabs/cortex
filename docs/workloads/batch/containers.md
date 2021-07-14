@@ -51,7 +51,7 @@ Note: your Cortex CLI or client must match the version of your cluster (availabl
 
 It is possible to submit Batch jobs from any Cortex API within a Cortex cluster. Jobs can be submitted to `http://ingressgateway-operator.istio-system.svc.cluster.local/batch/<api_name>`, where `<api_name>` is the name of the Batch API you are making a request to.
 
-For example, if there is a Batch API named `my-api` running in the cluster, you can make a request to it from a different API in Python by using:
+For example, if there is a Batch API named `hello-world` running in the cluster, you can make a request to it from a different API in Python by using:
 
 ```python
 import requests
@@ -63,7 +63,7 @@ job_spec = {
 }
 
 response = requests.post(
-    "http://ingressgateway-operator.istio-system.svc.cluster.local/batch/my-api",
+    "http://ingressgateway-operator.istio-system.svc.cluster.local/batch/hello-world",
     json=job_spec,
 )
 ```
