@@ -61,7 +61,7 @@ If you're running in a development environment, this rolling update behavior can
 You can disable rolling updates for your API in your API configuration: set `max_surge` to 0 in the `update_strategy` section, E.g.:
 
 ```yaml
-- name: my-api
+- name: hello-world
   kind: RealtimeAPI
   # ...
   update_strategy:

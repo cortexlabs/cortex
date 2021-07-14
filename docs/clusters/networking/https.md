@@ -1,8 +1,8 @@
 # Setting up HTTPS
 
-This guide is meant for supporting HTTPS traffic to Cortex APIs. In order to create valid SSL certificates for HTTPS, you must own the domain and configure your DNS to satisfy the DNS challenges which prove that you own the domain.
+This guide shows how to support HTTPS traffic to Cortex APIs via a custom domain. It is also possible to use AWS API Gateway to enable HTTPS without using your own domain (see [here](api-gateway.md) for instructions).
 
-This guide assumes that you are using a route 53 hosted zone to manage a subdomain. The HTTPS certificate will be created for the subdomain managed by a route 53 hosted zone. Follow this [guide](./custom-domain.md) to set up a subdomain managed by a route 53 hosted zone.
+In order to create a valid SSL certificate for your domain, you must have the ability to configure DNS to satisfy the DNS challenges which prove that you own the domain. This guide assumes that you are using a Route 53 hosted zone to manage a subdomain. Follow this [guide](./custom-domain.md) to set up a subdomain managed by a Route 53 hosted zone.
 
 ## Generate an SSL certificate
 
@@ -42,6 +42,8 @@ Take note of the certificate's ARN. The certificate is ineligible for renewal be
 
 ![](https://user-images.githubusercontent.com/4365343/82222684-9e613d80-98ef-11ea-98c0-5a20b457f062.png)
 
+## Create or update your cluster
+
 Add the following field to your cluster configuration:
 
 ```yaml
@@ -52,10 +54,15 @@ Add the following field to your cluster configuration:
 ssl_certificate_arn: <ARN of your certificate>
 ```
 
-Apply the changes
+Create a cluster:
 
 ```bash
-# update an existing cluster
+cortex cluster up cluster.yaml
+```
+
+Or update an existing cluster:
+
+```bash
 cortex cluster configure cluster.yaml
 ```
 
@@ -64,14 +71,14 @@ cortex cluster configure cluster.yaml
 Wait a few minutes to allow the DNS changes to propagate. You may now use your subdomain in place of your API load balancer endpoint in your client. For example, this curl request:
 
 ```bash
-curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/text-generator -X POST -H "Content-Type: application/json" -d @sample.json
+curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 Would become:
 
 ```bash
 # add the `-k` flag or use http:// instead of https:// if you didn't configure an SSL certificate
-curl https://api.cortexlabs.dev/text-generator -X POST -H "Content-Type: application/json" -d @sample.json
+curl https://api.cortexlabs.dev/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 ## Cleanup

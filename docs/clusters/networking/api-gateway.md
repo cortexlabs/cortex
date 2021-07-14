@@ -1,9 +1,6 @@
 # API Gateway
 
-If you would like to support HTTPS endpoints for your Cortex APIs, here are a few options:
-
-* Set up a [custom domain](custom-domain.md) with an [SSL certificate](https.md)
-* AWS API Gateway: This is the simplest approach if a custom domain is not required; continue reading this guide for instructions.
+This guide shows how set up AWS API Gateway for your Cortex APIs, which is the simplest way to enable HTTPS if a custom domain is not required. See [here](https.md) for how to set up a custom domain with SSL certificates instead.
 
 Please note that one limitation of API Gateway is that there is a 30-second time limit for all requests.
 
@@ -56,13 +53,13 @@ Copy your "Invoke URL"
 You may now use the "Invoke URL" in place of your API load balancer endpoint in your client. For example, this curl request:
 
 ```bash
-curl http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/my-api -X POST -H "Content-Type: application/json" -d @sample.json
+curl http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 Would become:
 
 ```bash
-curl https://31qjv48rs6.execute-api.us-west-2.amazonaws.com/dev/my-api -X POST -H "Content-Type: application/json" -d @sample.json
+curl https://31qjv48rs6.execute-api.us-west-2.amazonaws.com/dev/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 ### Cleanup
@@ -134,13 +131,13 @@ Copy your "Invoke URL"
 You may now use the "Invoke URL" in place of your API load balancer endpoint in your client. For example, this curl request:
 
 ```bash
-curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/my-api -X POST -H "Content-Type: application/json" -d @sample.json
+curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 Would become:
 
 ```bash
-curl https://lrivodooqh.execute-api.us-west-2.amazonaws.com/dev/my-api -X POST -H "Content-Type: application/json" -d @sample.json
+curl https://lrivodooqh.execute-api.us-west-2.amazonaws.com/dev/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 ### Cleanup

@@ -1,6 +1,6 @@
 # Install
 
-## Install binary
+## Install the CLI
 
 <!-- CORTEX_VERSION_README x2 -->
 ```bash
@@ -10,7 +10,7 @@ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.38.0/
 
 By default, the Cortex CLI is installed at `/usr/local/bin/cortex`. To install the executable elsewhere, export the `CORTEX_INSTALL_PATH` environment variable to your desired location before running the command above.
 
-## Install with pip
+## Install the CLI and Python client via pip
 
 To install the latest version:
 

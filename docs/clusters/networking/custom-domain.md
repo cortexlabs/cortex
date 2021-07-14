@@ -1,10 +1,12 @@
 # Custom domain
 
-You can set up DNS to point to a custom domain you own to route traffic to your Cortex APIs. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and, if desired, configure your API load balancer to use an SSL certificate provisioned by AWS Certificate Manager.
+You can set up DNS to use a custom domain for your Cortex APIs. For example, you can make your API accessible via `api.example.com/hello-world`.
+
+This guide will demonstrate how to create a dedicated subdomain in AWS Route 53. After completing this guide, if you want to enable HTTPS with your custom subdomain, see [these instructions](https.md).
 
 ## Configure DNS
 
-Decide on a subdomain that you want to dedicate to Cortex APIs. For example if your domain is `example.com`, a valid subdomain can be `api.example.com`. This guide will use `cortexlabs.dev` as the example domain and `api.cortexlabs.dev` as the subdomain.
+Decide on a subdomain that you want to dedicate to Cortex APIs. For example if your domain is `example.com`, a valid subdomain can be `api.example.com`. This guide will use `cortexlabs.dev` as the domain and `api.cortexlabs.dev` as the subdomain.
 
 We will set up a hosted zone on Route 53 to manage the DNS records for the subdomain. Go to the [Route 53 console](https://console.aws.amazon.com/route53/home) and click "Hosted Zones".
 
@@ -45,7 +47,7 @@ You could run into connectivity issues if you make a request to your API without
 To test connectivity, try the following steps:
 
 1. Deploy an api.
-1. Make a request to the your api (e.g. `curl https://api.cortexlabs.dev/my-api` or paste the url into your browser if your API supports GET requests).
+1. Make a request to your api (e.g. `curl http://api.cortexlabs.dev/hello-world` or paste the url into your browser if your API supports GET requests).
 1. If you run into an error such as `curl: (6) Could not resolve host: api.cortexlabs.dev` wait a few minutes and make the request from another device that hasn't made a request to that url in a while.
 
 ## Cleanup

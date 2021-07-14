@@ -45,19 +45,19 @@ Note: your Cortex CLI or client must match the version of your cluster (availabl
 
 It is possible to submit requests to Async APIs from any Cortex API within a Cortex cluster. Requests can be made to `http://ingressgateway-apis.istio-system.svc.cluster.local/<api_name>`, where `<api_name>` is the name of the Async API you are making a request to.
 
-For example, if there is an Async API named `my-api` running in the cluster, you can make a request to it from a different API in Python by using:
+For example, if there is an Async API named `hello-world` running in the cluster, you can make a request to it from a different API in Python by using:
 
 ```python
 import requests
 
 # make a request to an Async API
 response = requests.post(
-    "http://ingressgateway-apis.istio-system.svc.cluster.local/my-api",
+    "http://ingressgateway-apis.istio-system.svc.cluster.local/hello-world",
     json={"text": "hello world"},
 )
 
 # retreive a result from an Async API
-response = requests.get("http://ingressgateway-apis.istio-system.svc.cluster.local/my-api/<id>")
+response = requests.get("http://ingressgateway-apis.istio-system.svc.cluster.local/hello-world/<id>")
 ```
 
 To make requests from your Async API to a Realtime, Batch, or Task API running within the cluster, see the "Chaining APIs" docs associated with the target workload type.
