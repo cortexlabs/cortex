@@ -14,7 +14,13 @@ The following is a list of metrics that are currently in use.
     1. api_name
     1. api_kind
     1. status_code
-1. cortex_async_queue_length with the following labels:
+1. cortex_async_active with the following labels:
+    1. api_name
+    1. api_kind
+1. cortex_async_queued with the following labels:
+    1. api_name
+    1. api_kind
+1. cortex_async_in_flight with the following labels:
     1. api_name
     1. api_kind
 1. cortex_async_latency_bucket with the following labels:
@@ -184,6 +190,36 @@ The following is a list of metrics that are currently in use.
     1. node_network_transmit_drop_total with the following labels:
         1. job
         1. device
+1. cluster:cpu_utilization:ratio with the following metrics:
+    1. instance:node_cpu_utilisation:rate1m
+    1. instance:node_num_cpu:sum
+1. cluster:load1:ratio with the following metrics:
+    1. instance:node_load1_per_cpu:ratio
+1. cluster:memory_utilization:ratio with the following metrics:
+    1. instance:node_memory_utilisation:ratio
+1. cluster:vmstat_pgmajfault:rate1m with the following metrics:
+    1. instance:node_vmstat_pgmajfault:rate1m
+1. cluster:network_receive_bytes_excluding_low:rate1m with the following metrics:
+    1. instance:node_network_receive_bytes_excluding_lo:rate1m
+1. cluster:network_transmit_bytes_excluding_lo:rate1m with the following metrics:
+    1. instance:node_network_transmit_bytes_excluding_lo:rate1m
+1. cluster:network_receive_drop_excluding_lo:rate1m with the following metrics:
+    1. instance:node_network_receive_drop_excluding_lo:rate1m
+1. cluster:network_transmit_drop_excluding_lo:rate1m with the following metrics:
+    1. instance:node_network_transmit_drop_excluding_lo:rate1m
+1. cluster:disk_io_utilization:ratio with the following metrics:
+    1. instance_device:node_disk_io_time_seconds:rate1m
+1. cluster:disk_io_saturation:ratio with the following metrics:
+    1. instance_device:node_disk_io_time_weighted_seconds:rate1m
+1. cluster:disk_space_utilization:ratio with the following metrics:
+    1. node_filesystem_size_bytes with the following labels:
+        1. job
+        1. fstype
+        1. mountpoint
+    1. node_filesystem_avail_bytes with the following labels:
+        1. job
+        1. fstype
+        1. mountpoint
 
 ## Re-introducing dropped metrics/labels
 

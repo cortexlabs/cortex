@@ -300,3 +300,62 @@ spec:
               rate(node_network_transmit_drop_total{job="node-exporter", device!="lo"}[1m])
             )
           record: instance:node_network_transmit_drop_excluding_lo:rate1m
+        - expr: |
+            sum (
+              (
+                instance:node_cpu_utilisation:rate1m{job="node-exporter"}
+              *
+                instance:node_num_cpu:sum{job="node-exporter"}
+              )
+              / scalar(sum(instance:node_num_cpu:sum{job="node-exporter"}))
+            )
+          record: cluster:cpu_utilization:ratio
+        - expr: |
+            sum (
+              instance:node_load1_per_cpu:ratio{job="node-exporter"}
+              / scalar(count(instance:node_load1_per_cpu:ratio{job="node-exporter"}))
+            )
+          record: cluster:load1:ratio
+        - expr: |
+            sum (
+              instance:node_memory_utilisation:ratio{job="node-exporter"}
+              / scalar(count(instance:node_memory_utilisation:ratio{job="node-exporter"}))
+            )
+          record: cluster:memory_utilization:ratio
+        - expr: |
+            sum (
+              instance:node_vmstat_pgmajfault:rate1m{job="node-exporter"}
+            )
+          record: cluster:vmstat_pgmajfault:rate1m
+        - expr: |
+            sum (instance:node_network_receive_bytes_excluding_lo:rate1m{job="node-exporter"})
+          record: cluster:network_receive_bytes_excluding_low:rate1m
+        - expr: |
+            sum (instance:node_network_transmit_bytes_excluding_lo:rate1m{job="node-exporter"})
+          record: cluster:network_transmit_bytes_excluding_lo:rate1m
+        - expr: |
+            sum (instance:node_network_receive_drop_excluding_lo:rate1m{job="node-exporter"})
+          record: cluster:network_receive_drop_excluding_lo:rate1m
+        - expr: |
+            sum (instance:node_network_transmit_drop_excluding_lo:rate1m{job="node-exporter"})
+          record: cluster:network_transmit_drop_excluding_lo:rate1m
+        - expr: |
+            sum (
+              instance_device:node_disk_io_time_seconds:rate1m{job="node-exporter"}
+              / scalar(count(instance_device:node_disk_io_time_seconds:rate1m{job="node-exporter"}))
+            )
+          record: cluster:disk_io_utilization:ratio
+        - expr: |
+            sum (
+              instance_device:node_disk_io_time_weighted_seconds:rate1m{job="node-exporter"}
+              / scalar(count(instance_device:node_disk_io_time_weighted_seconds:rate1m{job="node-exporter"}))
+            )
+          record: cluster:disk_io_saturation:ratio
+        - expr: |
+            sum (
+              max without (fstype, mountpoint) (
+                node_filesystem_size_bytes{job="node-exporter", fstype!=""} - node_filesystem_avail_bytes{job="node-exporter", fstype!=""}
+              )
+            )
+            / scalar(sum(max without (fstype, mountpoint) (node_filesystem_size_bytes{job="node-exporter", fstype!=""})))
+          record: cluster:disk_space_utilization:ratio

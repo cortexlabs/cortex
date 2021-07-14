@@ -19,17 +19,15 @@ package status
 import (
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 type BatchJobStatus struct {
 	spec.BatchJob
-	Status         JobCode               `json:"status"`
-	EndTime        *time.Time            `json:"end_time,omitempty"`
-	BatchesInQueue int                   `json:"batches_in_queue"`
-	BatchMetrics   *metrics.BatchMetrics `json:"batch_metrics,omitempty"`
-	WorkerCounts   *WorkerCounts         `json:"worker_counts,omitempty"`
+	Status         JobCode       `json:"status"`
+	EndTime        *time.Time    `json:"end_time,omitempty"`
+	BatchesInQueue int           `json:"batches_in_queue"`
+	WorkerCounts   *WorkerCounts `json:"worker_counts,omitempty"`
 }
 
 type TaskJobStatus struct {

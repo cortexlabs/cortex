@@ -187,11 +187,6 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 		return nil, err
 	}
 
-	allMetrics, err := GetMultipleMetrics(apis)
-	if err != nil {
-		return nil, err
-	}
-
 	realtimeAPIs := make([]schema.APIResponse, len(apis))
 
 	for i := range apis {
@@ -204,7 +199,6 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 		realtimeAPIs[i] = schema.APIResponse{
 			Spec:     api,
 			Status:   &statuses[i],
-			Metrics:  &allMetrics[i],
 			Endpoint: endpoint,
 		}
 	}
@@ -235,11 +229,6 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, err
 	}
 
-	metrics, err := GetMetrics(api)
-	if err != nil {
-		return nil, err
-	}
-
 	apiEndpoint, err := operator.APIEndpoint(api)
 	if err != nil {
 		return nil, err
@@ -251,7 +240,6 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		{
 			Spec:         *api,
 			Status:       st,
-			Metrics:      metrics,
 			Endpoint:     apiEndpoint,
 			DashboardURL: dashboardURL,
 		},

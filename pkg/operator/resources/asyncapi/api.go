@@ -265,11 +265,6 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, err
 	}
 
-	metrics, err := GetMetrics(*api)
-	if err != nil {
-		return nil, err
-	}
-
 	dashboardURL := pointer.String(getDashboardURL(api.Name))
 
 	return []schema.APIResponse{
@@ -278,7 +273,6 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 			Status:       status,
 			Endpoint:     apiEndpoint,
 			DashboardURL: dashboardURL,
-			Metrics:      metrics,
 		},
 	}, nil
 }
@@ -291,11 +285,6 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 
 	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
 	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	allMetrics, err := GetMultipleMetrics(apis)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +302,6 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 			Spec:     api,
 			Status:   &statuses[i],
 			Endpoint: endpoint,
-			Metrics:  &allMetrics[i],
 		}
 	}
 

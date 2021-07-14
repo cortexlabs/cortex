@@ -47,10 +47,6 @@ const (
 	_titleRequested   = "requested"
 	_titleFailed      = "failed"
 	_titleLastupdated = "last update"
-	_titleAvgRequest  = "avg request"
-	_title2XX         = "2XX"
-	_title4XX         = "4XX"
-	_title5XX         = "5XX"
 )
 
 var (
