@@ -87,16 +87,7 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 	if len(batchAPI.BatchJobStatuses) == 0 {
 		out = console.Bold("no submitted batch jobs\n")
 	} else {
-		totalFailed := 0
 		for _, job := range batchAPI.BatchJobStatuses {
-			succeeded := 0
-			failed := 0
-
-			if job.BatchMetrics != nil {
-				failed = job.BatchMetrics.Failed
-				succeeded = job.BatchMetrics.Succeeded
-				totalFailed += failed
-			}
 
 			jobEndTime := time.Now()
 			if job.EndTime != nil {
@@ -108,8 +99,7 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 			jobRows = append(jobRows, []interface{}{
 				job.ID,
 				job.Status.Message(),
-				fmt.Sprintf("%d/%d", succeeded, job.TotalBatchCount),
-				failed,
+				job.TotalBatchCount,
 				job.StartTime.Format(_timeFormat),
 				duration,
 			})
@@ -119,8 +109,7 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 			Headers: []table.Header{
 				{Title: "job id"},
 				{Title: "status"},
-				{Title: "progress"}, // (succeeded/total)
-				{Title: "failed attempts", Hidden: totalFailed == 0},
+				{Title: "total batches"},
 				{Title: "start time"},
 				{Title: "duration"},
 			},
@@ -189,14 +178,14 @@ func getBatchJob(env cliconfig.Environment, apiName string, jobID string) (strin
 	failed := "-"
 	avgTimePerBatch := "-"
 
-	if job.BatchMetrics != nil {
-		if job.BatchMetrics.AverageTimePerBatch != nil {
-			batchMetricsDuration := time.Duration(*job.BatchMetrics.AverageTimePerBatch*1000000000) * time.Nanosecond
+	if resp.Metrics != nil {
+		if resp.Metrics.AverageTimePerBatch != nil {
+			batchMetricsDuration := time.Duration(*resp.Metrics.AverageTimePerBatch*1000000000) * time.Nanosecond
 			avgTimePerBatch = batchMetricsDuration.Truncate(time.Millisecond).String()
 		}
 
-		succeeded = s.Int(job.BatchMetrics.Succeeded)
-		failed = s.Int(job.BatchMetrics.Failed)
+		succeeded = s.Int(resp.Metrics.Succeeded)
+		failed = s.Int(resp.Metrics.Failed)
 	}
 
 	t := table.Table{

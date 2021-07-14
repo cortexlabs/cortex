@@ -81,7 +81,7 @@ func GetJobLogURL(w http.ResponseWriter, r *http.Request) {
 
 	switch deployedResource.Kind {
 	case userconfig.BatchAPIKind:
-		jobStatus, err := batchapi.GetJobStatus(spec.JobKey{
+		jobResponse, err := batchapi.GetJob(spec.JobKey{
 			ID:      jobID,
 			APIName: apiName,
 			Kind:    userconfig.BatchAPIKind,
@@ -90,7 +90,7 @@ func GetJobLogURL(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, err)
 			return
 		}
-		logURL, err := operator.BatchJobLogURL(apiName, *jobStatus)
+		logURL, err := operator.BatchJobLogURL(apiName, jobResponse.JobStatus)
 		if err != nil {
 			respondError(w, r, err)
 			return
