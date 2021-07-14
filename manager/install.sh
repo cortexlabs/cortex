@@ -220,6 +220,7 @@ function setup_configmap() {
 }
 
 function setup_prometheus() {
+  kubectl apply -f manifests/prometheus-namespace.yaml >/dev/null
   envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-kubelet-exporter.yaml | kubectl apply -f - >/dev/null
@@ -360,8 +361,8 @@ function remove_nodegroups() {
 }
 
 function setup_istio() {
-  envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
-  kubectl label namespaces default istio-discovery=enabled >/dev/null
+  kubectl apply -f manifests/istio-namespace.yaml >/dev/null
+  kubectl apply -f manifests/default-namespace.yaml >/dev/null
 
   if ! grep -q "istio-customgateway-certs" <<< $(kubectl get secret -n istio-system); then
     WEBSITE=localhost
