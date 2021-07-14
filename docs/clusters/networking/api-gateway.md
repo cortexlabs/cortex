@@ -12,7 +12,69 @@ If your API load balancer is internal (i.e. you set `api_load_balancer_scheme: i
 
 _This section applies if your API load balancer is internet-facing (which is the default, or you set `api_load_balancer_scheme: internet-facing` in your cluster configuration file before creating your cluster). If your API load balancer is internal, see the [internal load balancer](#internal-load-balancer) section below._
 
-### Create an API Gateway
+There are two types of API Gateways that can be used when your load balancer is internet-facing: HTTP and REST. HTTP APIs are faster and less expensive, while REST APIs have more features an allow for more control. See the following section for creating an [HTTP API](#http-api), or skip to the next section for creating a [REST API](#rest-api).
+
+### HTTP API
+
+#### Create an API Gateway
+
+Go to the [API Gateway console](https://console.aws.amazon.com/apigateway/home), select "HTTP API" under "Choose an API type", and click "Build".
+
+![](https://user-images.githubusercontent.com/808475/125668597-35ad8d8e-8b5f-4274-bbb3-62ff47e5d544.png)
+
+Click "Add integration".
+
+![](https://user-images.githubusercontent.com/808475/125668635-f92df672-f516-45e0-a152-538aff901c0d.png)
+
+Click the drop-down menu, and select "HTTP".
+
+![](https://user-images.githubusercontent.com/808475/125668655-78754a51-c77a-4a03-a548-78ab991d1486.png)
+
+Set the "URL endpoint" to `http://API_LOAD_BALANCER_ENDPOINT/{proxy}`. You can get your API load balancer endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://aa9f5fdabfa6446aca53a526f59bc3c5-18cd00a628421fa3.elb.us-east-1.amazonaws.com/{proxy}`.
+
+Choose a name for your API (e.g. "cortex"), and click "Next".
+
+![](https://user-images.githubusercontent.com/808475/125668735-b57976c7-f68e-4a28-ab2a-92cfad5b49bb.png)
+
+On the next page, update the pre-populated route's resource path to `/{proxy+}`, and click "Next".
+
+![](https://user-images.githubusercontent.com/808475/125668752-21aef8dd-1e75-41a5-bfc5-1e7157efbe01.png)
+
+Click "Next" again.
+
+![](https://user-images.githubusercontent.com/808475/125668761-8a177f6e-1977-48a2-be84-4b0df0105283.png)
+
+Click "Create".
+
+![](https://user-images.githubusercontent.com/808475/125668770-69fd3fbe-24e4-4a8a-8413-d50c779392c5.png)
+
+Copy your "Invoke URL" for the `$default` stage
+
+![](https://user-images.githubusercontent.com/808475/125668795-b18b564c-7091-432c-a4fd-a5a8bb157946.png)
+
+#### Use your new endpoint
+
+You may now use the "Invoke URL" in place of your API load balancer endpoint in your client. For example, this curl request:
+
+```bash
+curl -X POST http://aa9f5fdabfa6446aca53a526f59bc3c5-18cd00a628421fa3.elb.us-east-1.amazonaws.com/hello-world
+```
+
+Would become:
+
+```bash
+curl -X POST https://nj3f5l96oe.execute-api.us-east-1.amazonaws.com/hello-world
+```
+
+#### Cleanup
+
+Delete the API Gateway before spinning down your Cortex cluster:
+
+![](https://user-images.githubusercontent.com/808475/125668816-83bce6bf-cf0e-4835-8d18-d641eb6cdb29.png)
+
+### REST API
+
+#### Create an API Gateway
 
 Go to the [API Gateway console](https://console.aws.amazon.com/apigateway/home), select "REST API" under "Choose an API type", and click "Build".
 
@@ -30,7 +92,7 @@ Select "Configure as proxy resource" and "Enable API Gateway CORS", and click "C
 
 ![](https://user-images.githubusercontent.com/808475/80154565-ad650200-8574-11ea-8753-808cd35902e2.png)
 
-Select "HTTP Proxy" and set "Endpoint URL" to "http://API_LOAD_BALANCER_ENDPOINT/{proxy}". You can get your API load balancer endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/{proxy}`.
+Select "HTTP Proxy" and set "Endpoint URL" to `http://API_LOAD_BALANCER_ENDPOINT/{proxy}`. You can get your API load balancer endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/{proxy}`.
 
 Leave "Content Handling" set to "Passthrough" and Click "Save".
 
@@ -48,21 +110,21 @@ Copy your "Invoke URL"
 
 ![](https://user-images.githubusercontent.com/808475/80154911-5dd30600-8575-11ea-9682-1a7328783011.png)
 
-### Use your new endpoint
+#### Use your new endpoint
 
 You may now use the "Invoke URL" in place of your API load balancer endpoint in your client. For example, this curl request:
 
 ```bash
-curl http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
+curl -X POST http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/hello-world
 ```
 
 Would become:
 
 ```bash
-curl https://31qjv48rs6.execute-api.us-west-2.amazonaws.com/dev/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
+curl -X POST https://31qjv48rs6.execute-api.us-west-2.amazonaws.com/dev/hello-world
 ```
 
-### Cleanup
+#### Cleanup
 
 Delete the API Gateway before spinning down your Cortex cluster:
 
@@ -110,7 +172,7 @@ Select "Configure as proxy resource" and "Enable API Gateway CORS", and click "C
 
 ![](https://user-images.githubusercontent.com/808475/80142124-80f2bb00-855f-11ea-8e4e-9413146e0815.png)
 
-Select "VPC Link", select "Use Proxy Integration", choose your newly-created VPC Link, and set "Endpoint URL" to "http://API_LOAD_BALANCER_ENDPOINT/{proxy}". You can get your API load balancer endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/{proxy}`. Click "Save"
+Select "VPC Link", select "Use Proxy Integration", choose your newly-created VPC Link, and set "Endpoint URL" to `http://API_LOAD_BALANCER_ENDPOINT/{proxy}`. You can get your API load balancer endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/{proxy}`. Click "Save"
 
 ![](https://user-images.githubusercontent.com/808475/80147407-4f322200-8568-11ea-8ef5-df5164c1375f.png)
 
@@ -131,13 +193,13 @@ Copy your "Invoke URL"
 You may now use the "Invoke URL" in place of your API load balancer endpoint in your client. For example, this curl request:
 
 ```bash
-curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
+curl -X POST http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/hello-world
 ```
 
 Would become:
 
 ```bash
-curl https://lrivodooqh.execute-api.us-west-2.amazonaws.com/dev/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
+curl -X POST https://lrivodooqh.execute-api.us-west-2.amazonaws.com/dev/hello-world
 ```
 
 ### Cleanup
