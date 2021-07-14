@@ -30,7 +30,7 @@ Select "Configure as proxy resource" and "Enable API Gateway CORS", and click "C
 
 ![](https://user-images.githubusercontent.com/808475/80154565-ad650200-8574-11ea-8753-808cd35902e2.png)
 
-Select "HTTP Proxy" and set "Endpoint URL" to "http://<API_LOAD_BALANCER_ENDPOINT>/{proxy}". You can get your API load balancer endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/{proxy}`.
+Select "HTTP Proxy" and set "Endpoint URL" to "http://API_LOAD_BALANCER_ENDPOINT/{proxy}". You can get your API load balancer endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/{proxy}`.
 
 Leave "Content Handling" set to "Passthrough" and Click "Save".
 
@@ -110,7 +110,7 @@ Select "Configure as proxy resource" and "Enable API Gateway CORS", and click "C
 
 ![](https://user-images.githubusercontent.com/808475/80142124-80f2bb00-855f-11ea-8e4e-9413146e0815.png)
 
-Select "VPC Link", select "Use Proxy Integration", choose your newly-created VPC Link, and set "Endpoint URL" to "http://<API_LOAD_BALANCER_ENDPOINT>/{proxy}". You can get your API load balancer endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/{proxy}`. Click "Save"
+Select "VPC Link", select "Use Proxy Integration", choose your newly-created VPC Link, and set "Endpoint URL" to "http://API_LOAD_BALANCER_ENDPOINT/{proxy}". You can get your API load balancer endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/{proxy}`. Click "Save"
 
 ![](https://user-images.githubusercontent.com/808475/80147407-4f322200-8568-11ea-8ef5-df5164c1375f.png)
 
