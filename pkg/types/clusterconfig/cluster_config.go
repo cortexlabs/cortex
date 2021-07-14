@@ -48,8 +48,16 @@ import (
 const (
 	// MaxNodeGroups represents the max number of node groups in a cluster
 	MaxNodeGroups = 100
+
 	// MaxNodesToAddOnClusterUp represents the max number of nodes to add on cluster up
-	MaxNodesToAddOnClusterUp = 250
+	// Limited to 200 nodes (rounded down from 248 nodes) for two reasons:
+	//
+	// * To prevent overloading the API servers when the nodes are being added.
+	//
+	// * To prevent hitting the 500 targets per LB (when the cross-load balancing is enabled) limit (quota code L-B211E961);
+	//   500 divided by 2 target listeners - 1 operator node - 1 prometheus node => 248
+	MaxNodesToAddOnClusterUp = 200
+
 	// MaxNodesToAddOnClusterConfigure represents the max number of nodes to add on cluster up/configure
 	MaxNodesToAddOnClusterConfigure = 100
 	// ClusterNameTag is the tag used for storing a cluster's name in AWS resources
