@@ -15,7 +15,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: prometheus
+  namespace: logging
   name: event-exporter
 
 ---
@@ -30,7 +30,7 @@ roleRef:
   name: view
 subjects:
   - kind: ServiceAccount
-    namespace: prometheus
+    namespace: logging
     name: event-exporter
 
 ---
@@ -39,7 +39,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: event-exporter-config
-  namespace: prometheus
+  namespace: logging
 data:
   config.yaml: |
     logLevel: error
@@ -61,7 +61,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: event-exporter
-  namespace: prometheus
+  namespace: logging
 spec:
   replicas: 1
   selector:
