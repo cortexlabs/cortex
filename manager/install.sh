@@ -361,6 +361,7 @@ function remove_nodegroups() {
 
 function setup_istio() {
   envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
+  kubectl label namespaces default istio-discovery=enabled
 
   if ! grep -q "istio-customgateway-certs" <<< $(kubectl get secret -n istio-system); then
     WEBSITE=localhost
