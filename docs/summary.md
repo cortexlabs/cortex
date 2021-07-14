@@ -11,7 +11,7 @@
   * [Update](clusters/management/update.md)
   * [Delete](clusters/management/delete.md)
   * [Environments](clusters/management/environments.md)
-  * [Production Guide](clusters/management/prod-guide.md)
+  * [Production Guide](clusters/management/production.md)
 * Instances
   * [Multi-instance](clusters/instances/multi.md)
   * [Spot instances](clusters/instances/spot.md)
@@ -41,7 +41,6 @@
   * [Metrics](workloads/realtime/metrics.md)
   * [Statuses](workloads/realtime/statuses.md)
   * [Troubleshooting](workloads/realtime/troubleshooting.md)
-
 * [Async](workloads/async/async.md)
   * [Example](workloads/async/example.md)
   * [Configuration](workloads/async/configuration.md)
