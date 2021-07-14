@@ -195,11 +195,6 @@ RESPONSE:
         "sqs_url": <string>,
         "status": <string>,
         "batches_in_queue": <int>   # number of batches remaining in the queue
-        "batch_metrics": {
-            "succeeded": <int>      # number of succeeded batches
-            "failed": int           # number of failed attempts
-            "avg_time_per_batch": <float> (optional)  # average time spent working on a batch (only considers successful attempts)
-        },
         "worker_counts": {          # worker counts are only available while a job is running
             "pending": <int>,       # number of workers that are waiting for compute resources to be provisioned
             "initializing": <int>,  # number of workers that are initializing
@@ -215,6 +210,11 @@ RESPONSE:
     "endpoint": <string>
     "api_spec": {
         ...
+    },
+    "metrics": {
+        "succeeded": <int>      # number of succeeded batches
+        "failed": int           # number of failed attempts
+        "avg_time_per_batch": <float> (optional)  # average time spent working on a batch (only considers successful attempts)
     }
 }
 ```

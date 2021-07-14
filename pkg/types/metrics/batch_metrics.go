@@ -16,6 +16,11 @@ limitations under the License.
 
 package metrics
 
+import (
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
+)
+
 type BatchMetrics struct {
 	Succeeded           int      `json:"succeeded"`
 	Failed              int      `json:"failed"`
@@ -33,4 +38,12 @@ func (batchMetrics *BatchMetrics) MergeInPlace(right BatchMetrics) {
 	batchMetrics.AverageTimePerBatch = mergeAvg(batchMetrics.AverageTimePerBatch, batchMetrics.Succeeded, right.AverageTimePerBatch, right.Succeeded)
 	batchMetrics.Succeeded = batchMetrics.Succeeded + right.Succeeded
 	batchMetrics.Failed = batchMetrics.Failed + right.Failed
+}
+
+func mergeAvg(left *float64, leftCount int, right *float64, rightCount int) *float64 {
+	leftCountFloat64Ptr := pointer.Float64(float64(leftCount))
+	rightCountFloat64Ptr := pointer.Float64(float64(rightCount))
+
+	avg, _ := slices.Float64PtrAvg([]*float64{left, right}, []*float64{leftCountFloat64Ptr, rightCountFloat64Ptr})
+	return avg
 }

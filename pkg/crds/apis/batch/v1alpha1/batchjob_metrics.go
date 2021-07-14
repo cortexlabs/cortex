@@ -34,7 +34,7 @@ const (
 )
 
 // GetMetrics retrieves the BatchJob metrics from prometheus
-func GetMetrics(promAPIv1 promv1.API, jobKey spec.JobKey, t time.Time) (metrics.BatchMetrics, error) {
+func GetMetrics(promAPIv1 promv1.API, jobKey spec.JobKey, t time.Time) (*metrics.BatchMetrics, error) {
 	var (
 		jobBatchesSucceeded float64
 		jobBatchesFailed    float64
@@ -59,10 +59,10 @@ func GetMetrics(promAPIv1 promv1.API, jobKey spec.JobKey, t time.Time) (metrics.
 		},
 	)
 	if err != nil {
-		return metrics.BatchMetrics{}, err
+		return nil, err
 	}
 
-	return metrics.BatchMetrics{
+	return &metrics.BatchMetrics{
 		Succeeded:           int(jobBatchesSucceeded),
 		Failed:              int(jobBatchesFailed),
 		AverageTimePerBatch: avgTimePerBatch,

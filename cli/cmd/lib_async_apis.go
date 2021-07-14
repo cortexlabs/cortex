@@ -62,8 +62,6 @@ func asyncAPIsTable(asyncAPIs []schema.APIResponse, envNames []string) table.Tab
 
 	var totalFailed int32
 	var totalStale int32
-	var total4XX int
-	var total5XX int
 
 	for i, asyncAPI := range asyncAPIs {
 		lastUpdated := time.Unix(asyncAPI.Spec.LastUpdated, 0)
@@ -76,19 +74,10 @@ func asyncAPIsTable(asyncAPIs []schema.APIResponse, envNames []string) table.Tab
 			asyncAPI.Status.Requested,
 			asyncAPI.Status.Updated.TotalFailed(),
 			libtime.SinceStr(&lastUpdated),
-			latencyStr(asyncAPI.Metrics),
-			code2XXStr(asyncAPI.Metrics),
-			code4XXStr(asyncAPI.Metrics),
-			code5XXStr(asyncAPI.Metrics),
 		})
 
 		totalFailed += asyncAPI.Status.Updated.TotalFailed()
 		totalStale += asyncAPI.Status.Stale.Ready
-
-		if asyncAPI.Metrics.NetworkStats != nil {
-			total4XX += asyncAPI.Metrics.NetworkStats.Code4XX
-			total5XX += asyncAPI.Metrics.NetworkStats.Code5XX
-		}
 	}
 
 	return table.Table{
@@ -101,10 +90,6 @@ func asyncAPIsTable(asyncAPIs []schema.APIResponse, envNames []string) table.Tab
 			{Title: _titleRequested},
 			{Title: _titleFailed, Hidden: totalFailed == 0},
 			{Title: _titleLastupdated},
-			{Title: _titleAvgRequest},
-			{Title: _title2XX},
-			{Title: _title4XX, Hidden: total4XX == 0},
-			{Title: _title5XX, Hidden: total5XX == 0},
 		},
 		Rows: rows,
 	}
