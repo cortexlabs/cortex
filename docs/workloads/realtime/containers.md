@@ -4,7 +4,7 @@
 
 In order to handle requests to your Realtime API, one of your containers must run a web server which is listening for HTTP requests on the port which is configured in the `pod.port` field of your [API configuration](configuration.md) (default: 8080).
 
-Subpaths are supported; for example, if your API is named `my-api`, a request to `<loadbalancer_url>/my-api` will be routed to the root (`/`) of your web server, and a request to `<loadbalancer_url>/my-api/subpatch` will be routed to `/subpath` on your web server.
+Subpaths are supported; for example, if your API is named `hello-world`, a request to `<load_balancer_url>/hello-world` will be routed to the root (`/`) of your web server, and a request to `<load_balancer_url>/hello-world/subpatch` will be routed to `/subpath` on your web server.
 
 ## Readiness checks
 
@@ -43,13 +43,13 @@ Note: your Cortex CLI or client must match the version of your cluster (availabl
 
 It is possible to make requests to Realtime APIs from any Cortex API within a Cortex cluster. Requests can be made to `http://ingressgateway-apis.istio-system.svc.cluster.local/<api_name>`, where `<api_name>` is the name of the Realtime API you are making a request to.
 
-For example, if there is a Realtime API named `my-api` running in the cluster, you can make a request to it from a different API in Python by using:
+For example, if there is a Realtime API named `hello-world` running in the cluster, you can make a request to it from a different API in Python by using:
 
 ```python
 import requests
 
 response = requests.post(
-    "http://ingressgateway-apis.istio-system.svc.cluster.local/my-api",
+    "http://ingressgateway-apis.istio-system.svc.cluster.local/hello-world",
     json={"text": "hello world"},
 )
 ```

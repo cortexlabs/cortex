@@ -1,152 +1,90 @@
-# HTTPS
+# Setting up HTTPS
 
-If you would like to support HTTPS endpoints for your Cortex APIs, here are a few options:
+This guide shows how to support HTTPS traffic to Cortex APIs via a custom domain. It is also possible to use AWS API Gateway to enable HTTPS without using your own domain (see [here](api-gateway.md) for instructions).
 
-* Custom domain with an SSL certificate: See [here](custom-domain.md) for instructions.
-* AWS API Gateway: This is the simplest approach if a custom domain is not required; continue reading this guide for instructions.
+In order to create a valid SSL certificate for your domain, you must have the ability to configure DNS to satisfy the DNS challenges which prove that you own the domain. This guide assumes that you are using a Route 53 hosted zone to manage a subdomain. Follow this [guide](./custom-domain.md) to set up a subdomain managed by a Route 53 hosted zone.
 
-Please note that one limitation of API Gateway is that there is a 30-second time limit for all requests.
+## Generate an SSL certificate
 
-If your API load balancer is internet-facing (which is the default, or you set `api_load_balancer_scheme: internet-facing` in your cluster configuration file before creating your cluster), use the [first section](#internet-facing-load-balancer) of this guide.
+To create an SSL certificate, go to the [ACM console](https://us-west-2.console.aws.amazon.com/acm/home) and click "Get Started" under the "Provision certificates" section.
 
-If your API load balancer is internal (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), use the [second section](#internal-load-balancer) of this guide.
+![](https://user-images.githubusercontent.com/4365343/82202340-c04ac800-98cf-11ea-9472-89dd6d67eb0d.png)
 
-## Internet-facing load balancer
+Select "Request a public certificate" and then "Request a certificate".
 
-_This section applies if your API load balancer is internet-facing (which is the default, or you set `api_load_balancer_scheme: internet-facing` in your cluster configuration file before creating your cluster). If your API load balancer is internal, see the [internal load balancer](#internal-load-balancer) section below._
+![](https://user-images.githubusercontent.com/4365343/82202654-3e0ed380-98d0-11ea-8c57-025f0b69c54f.png)
 
-### Create an API Gateway
+Enter your subdomain and then click "Next".
 
-Go to the [API Gateway console](https://console.aws.amazon.com/apigateway/home), select "REST API" under "Choose an API type", and click "Build".
+![](https://user-images.githubusercontent.com/4365343/82224652-1cbedf00-98f2-11ea-912b-466cee2f6e25.png)
 
-![](https://user-images.githubusercontent.com/808475/78293216-18269e80-74dd-11ea-9e68-86922c2cbc7c.png)
+Select "DNS validation" and then click "Next".
 
-Select "REST" and "New API", name your API (e.g. "cortex"), select either "Regional" or "Edge optimized" (depending on your preference), and click "Create API".
+![](https://user-images.githubusercontent.com/4365343/82205311-66003600-98d4-11ea-90e3-da7e8b0b2b9c.png)
 
-![](https://user-images.githubusercontent.com/808475/78293434-66d43880-74dd-11ea-92d6-692158171a3f.png)
+Add tags for searchability (optional) then click "Review".
 
-Select "Actions" > "Create Resource":
+![](https://user-images.githubusercontent.com/4365343/82206485-52ee6580-98d6-11ea-95a9-1d0ebafc178a.png)
 
-![](https://user-images.githubusercontent.com/808475/80154502-8b6b7f80-8574-11ea-9c78-7d9f277bf55b.png)
+Click "Confirm and request".
 
-Select "Configure as proxy resource" and "Enable API Gateway CORS", and click "Create Resource"
+![](https://user-images.githubusercontent.com/4365343/82206602-84ffc780-98d6-11ea-9f2f-ce383404ec67.png)
 
-![](https://user-images.githubusercontent.com/808475/80154565-ad650200-8574-11ea-8753-808cd35902e2.png)
+Click "Create record in Route 53". A popup will appear indicating that a Record is going to be added to Route 53. Click "Create" to automatically add the DNS record to your subdomain's hosted zone. Then click "Continue".
 
-Select "HTTP Proxy" and set "Endpoint URL" to "http://<API_LOAD_BALANCER_ENDPOINT>/{proxy}". You can get your API load balancer endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/{proxy}`.
+![](https://user-images.githubusercontent.com/4365343/82223539-c8ffc600-98f0-11ea-93a2-044aa0c9670d.png)
 
-Leave "Content Handling" set to "Passthrough" and Click "Save".
+Wait for the Certificate Status to be "issued". This might take a few minutes.
 
-![](https://user-images.githubusercontent.com/808475/80154735-13ea2000-8575-11ea-83ca-58f182df83c6.png)
+![](https://user-images.githubusercontent.com/4365343/82209663-a616e700-98db-11ea-95cb-c6efedadb942.png)
 
-Select "Actions" > "Deploy API"
+Take note of the certificate's ARN. The certificate is ineligible for renewal because it is currently not being used. It will be eligible for renewal once it's used in Cortex.
 
-![](https://user-images.githubusercontent.com/808475/80154802-2c5a3a80-8575-11ea-9ab3-de89885fd658.png)
+![](https://user-images.githubusercontent.com/4365343/82222684-9e613d80-98ef-11ea-98c0-5a20b457f062.png)
 
-Create a new stage (e.g. "dev") and click "Deploy"
+## Create or update your cluster
 
-![](https://user-images.githubusercontent.com/808475/80154859-4431be80-8575-11ea-9305-50384b1f9847.png)
+Add the following field to your cluster configuration:
 
-Copy your "Invoke URL"
+```yaml
+# cluster.yaml
 
-![](https://user-images.githubusercontent.com/808475/80154911-5dd30600-8575-11ea-9682-1a7328783011.png)
+...
 
-### Use your new endpoint
+ssl_certificate_arn: <ARN of your certificate>
+```
 
-You may now use the "Invoke URL" in place of your API load balancer endpoint in your client. For example, this curl request:
+Create a cluster:
 
 ```bash
-curl http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/my-api -X POST -H "Content-Type: application/json" -d @sample.json
+cortex cluster up cluster.yaml
+```
+
+Or update an existing cluster:
+
+```bash
+cortex cluster configure cluster.yaml
+```
+
+## Use your new endpoint
+
+Wait a few minutes to allow the DNS changes to propagate. You may now use your subdomain in place of your API load balancer endpoint in your client. For example, this curl request:
+
+```bash
+curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 Would become:
 
 ```bash
-curl https://31qjv48rs6.execute-api.us-west-2.amazonaws.com/dev/my-api -X POST -H "Content-Type: application/json" -d @sample.json
+# add the `-k` flag or use http:// instead of https:// if you didn't configure an SSL certificate
+curl https://api.cortexlabs.dev/hello-world -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
-### Cleanup
+## Cleanup
 
-Delete the API Gateway before spinning down your Cortex cluster:
+Spin down your Cortex cluster.
 
-![](https://user-images.githubusercontent.com/808475/80155073-bdc9ac80-8575-11ea-99a1-95c0579da79e.png)
+If you created an SSL certificate, delete it from the [ACM console](https://us-west-2.console.aws.amazon.com/acm/home):
 
-## Internal load balancer
-
-_This section applies if your API load balancer is internal (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster). If your API load balancer is internet-facing, see the [internet-facing load balancer](#internet-facing-load-balancer) section above._
-
-### Create a VPC Link
-
-Navigate to AWS's EC2 Load Balancer dashboard and locate the Cortex API load balancer. You can determine which is the API load balancer by inspecting the `kubernetes.io/service-name` tag:
-
-![](https://user-images.githubusercontent.com/808475/80142777-961c1980-8560-11ea-9202-40964dbff5e9.png)
-
-Take note of the load balancer's name.
-
-Go to the [API Gateway console](https://console.aws.amazon.com/apigateway/home), click "VPC Links" on the left sidebar, and click "Create"
-
-![](https://user-images.githubusercontent.com/808475/80142466-0c6c4c00-8560-11ea-8293-eb5e5572b797.png)
-
-Select "VPC link for REST APIs", name your VPC link (e.g. "cortex"), select the API load balancer, and click "Create".
-
-![](https://user-images.githubusercontent.com/808475/80143027-03c84580-8561-11ea-92de-9ed0a5dfa593.png)
-
-Wait for the VPC link to be created (it will take a few minutes)
-
-![](https://user-images.githubusercontent.com/808475/80144088-bbaa2280-8562-11ea-901b-8520eb253df7.png)
-
-### Create an API Gateway
-
-Go to the [API Gateway console](https://console.aws.amazon.com/apigateway/home), select "REST API" under "Choose an API type", and click "Build"
-
-![](https://user-images.githubusercontent.com/808475/78293216-18269e80-74dd-11ea-9e68-86922c2cbc7c.png)
-
-Select "REST" and "New API", name your API (e.g. "cortex"), select either "Regional" or "Edge optimized" (depending on your preference), and click "Create API"
-
-![](https://user-images.githubusercontent.com/808475/78293434-66d43880-74dd-11ea-92d6-692158171a3f.png)
-
-Select "Actions" > "Create Resource"
-
-![](https://user-images.githubusercontent.com/808475/80141938-3cffb600-855f-11ea-9c1c-132ca4503b7a.png)
-
-Select "Configure as proxy resource" and "Enable API Gateway CORS", and click "Create Resource"
-
-![](https://user-images.githubusercontent.com/808475/80142124-80f2bb00-855f-11ea-8e4e-9413146e0815.png)
-
-Select "VPC Link", select "Use Proxy Integration", choose your newly-created VPC Link, and set "Endpoint URL" to "http://<API_LOAD_BALANCER_ENDPOINT>/{proxy}". You can get your API load balancer endpoint via `cortex cluster info`; make sure to prepend `http://` and append `/{proxy}`. For example, mine is: `http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/{proxy}`. Click "Save"
-
-![](https://user-images.githubusercontent.com/808475/80147407-4f322200-8568-11ea-8ef5-df5164c1375f.png)
-
-Select "Actions" > "Deploy API"
-
-![](https://user-images.githubusercontent.com/808475/80147555-86083800-8568-11ea-86af-1b1e38c9d322.png)
-
-Create a new stage (e.g. "dev") and click "Deploy"
-
-![](https://user-images.githubusercontent.com/808475/80147631-a7692400-8568-11ea-8a09-13dbd50b17b9.png)
-
-Copy your "Invoke URL"
-
-![](https://user-images.githubusercontent.com/808475/80147716-c798e300-8568-11ea-9aef-7dd6fdf4a68a.png)
-
-### Use your new endpoint
-
-You may now use the "Invoke URL" in place of your API load balancer endpoint in your client. For example, this curl request:
-
-```bash
-curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/my-api -X POST -H "Content-Type: application/json" -d @sample.json
-```
-
-Would become:
-
-```bash
-curl https://lrivodooqh.execute-api.us-west-2.amazonaws.com/dev/my-api -X POST -H "Content-Type: application/json" -d @sample.json
-```
-
-### Cleanup
-
-Delete the API Gateway and VPC Link before spinning down your Cortex cluster:
-
-![](https://user-images.githubusercontent.com/808475/80149163-05970680-856b-11ea-9f82-61f4061a3321.png)
-
-![](https://user-images.githubusercontent.com/808475/80149204-1ba4c700-856b-11ea-83f7-9741c78b6b95.png)
+![](https://user-images.githubusercontent.com/4365343/82228835-a624e000-98f7-11ea-92e2-cb4fb0f591e2.png)
