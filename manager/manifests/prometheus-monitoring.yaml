@@ -27,6 +27,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
   name: prometheus
+  namespace: prometheus
 spec:
   image: $CORTEX_IMAGE_PROMETHEUS
   serviceAccountName: prometheus
@@ -73,6 +74,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: prometheus
+  namespace: prometheus
 
 ---
 
