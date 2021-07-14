@@ -139,7 +139,7 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 	}
 
 	telemetry.Error(err)
-	if err != nil && !errors.IsNoPrint(err) {
+	if !errors.IsNoPrint(err) {
 		log.Fatal(err)
 	}
 	os.Exit(1)
