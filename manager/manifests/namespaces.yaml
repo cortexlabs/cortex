@@ -15,4 +15,25 @@
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: default
+  labels:
+    istio-discovery: enabled
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
   name: logging
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prometheus
+---
