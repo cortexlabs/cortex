@@ -12,7 +12,7 @@ If your API load balancer is internal (i.e. you set `api_load_balancer_scheme: i
 
 _This section applies if your API load balancer is internet-facing (which is the default, or you set `api_load_balancer_scheme: internet-facing` in your cluster configuration file before creating your cluster). If your API load balancer is internal, see the [internal load balancer](#internal-load-balancer) section below._
 
-There are two types of API Gateways that can be used when your load balancer is internet-facing: HTTP and REST. HTTP APIs are faster and less expensive, while REST APIs have more features an allow for more control. See the following section for creating an [HTTP API](#http-api), and skip to the next section for creating a [REST API](#rest-api).
+There are two types of API Gateways that can be used when your load balancer is internet-facing: HTTP and REST. HTTP APIs are faster and less expensive, while REST APIs have more features an allow for more control. See the following section for creating an [HTTP API](#http-api), or skip to the next section for creating a [REST API](#rest-api).
 
 ### HTTP API
 
