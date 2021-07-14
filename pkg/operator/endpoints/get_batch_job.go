@@ -18,12 +18,9 @@ package endpoints
 
 import (
 	"net/http"
-	"net/url"
 
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
@@ -54,37 +51,11 @@ func GetBatchJob(w http.ResponseWriter, r *http.Request) {
 		Kind:    userconfig.BatchAPIKind,
 	}
 
-	jobStatus, err := batchapi.GetJobStatus(jobKey)
+	jobResponse, err := batchapi.GetJob(jobKey)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	apiSpec, err := operator.DownloadAPISpec(jobStatus.APIName, jobStatus.APIID)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	endpoint, err := operator.APIEndpoint(apiSpec)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	parsedURL, err := url.Parse(endpoint)
-	if err != nil {
-		respondError(w, r, err)
-	}
-	q := parsedURL.Query()
-	q.Add("jobID", jobKey.ID)
-	parsedURL.RawQuery = q.Encode()
-
-	response := schema.BatchJobResponse{
-		JobStatus: *jobStatus,
-		APISpec:   *apiSpec,
-		Endpoint:  parsedURL.String(),
-	}
-
-	respondJSON(w, r, response)
+	respondJSON(w, r, jobResponse)
 }

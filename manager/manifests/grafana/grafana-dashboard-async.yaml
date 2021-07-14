@@ -36,7 +36,7 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "iteration": 1625168772532,
+      "iteration": 1625805144458,
       "links": [],
       "panels": [
         {
@@ -61,10 +61,6 @@ data:
         {
           "collapsed": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -175,7 +171,7 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "description": "Active in-flight requests for an API.\n\nNote: In-flight requests are recorded every 10 seconds, which will correspond to the minimum resolution.",
+          "description": "In-flight requests for an API.\n\nNote: In-flight requests are recorded every 10 seconds, which will correspond to the minimum resolution.",
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -213,10 +209,28 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(cortex_async_queue_length{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}) by (api_name)",
+              "exemplar": true,
+              "expr": "sum(cortex_async_active{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}) by (api_name)",
+              "hide": false,
               "interval": "",
-              "legendFormat": "{{api_name}}",
-              "refId": "A"
+              "legendFormat": "active",
+              "refId": "Active"
+            },
+            {
+              "exemplar": true,
+              "expr": "sum(cortex_async_queued{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}) by (api_name)",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "queued",
+              "refId": "Queued"
+            },
+            {
+              "exemplar": true,
+              "expr": "sum(cortex_async_in_flight{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}) by (api_name)",
+              "hide": true,
+              "interval": "",
+              "legendFormat": "in flight",
+              "refId": "In Flight"
             }
           ],
           "thresholds": [],
@@ -1014,10 +1028,6 @@ data:
         {
           "collapsed": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -1445,10 +1455,6 @@ data:
         {
           "collapsed": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {},
-            "overrides": []
-          },
           "gridPos": {
             "h": 1,
             "w": 24,

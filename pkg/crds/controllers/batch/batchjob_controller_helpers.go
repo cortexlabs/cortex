@@ -529,7 +529,7 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 func (r *BatchJobReconciler) checkWorkersOOM(ctx context.Context, batchJob *batch.BatchJob) (bool, error) {
 	workerJobPods := kcore.PodList{}
 	if err := r.List(ctx, &workerJobPods,
-		client.InNamespace(r.ClusterConfig.Namespace),
+		client.InNamespace(consts.DefaultNamespace),
 		client.MatchingLabels{
 			"jobID":   batchJob.Name,
 			"apiName": batchJob.Spec.APIName,
@@ -697,7 +697,7 @@ func getMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMe
 		return metrics.BatchMetrics{}, err
 	}
 
-	return jobMetrics, nil
+	return *jobMetrics, nil
 }
 
 func saveJobMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) error {

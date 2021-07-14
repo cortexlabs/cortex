@@ -43,7 +43,12 @@ sudo apt install -y docker-ce docker-ce-cli containerd.io && \
 sudo usermod -aG docker $USER
 ```
 
-And then log out and back in.
+And then log out and back in. Then, bootstrap a buildx builder:
+
+```bash
+docker buildx create --driver-opt image=moby/buildkit:master --name builder --platform linux/amd64,linux/arm64 --use
+docker buildx inspect --bootstrap builder
+```
 
 ### kubectl
 
@@ -165,6 +170,9 @@ Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashr
 ```bash
 # set the default image registry
 export CORTEX_DEV_DEFAULT_IMAGE_REGISTRY="<account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs"
+
+# enable api server monitoring in grafana
+export CORTEX_DEV_ADD_CONTROL_PLANE_DASHBOARD="true"
 
 # redirect analytics and error reporting to our dev environment
 export CORTEX_TELEMETRY_SENTRY_DSN="https://c334df915c014ffa93f2076769e5b334@sentry.io/1848098"

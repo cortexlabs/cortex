@@ -58,7 +58,6 @@ type DeployResult struct {
 type APIResponse struct {
 	Spec             spec.API                `json:"spec"`
 	Status           *status.Status          `json:"status,omitempty"`
-	Metrics          *metrics.Metrics        `json:"metrics,omitempty"`
 	Endpoint         string                  `json:"endpoint"`
 	DashboardURL     *string                 `json:"dashboard_url,omitempty"`
 	BatchJobStatuses []status.BatchJobStatus `json:"batch_job_statuses,omitempty"`
@@ -73,6 +72,7 @@ type LogResponse struct {
 type BatchJobResponse struct {
 	APISpec   spec.API              `json:"api_spec"`
 	JobStatus status.BatchJobStatus `json:"job_status"`
+	Metrics   *metrics.BatchMetrics `json:"metrics,omitempty"`
 	Endpoint  string                `json:"endpoint"`
 }
 

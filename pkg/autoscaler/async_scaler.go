@@ -30,19 +30,19 @@ import (
 	"github.com/prometheus/common/model"
 )
 
-type asyncScaler struct {
+type AsyncScaler struct {
 	k8s        *k8s.Client
 	prometheus promv1.API
 }
 
-func NewAsyncScaler(k8sClient *k8s.Client, promClient promv1.API) Scaler {
-	return &asyncScaler{
+func NewAsyncScaler(k8sClient *k8s.Client, promClient promv1.API) *AsyncScaler {
+	return &AsyncScaler{
 		k8s:        k8sClient,
 		prometheus: promClient,
 	}
 }
 
-func (s *asyncScaler) Scale(apiName string, request int32) error {
+func (s *AsyncScaler) Scale(apiName string, request int32) error {
 	deployment, err := s.k8s.GetDeployment(workloads.K8sName(apiName))
 	if err != nil {
 		return err
@@ -66,15 +66,15 @@ func (s *asyncScaler) Scale(apiName string, request int32) error {
 	return nil
 }
 
-func (s *asyncScaler) GetInFlightRequests(apiName string, window time.Duration) (*float64, error) {
+func (s *AsyncScaler) GetInFlightRequests(apiName string, window time.Duration) (*float64, error) {
 	windowSeconds := int64(window.Seconds())
 
 	// PromQL query:
-	// 	sum(sum_over_time(cortex_async_queue_length{api_name="<apiName>"}[60s])) /
-	//	sum(count_over_time(cortex_async_queue_length{api_name="<apiName>"}[60s]))
+	// 	sum(sum_over_time(cortex_async_in_flight{api_name="<apiName>"}[60s])) /
+	//	sum(count_over_time(cortex_async_in_flight{api_name="<apiName>"}[60s]))
 	query := fmt.Sprintf(
-		"sum(sum_over_time(cortex_async_queue_length{api_name=\"%s\"}[%ds])) / "+
-			"max(count_over_time(cortex_async_queue_length{api_name=\"%s\"}[%ds]))",
+		"sum(sum_over_time(cortex_async_in_flight{api_name=\"%s\"}[%ds])) / "+
+			"max(count_over_time(cortex_async_in_flight{api_name=\"%s\"}[%ds]))",
 		apiName, windowSeconds,
 		apiName, windowSeconds,
 	)
@@ -98,7 +98,7 @@ func (s *asyncScaler) GetInFlightRequests(apiName string, window time.Duration) 
 	return nil, nil
 }
 
-func (s *asyncScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autoscaling, error) {
+func (s *AsyncScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autoscaling, error) {
 	deployment, err := s.k8s.GetDeployment(workloads.K8sName(apiName))
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ func (s *asyncScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autoscalin
 	return autoscalingSpec, nil
 }
 
-func (s *asyncScaler) CurrentReplicas(apiName string) (int32, error) {
+func (s *AsyncScaler) CurrentReplicas(apiName string) (int32, error) {
 	deployment, err := s.k8s.GetDeployment(workloads.K8sName(apiName))
 	if err != nil {
 		return 0, err

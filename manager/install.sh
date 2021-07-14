@@ -61,12 +61,12 @@ function cluster_up() {
   setup_grafana
   echo "✓"
 
-  echo -n "￮ configuring gpu support (for the nodegroups that may require it) "
+  echo -n "￮ configuring gpu support (for nodegroups that may require it) "
   envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
   NVIDIA_COM_GPU_VALUE=true envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
-  echo -n "￮ configuring inf support (for the nodegroups that may require it) "
+  echo -n "￮ configuring inf support (for nodegroups that may require it) "
   envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
@@ -225,7 +225,9 @@ function setup_prometheus() {
   envsubst < manifests/prometheus-kubelet-exporter.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-kube-state-metrics.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-node-exporter.yaml | kubectl apply -f - >/dev/null
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-monitoring.yaml.j2 | kubectl apply -f - >/dev/null
+  envsubst < manifests/prometheus-monitoring.yaml | kubectl apply -f - >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-additional-scrape-configs.yaml.j2 > prometheus-additional-scrape-configs.yaml
+  kubectl create secret generic additional-scrape-configs --from-file=prometheus-additional-scrape-configs.yaml
 }
 
 function setup_grafana() {
@@ -235,7 +237,10 @@ function setup_grafana() {
   kubectl apply -f manifests/grafana/grafana-dashboard-task.yaml >/dev/null
   kubectl apply -f manifests/grafana/grafana-dashboard-cluster.yaml >/dev/null
   kubectl apply -f manifests/grafana/grafana-dashboard-nodes.yaml >/dev/null
-  envsubst < manifests/grafana/grafana.yaml | kubectl apply -f - >/dev/null
+  if [ "$CORTEX_DEV_ADD_CONTROL_PLANE_DASHBOARD" = "true" ]; then
+    kubectl apply -f manifests/grafana/grafana-dashboard-control-plane.yaml >/dev/null
+  fi
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/grafana/grafana.yaml.j2 | kubectl apply -f - >/dev/null
 }
 
 function restart_operator() {

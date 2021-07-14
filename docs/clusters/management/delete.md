@@ -8,10 +8,13 @@ cortex cluster down
 
 When a Cortex cluster is created, an S3 bucket is created for its internal use. When running `cortex cluster down`, a lifecycle rule is applied to the bucket such that its entire contents are removed within the next 24 hours. You can safely delete the bucket at any time after `cortex cluster down` has finished running.
 
-## Delete Certificates
+## Delete SSL Certificate
 
-If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by
-following these [instructions](../networking/custom-domain.md#cleanup).
+If you've set up HTTPS, you can remove the SSL Certificate by following these [instructions](../networking/https.md#cleanup).
+
+## Delete Hosted Zone
+
+If you've configured a custom domain for your APIs, follow these [instructions](../networking/custom-domain.md#cleanup) to delete the Hosted Zone.
 
 ## Keep Cortex Resources
 

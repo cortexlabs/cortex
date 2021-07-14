@@ -11,6 +11,7 @@
   * [Update](clusters/management/update.md)
   * [Delete](clusters/management/delete.md)
   * [Environments](clusters/management/environments.md)
+  * [Production Guide](clusters/management/production.md)
 * Instances
   * [Multi-instance](clusters/instances/multi.md)
   * [Spot instances](clusters/instances/spot.md)
@@ -20,9 +21,10 @@
   * [Alerting](clusters/observability/alerting.md)
 * Networking
   * [Load balancers](clusters/networking/load-balancers.md)
-  * [VPC peering](clusters/networking/vpc-peering.md)
-  * [HTTPS](clusters/networking/https.md)
   * [Custom domain](clusters/networking/custom-domain.md)
+  * [HTTPS](clusters/networking/https.md)
+  * [HTTPS with API Gateway](clusters/networking/api-gateway.md)
+  * [VPC peering](clusters/networking/vpc-peering.md)
 * Advanced
   * [Setting up kubectl](clusters/advanced/kubectl.md)
   * [Private Docker registry](clusters/advanced/registry.md)
@@ -43,6 +45,7 @@
   * [Example](workloads/async/example.md)
   * [Configuration](workloads/async/configuration.md)
   * [Containers](workloads/async/containers.md)
+  * [Autoscaling](workloads/async/autoscaling.md)
   * [Statuses](workloads/async/statuses.md)
 * [Batch](workloads/batch/batch.md)
   * [Example](workloads/batch/example.md)
