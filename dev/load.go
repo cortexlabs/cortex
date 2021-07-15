@@ -51,7 +51,8 @@ const (
 
 	// other options
 	_printSuccessDots = true
-	_printFailures    = true
+	_printHTTPErrors  = true
+	_printGoErrors    = true
 )
 
 type Counter struct {
@@ -59,9 +60,12 @@ type Counter struct {
 	count int64
 }
 
-var _requestCount = atomic.Uint64{}
-var _successCount = atomic.Uint64{}
-var _failureCount = atomic.Uint64{}
+var (
+	_requestCount = atomic.Uint64{}
+	_successCount = atomic.Uint64{}
+	_httpErrCount = atomic.Uint64{} // HTTP error response codes
+	_goErrCount   = atomic.Uint64{} // actual errors in go (includes "connection reset by peer")
+)
 
 var _client = &http.Client{
 	Timeout: 0, // no timeout
@@ -83,7 +87,9 @@ func main() {
 
 	url, jsonPathOrString := mustExtractArgs()
 	var jsonBytes []byte
-	if strings.HasPrefix(jsonPathOrString, "{") {
+	if jsonPathOrString == "" {
+		jsonBytes = nil
+	} else if strings.HasPrefix(jsonPathOrString, "{") {
 		jsonBytes = []byte(jsonPathOrString)
 	} else {
 		jsonBytes = mustReadJSONBytes(jsonPathOrString)
@@ -124,7 +130,7 @@ FOR_LOOP:
 
 	elapsed := time.Since(start)
 	requestRate := float64(_requestCount.Load()) / elapsed.Seconds()
-	fmt.Printf("\nelapsed time: %s | %d requests @ %f req/s | %d succeeded | %d failed\n", elapsed, _requestCount.Load(), requestRate, _successCount.Load(), _failureCount.Load())
+	fmt.Printf("\nelapsed time: %s | %d requests @ %f req/s | %d succeeded | %d http errors | %d go errors\n", elapsed, _requestCount.Load(), requestRate, _successCount.Load(), _httpErrCount.Load(), _goErrCount.Load())
 }
 
 func runConstantRequestsPerSecondIteration(url string, jsonBytes []byte, inFlightCount *Counter, done chan bool) {
@@ -161,7 +167,8 @@ func runConstantInFlight(url string, jsonBytes []byte) {
 
 	var summedRequestCount uint64
 	var summedSuccessCount uint64
-	var summedFailureCount uint64
+	var summedHTTPErrCount uint64
+	var summedGoErrCount uint64
 
 	start := time.Now()
 	loopNum := 1
@@ -170,10 +177,13 @@ func runConstantInFlight(url string, jsonBytes []byte) {
 
 		summedRequestCount += _requestCount.Load()
 		summedSuccessCount += _successCount.Load()
-		summedFailureCount += _failureCount.Load()
+		summedHTTPErrCount += _httpErrCount.Load()
+		summedGoErrCount += _goErrCount.Load()
+
 		_requestCount.Store(0)
 		_successCount.Store(0)
-		_failureCount.Store(0)
+		_httpErrCount.Store(0)
+		_goErrCount.Store(0)
 
 		if loopNum >= _numMainLoops || wasKilled {
 			break
@@ -184,7 +194,7 @@ func runConstantInFlight(url string, jsonBytes []byte) {
 	if _numMainLoops > 1 {
 		elapsed := time.Since(start)
 		requestRate := float64(summedRequestCount) / elapsed.Seconds()
-		fmt.Printf("\ntotal elapsed time: %s | %d requests @ %f req/s | %d succeeded | %d failed\n", elapsed, summedRequestCount, requestRate, summedSuccessCount, summedFailureCount)
+		fmt.Printf("\ntotal elapsed time: %s | %d requests @ %f req/s | %d succeeded | %d http errors | %d go errors\n", elapsed, summedRequestCount, requestRate, summedSuccessCount, summedHTTPErrCount, summedGoErrCount)
 	}
 }
 
@@ -227,7 +237,7 @@ LOOP:
 
 	elapsed := time.Now().Sub(start)
 	requestRate := float64(_requestCount.Load()) / elapsed.Seconds()
-	fmt.Printf("\nelapsed time: %s | %d requests @ %f req/s | %d succeeded | %d failed\n", elapsed, _requestCount.Load(), requestRate, _successCount.Load(), _failureCount.Load())
+	fmt.Printf("\nelapsed time: %s | %d requests @ %f req/s | %d succeeded | %d http errors | %d go errors\n", elapsed, _requestCount.Load(), requestRate, _successCount.Load(), _httpErrCount.Load(), _goErrCount.Load())
 
 	return wasKilled
 }
@@ -260,22 +270,26 @@ func makeRequest(url string, jsonBytes []byte) {
 	}
 
 	request.Header.Set("Content-Type", "application/json")
+
+	_requestCount.Inc()
+
 	response, err := _client.Do(request)
 	if err != nil {
-		fmt.Print("\n" + debug.Sppg(err))
+		_goErrCount.Inc()
+		if _printGoErrors {
+			fmt.Print("\n" + debug.Sppg(err))
+		}
 		return
 	}
 
 	body, bodyReadErr := ioutil.ReadAll(response.Body)
 	response.Body.Close()
 
-	_requestCount.Inc()
-
 	if response.StatusCode == 200 {
 		_successCount.Inc()
 	} else {
-		_failureCount.Inc()
-		if _printFailures {
+		_httpErrCount.Inc()
+		if _printHTTPErrors {
 			if bodyReadErr == nil {
 				fmt.Printf("\nstatus code: %d; body: %s\n", response.StatusCode, string(body))
 			} else {
