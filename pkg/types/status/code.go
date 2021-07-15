@@ -20,6 +20,7 @@ type Code int
 
 const (
 	Unknown Code = iota
+	Pending
 	Stalled
 	Error
 	ErrorImagePull
@@ -30,6 +31,7 @@ const (
 
 var _codes = []string{
 	"status_unknown",
+	"status_pending",
 	"status_stalled",
 	"status_error",
 	"status_error_image_pull",
@@ -42,6 +44,7 @@ var _ = [1]int{}[int(Updating)-(len(_codes)-1)] // Ensure list length matches
 
 var _codeMessages = []string{
 	"unknown",               // Unknown
+	"pending",               // Pending
 	"compute unavailable",   // Stalled
 	"error",                 // Error
 	"error (image pull)",    // Live

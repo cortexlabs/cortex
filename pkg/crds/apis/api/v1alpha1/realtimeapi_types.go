@@ -50,21 +50,26 @@ type RealtimeAPISpec struct {
 }
 
 type PodSpec struct {
-	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Required
 	// +kubebuilder:default=8080
 	// Port to which requests will be sent to
 	Port int `json:"port"`
 
-	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Required
 	// +kubebuilder:default=1
 	// Maximum number of requests that will be concurrently sent into the container
 	MaxConcurrency int `json:"max_concurrency"`
 
-	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Required
 	// +kubebuilder:default=100
 	// Maximum number of requests per replica which will be queued
 	// (beyond max_concurrency) before requests are rejected with error code 503
 	MaxQueueLength int `json:"max_queue_length"`
+
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default=1
+	// Number of desired replicas
+	Replicas int32 `json:"replicas"`
 
 	// +kubebuilder:validation:Required
 	// Configurations for the containers to run
@@ -131,22 +136,17 @@ type AutoscalingSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=1
 	// Minimum number of replicas
-	MinReplicas int `json:"min_replicas,omitempty"`
+	MinReplicas int32 `json:"min_replicas,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=100
 	// Maximum number of replicas
-	MaxReplicas int `json:"max_replicas,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=1
-	// Initial number of replicas
-	InitReplicas int `json:"init_replicas,omitempty"`
+	MaxReplicas int32 `json:"max_replicas,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// Desired number of in-flight requests per replica (including requests actively being processed as well as queued),
 	// which the autoscaler tries to maintain
-	TargetInFlight int `json:"target_in_flight,omitempty"`
+	TargetInFlight int32 `json:"target_in_flight,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="60s"
@@ -209,9 +209,9 @@ type NetworkingSpec struct {
 // RealtimeAPIStatus defines the observed state of RealtimeAPI
 type RealtimeAPIStatus struct {
 	Status          status.Code `json:"status"`
-	DesiredReplicas int         `json:"desired_replicas"`
-	CurrentReplicas int         `json:"current_replicas"`
-	ReadyReplicas   int         `json:"ready_replicas"`
+	DesiredReplicas int32       `json:"desired_replicas"`
+	CurrentReplicas int32       `json:"current_replicas"`
+	ReadyReplicas   int32       `json:"ready_replicas"`
 	Endpoint        string      `json:"endpoint,omitempty"`
 }
 
