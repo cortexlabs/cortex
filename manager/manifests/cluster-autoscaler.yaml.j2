@@ -176,6 +176,7 @@ spec:
         app: cluster-autoscaler
     spec:
       serviceAccountName: cluster-autoscaler
+      priorityClassName: system-cluster-critical
       containers:
         - image: {{ config['image_cluster_autoscaler'] }}
           name: cluster-autoscaler
