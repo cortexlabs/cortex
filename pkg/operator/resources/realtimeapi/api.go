@@ -175,8 +175,8 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIResponse, error) {
-	statuses, err := GetAllStatuses(deployments, pods)
+func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
+	statuses, err := GetAllStatuses(deployments)
 	if err != nil {
 		return nil, err
 	}

@@ -42,8 +42,6 @@ type asyncResourceGroup struct {
 func GetStatus(apiName string) (*status.Status, error) {
 	var apiDeployment *kapps.Deployment
 	var gatewayDeployment *kapps.Deployment
-	var gatewayPods []kcore.Pod
-	var apiPods []kcore.Pod
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -54,26 +52,6 @@ func GetStatus(apiName string) (*status.Status, error) {
 		func() error {
 			var err error
 			gatewayDeployment, err = config.K8s.GetDeployment(getGatewayK8sName(apiName))
-			return err
-		},
-		func() error {
-			var err error
-			gatewayPods, err = config.K8s.ListPodsByLabels(
-				map[string]string{
-					"apiName":          apiName,
-					"cortex.dev/async": "gateway",
-				},
-			)
-			return err
-		},
-		func() error {
-			var err error
-			apiPods, err = config.K8s.ListPodsByLabels(
-				map[string]string{
-					"apiName":          apiName,
-					"cortex.dev/async": "api",
-				},
-			)
 			return err
 		},
 	)
@@ -89,7 +67,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 		return nil, errors.ErrorUnexpected("unable to find gateway deployment", apiName)
 	}
 
-	return apiStatus(apiDeployment, apiPods, gatewayDeployment, gatewayPods)
+	return apiStatus(apiDeployment), nil
 }
 
 func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.Status, error) {
@@ -106,11 +84,7 @@ func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.
 			return nil, errors.ErrorUnexpected("unable to find gateway deployment", apiName)
 		}
 
-		st, err := apiStatus(k8sResources.APIDeployment, k8sResources.APIPods, k8sResources.GatewayDeployment, k8sResources.GatewayPods)
-		if err != nil {
-			return nil, err
-		}
-		statuses[i] = *st
+		statuses[i] = *apiStatus(k8sResources.APIDeployment)
 		i++
 	}
 
@@ -174,22 +148,14 @@ func groupResourcesByAPI(deployments []kapps.Deployment, pods []kcore.Pod) map[s
 	return resourcesByAPI
 }
 
-func apiStatus(apiDeployment *kapps.Deployment, apiPods []kcore.Pod, gatewayDeployment *kapps.Deployment, gatewayPods []kcore.Pod) (*status.Status, error) {
-	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(apiDeployment)
-	if err != nil {
-		return nil, err
+func apiStatus(deployment *kapps.Deployment) *status.Status {
+	return &status.Status{
+		APIName:   deployment.Labels["apiName"],
+		APIID:     deployment.Labels["apiID"],
+		Ready:     deployment.Status.ReadyReplicas,
+		Requested: deployment.Status.Replicas,
+		UpToDate:  deployment.Status.UpdatedReplicas,
 	}
-
-	apiReplicaCounts := getReplicaCounts(apiDeployment, apiPods)
-	gatewayReplicaCounts := getReplicaCounts(gatewayDeployment, gatewayPods)
-
-	st := &status.Status{}
-	st.APIName = apiDeployment.Labels["apiName"]
-	st.APIID = apiDeployment.Labels["apiID"]
-	st.ReplicaCounts = apiReplicaCounts
-	st.Code = getStatusCode(apiReplicaCounts, gatewayReplicaCounts, autoscalingSpec.MinReplicas)
-
-	return st, nil
 }
 
 func getStatusCode(apiCounts status.ReplicaCounts, gatewayCounts status.ReplicaCounts, apiMinReplicas int32) status.Code {

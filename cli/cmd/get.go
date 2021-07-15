@@ -41,12 +41,10 @@ import (
 const (
 	_titleEnvironment = "env"
 	_titleRealtimeAPI = "realtime api"
-	_titleStatus      = "status"
+	_titleAsyncAPI    = "async api"
+	_titleLive        = "live"
 	_titleUpToDate    = "up-to-date"
-	_titleStale       = "stale"
-	_titleRequested   = "requested"
-	_titleFailed      = "failed"
-	_titleLastupdated = "last update"
+	_titleLastUpdated = "last update"
 )
 
 var (

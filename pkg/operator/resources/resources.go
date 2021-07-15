@@ -308,14 +308,11 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	var realtimeAPIPods []kcore.Pod
 	var batchAPIPods []kcore.Pod
 	var taskAPIPods []kcore.Pod
 	var asyncAPIPods []kcore.Pod
 	for _, pod := range pods {
 		switch pod.Labels["apiKind"] {
-		case userconfig.RealtimeAPIKind.String():
-			realtimeAPIPods = append(realtimeAPIPods, pod)
 		case userconfig.BatchAPIKind.String():
 			batchAPIPods = append(batchAPIPods, pod)
 		case userconfig.TaskAPIKind.String():
@@ -340,7 +337,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIPods, realtimeAPIDeployments)
+	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIDeployments)
 	if err != nil {
 		return nil, err
 	}

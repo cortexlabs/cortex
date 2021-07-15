@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -82,8 +83,8 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 			env.Name,
 			apiName,
 			api.Weight,
-			apiRes.Status.Message(),
-			apiRes.Status.Requested,
+			fmt.Sprintf("%d/%d", apiRes.Status.Ready, apiRes.Status.Requested),
+			apiRes.Status.UpToDate,
 			libtime.SinceStr(&lastUpdated),
 		})
 	}
@@ -93,9 +94,9 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 			{Title: _titleEnvironment},
 			{Title: _titleAPIs},
 			{Title: _trafficSplitterWeights},
-			{Title: _titleStatus},
-			{Title: _titleRequested},
-			{Title: _titleLastupdated},
+			{Title: _titleLive},
+			{Title: _titleUpToDate},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}, nil
@@ -127,7 +128,7 @@ func trafficSplitterListTable(trafficSplitter []schema.APIResponse, envNames []s
 			{Title: _titleEnvironment},
 			{Title: _titleTrafficSplitter},
 			{Title: _titleAPIs},
-			{Title: _titleLastupdated},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}

@@ -74,7 +74,7 @@ func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Tab
 			{Title: _titleBatchAPI},
 			{Title: _titleJobCount},
 			{Title: _titleLatestJobID},
-			{Title: _titleLastupdated},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}

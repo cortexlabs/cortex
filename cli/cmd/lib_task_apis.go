@@ -72,7 +72,7 @@ func taskAPIsTable(taskAPIs []schema.APIResponse, envNames []string) table.Table
 			{Title: _titleTaskAPI},
 			{Title: _titleTaskJobCount},
 			{Title: _titleLatestTaskJobID},
-			{Title: _titleLastupdated},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}

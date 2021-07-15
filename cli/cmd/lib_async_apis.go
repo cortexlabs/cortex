@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -25,10 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-)
-
-const (
-	_titleAsyncAPI = "async api"
 )
 
 func asyncAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (string, error) {
@@ -60,36 +57,24 @@ func asyncAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (stri
 func asyncAPIsTable(asyncAPIs []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(asyncAPIs))
 
-	var totalFailed int32
-	var totalStale int32
-
 	for i, asyncAPI := range asyncAPIs {
 		lastUpdated := time.Unix(asyncAPI.Spec.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
 			asyncAPI.Spec.Name,
-			asyncAPI.Status.Message(),
-			asyncAPI.Status.Updated.Ready,
-			asyncAPI.Status.Stale.Ready,
-			asyncAPI.Status.Requested,
-			asyncAPI.Status.Updated.TotalFailed(),
+			fmt.Sprintf("%d/%d", asyncAPI.Status.Ready, asyncAPI.Status.Requested),
+			asyncAPI.Status.UpToDate,
 			libtime.SinceStr(&lastUpdated),
 		})
-
-		totalFailed += asyncAPI.Status.Updated.TotalFailed()
-		totalStale += asyncAPI.Status.Stale.Ready
 	}
 
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
 			{Title: _titleAsyncAPI},
-			{Title: _titleStatus},
+			{Title: _titleLive},
 			{Title: _titleUpToDate},
-			{Title: _titleStale, Hidden: totalStale == 0},
-			{Title: _titleRequested},
-			{Title: _titleFailed, Hidden: totalFailed == 0},
-			{Title: _titleLastupdated},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}

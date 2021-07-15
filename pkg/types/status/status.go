@@ -17,10 +17,11 @@ limitations under the License.
 package status
 
 type Status struct {
-	APIName       string `json:"api_name"`
-	APIID         string `json:"api_id"`
-	Code          Code   `json:"status_code"`
-	ReplicaCounts `json:"replica_counts"`
+	APIName   string `json:"api_name"`
+	APIID     string `json:"api_id"`
+	Ready     int32  `json:"ready"`
+	Requested int32  `json:"requested"`
+	UpToDate  int32  `json:"up_to_date"`
 }
 
 type ReplicaCounts struct {
@@ -51,10 +52,6 @@ type WorkerCounts struct {
 	Failed       int32 `json:"failed,omitempty"`
 	Stalled      int32 `json:"stalled,omitempty"` // pending for a long time
 	Unknown      int32 `json:"unknown,omitempty"`
-}
-
-func (status *Status) Message() string {
-	return status.Code.Message()
 }
 
 func (src *SubReplicaCounts) TotalFailed() int32 {

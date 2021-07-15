@@ -24,30 +24,15 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/types/status"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 )
 
 func GetStatus(apiName string) (*status.Status, error) {
-	var deployment *kapps.Deployment
-	var pods []kcore.Pod
-
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			deployment, err = config.K8s.GetDeployment(workloads.K8sName(apiName))
-			return err
-		},
-		func() error {
-			var err error
-			pods, err = config.K8s.ListPodsByLabel("apiName", apiName)
-			return err
-		},
-	)
+	var err error
+	deployment, err := config.K8s.GetDeployment(workloads.K8sName(apiName))
 	if err != nil {
 		return nil, err
 	}
@@ -56,17 +41,13 @@ func GetStatus(apiName string) (*status.Status, error) {
 		return nil, errors.ErrorUnexpected("unable to find deployment", apiName)
 	}
 
-	return apiStatus(deployment, pods)
+	return apiStatus(*deployment), nil
 }
 
-func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.Status, error) {
+func GetAllStatuses(deployments []kapps.Deployment) ([]status.Status, error) {
 	statuses := make([]status.Status, len(deployments))
 	for i := range deployments {
-		st, err := apiStatus(&deployments[i], pods)
-		if err != nil {
-			return nil, err
-		}
-		statuses[i] = *st
+		statuses[i] = *apiStatus(deployments[i])
 	}
 
 	sort.Slice(statuses, func(i, j int) bool {
@@ -76,19 +57,14 @@ func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.
 	return statuses, nil
 }
 
-func apiStatus(deployment *kapps.Deployment, allPods []kcore.Pod) (*status.Status, error) {
-	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
-	if err != nil {
-		return nil, err
+func apiStatus(deployment kapps.Deployment) *status.Status {
+	return &status.Status{
+		APIName:   deployment.Labels["apiName"],
+		APIID:     deployment.Labels["apiID"],
+		Ready:     deployment.Status.ReadyReplicas,
+		Requested: deployment.Status.Replicas,
+		UpToDate:  deployment.Status.UpdatedReplicas,
 	}
-
-	status := &status.Status{}
-	status.APIName = deployment.Labels["apiName"]
-	status.APIID = deployment.Labels["apiID"]
-	status.ReplicaCounts = getReplicaCounts(deployment, allPods)
-	status.Code = getStatusCode(&status.ReplicaCounts, autoscalingSpec.MinReplicas)
-
-	return status, nil
 }
 
 func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) status.ReplicaCounts {

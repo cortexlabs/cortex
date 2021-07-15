@@ -70,7 +70,7 @@ func getReadyRealtimeAPIReplicasOrNil(operatorConfig OperatorConfig, apiName str
 		return nil
 	}
 
-	totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
+	totalReady := apiRes.Status.Ready
 	return &totalReady
 }
 

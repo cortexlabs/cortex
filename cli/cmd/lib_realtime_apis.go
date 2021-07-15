@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -56,36 +57,24 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 func realtimeAPIsTable(realtimeAPIs []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(realtimeAPIs))
 
-	var totalFailed int32
-	var totalStale int32
-
 	for i, realtimeAPI := range realtimeAPIs {
 		lastUpdated := time.Unix(realtimeAPI.Spec.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
 			realtimeAPI.Spec.Name,
-			realtimeAPI.Status.Message(),
-			realtimeAPI.Status.Updated.Ready,
-			realtimeAPI.Status.Stale.Ready,
-			realtimeAPI.Status.Requested,
-			realtimeAPI.Status.Updated.TotalFailed(),
+			fmt.Sprintf("%d/%d", realtimeAPI.Status.Ready, realtimeAPI.Status.Requested),
+			realtimeAPI.Status.UpToDate,
 			libtime.SinceStr(&lastUpdated),
 		})
-
-		totalFailed += realtimeAPI.Status.Updated.TotalFailed()
-		totalStale += realtimeAPI.Status.Stale.Ready
 	}
 
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
 			{Title: _titleRealtimeAPI},
-			{Title: _titleStatus},
+			{Title: _titleLive},
 			{Title: _titleUpToDate},
-			{Title: _titleStale, Hidden: totalStale == 0},
-			{Title: _titleRequested},
-			{Title: _titleFailed, Hidden: totalFailed == 0},
-			{Title: _titleLastupdated},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}
