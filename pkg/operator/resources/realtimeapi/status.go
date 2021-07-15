@@ -41,13 +41,13 @@ func GetStatus(apiName string) (*status.Status, error) {
 		return nil, errors.ErrorUnexpected("unable to find deployment", apiName)
 	}
 
-	return apiStatus(*deployment), nil
+	return status.StatusFromDeployment(deployment), nil
 }
 
 func GetAllStatuses(deployments []kapps.Deployment) ([]status.Status, error) {
 	statuses := make([]status.Status, len(deployments))
 	for i := range deployments {
-		statuses[i] = *apiStatus(deployments[i])
+		statuses[i] = *status.StatusFromDeployment(&deployments[i])
 	}
 
 	sort.Slice(statuses, func(i, j int) bool {
@@ -55,16 +55,6 @@ func GetAllStatuses(deployments []kapps.Deployment) ([]status.Status, error) {
 	})
 
 	return statuses, nil
-}
-
-func apiStatus(deployment kapps.Deployment) *status.Status {
-	return &status.Status{
-		APIName:   deployment.Labels["apiName"],
-		APIID:     deployment.Labels["apiID"],
-		Ready:     deployment.Status.ReadyReplicas,
-		Requested: deployment.Status.Replicas,
-		UpToDate:  deployment.Status.UpdatedReplicas,
-	}
 }
 
 func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) status.ReplicaCounts {

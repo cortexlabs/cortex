@@ -56,7 +56,7 @@ type DeployResult struct {
 }
 
 type APIResponse struct {
-	Spec             spec.API                `json:"spec"`
+	Spec             *spec.API               `json:"spec,omitempty"`
 	Status           *status.Status          `json:"status,omitempty"`
 	Endpoint         string                  `json:"endpoint"`
 	DashboardURL     *string                 `json:"dashboard_url,omitempty"`

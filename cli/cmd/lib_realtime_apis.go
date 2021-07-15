@@ -61,7 +61,7 @@ func realtimeAPIsTable(realtimeAPIs []schema.APIResponse, envNames []string) tab
 		lastUpdated := time.Unix(realtimeAPI.Spec.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
-			realtimeAPI.Spec.Name,
+			realtimeAPI.Status.APIName,
 			fmt.Sprintf("%d/%d", realtimeAPI.Status.Ready, realtimeAPI.Status.Requested),
 			realtimeAPI.Status.UpToDate,
 			libtime.SinceStr(&lastUpdated),

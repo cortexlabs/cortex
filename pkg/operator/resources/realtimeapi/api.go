@@ -181,23 +181,21 @@ func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
-	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
-	if err != nil {
-		return nil, err
-	}
+	realtimeAPIs := make([]schema.APIResponse, len(statuses))
 
-	realtimeAPIs := make([]schema.APIResponse, len(apis))
-
-	for i := range apis {
-		api := apis[i]
-		endpoint, err := operator.APIEndpoint(&api)
-		if err != nil {
-			return nil, err
+	for i := range statuses {
+		var endpoint string
+		for _, deployment := range deployments {
+			if deployment.Labels["apiName"] == statuses[i].APIName {
+				endpoint, err = operator.APIEndpointFromPath(deployment.Annotations[userconfig.EndpointAnnotationKey])
+				if err != nil {
+					return nil, err
+				}
+				break
+			}
 		}
 
 		realtimeAPIs[i] = schema.APIResponse{
-			Spec:     api,
 			Status:   &statuses[i],
 			Endpoint: endpoint,
 		}
@@ -238,7 +236,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	return []schema.APIResponse{
 		{
-			Spec:         *api,
+			Spec:         api,
 			Status:       st,
 			Endpoint:     apiEndpoint,
 			DashboardURL: dashboardURL,

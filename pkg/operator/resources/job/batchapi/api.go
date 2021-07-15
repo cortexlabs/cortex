@@ -184,7 +184,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJob
 		}
 
 		batchAPIsMap[apiName] = &schema.APIResponse{
-			Spec:             *api,
+			Spec:             api,
 			Endpoint:         endpoint,
 			BatchJobStatuses: jobStatuses,
 		}
@@ -263,7 +263,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	return []schema.APIResponse{
 		{
-			Spec:             *api,
+			Spec:             api,
 			BatchJobStatuses: jobStatuses,
 			Endpoint:         endpoint,
 			DashboardURL:     dashboardURL,

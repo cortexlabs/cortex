@@ -16,12 +16,18 @@ limitations under the License.
 
 package status
 
+import (
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	kapps "k8s.io/api/apps/v1"
+)
+
 type Status struct {
-	APIName   string `json:"api_name"`
-	APIID     string `json:"api_id"`
-	Ready     int32  `json:"ready"`
-	Requested int32  `json:"requested"`
-	UpToDate  int32  `json:"up_to_date"`
+	APIName   string          `json:"api_name"`
+	APIKind   userconfig.Kind `json:"api_kind"`
+	APIID     string          `json:"api_id"`
+	Ready     int32           `json:"ready"`
+	Requested int32           `json:"requested"`
+	UpToDate  int32           `json:"up_to_date"`
 }
 
 type ReplicaCounts struct {
@@ -52,6 +58,17 @@ type WorkerCounts struct {
 	Failed       int32 `json:"failed,omitempty"`
 	Stalled      int32 `json:"stalled,omitempty"` // pending for a long time
 	Unknown      int32 `json:"unknown,omitempty"`
+}
+
+func StatusFromDeployment(deployment *kapps.Deployment) *Status {
+	return &Status{
+		APIName:   deployment.Labels["apiName"],
+		APIKind:   userconfig.KindFromString(deployment.Labels["apiKind"]),
+		APIID:     deployment.Labels["apiID"],
+		Ready:     deployment.Status.ReadyReplicas,
+		Requested: deployment.Status.Replicas,
+		UpToDate:  deployment.Status.UpdatedReplicas,
+	}
 }
 
 func (src *SubReplicaCounts) TotalFailed() int32 {

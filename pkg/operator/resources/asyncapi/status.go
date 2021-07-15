@@ -32,11 +32,9 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-type asyncResourceGroup struct {
+type asyncDeployments struct {
 	APIDeployment     *kapps.Deployment
-	APIPods           []kcore.Pod
 	GatewayDeployment *kapps.Deployment
-	GatewayPods       []kcore.Pod
 }
 
 func GetStatus(apiName string) (*status.Status, error) {
@@ -67,15 +65,15 @@ func GetStatus(apiName string) (*status.Status, error) {
 		return nil, errors.ErrorUnexpected("unable to find gateway deployment", apiName)
 	}
 
-	return apiStatus(apiDeployment), nil
+	return status.StatusFromDeployment(apiDeployment), nil
 }
 
-func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.Status, error) {
-	resourcesByAPI := groupResourcesByAPI(deployments, pods)
-	statuses := make([]status.Status, len(resourcesByAPI))
+func GetAllStatuses(deployments []kapps.Deployment) ([]status.Status, error) {
+	deploymentsByAPI := groupDeploymentsByAPI(deployments)
+	statuses := make([]status.Status, len(deploymentsByAPI))
 
 	var i int
-	for apiName, k8sResources := range resourcesByAPI {
+	for apiName, k8sResources := range deploymentsByAPI {
 		if k8sResources.APIDeployment == nil {
 			return nil, errors.ErrorUnexpected("unable to find api deployment", apiName)
 		}
@@ -84,7 +82,7 @@ func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.
 			return nil, errors.ErrorUnexpected("unable to find gateway deployment", apiName)
 		}
 
-		statuses[i] = *apiStatus(k8sResources.APIDeployment)
+		statuses[i] = *status.StatusFromDeployment(k8sResources.APIDeployment)
 		i++
 	}
 
@@ -95,26 +93,14 @@ func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.
 	return statuses, nil
 }
 
-func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
-	apiNames := make([]string, len(statuses))
-	apiIDs := make([]string, len(statuses))
-
-	for i, st := range statuses {
-		apiNames[i] = st.APIName
-		apiIDs[i] = st.APIID
-	}
-
-	return apiNames, apiIDs
-}
-
 // let's do CRDs instead, to avoid this
-func groupResourcesByAPI(deployments []kapps.Deployment, pods []kcore.Pod) map[string]*asyncResourceGroup {
-	resourcesByAPI := map[string]*asyncResourceGroup{}
+func groupDeploymentsByAPI(deployments []kapps.Deployment) map[string]*asyncDeployments {
+	deploymentsByAPI := map[string]*asyncDeployments{}
 	for i := range deployments {
 		deployment := deployments[i]
 		apiName := deployment.Labels["apiName"]
 		asyncType := deployment.Labels["cortex.dev/async"]
-		apiResources, exists := resourcesByAPI[apiName]
+		apiResources, exists := deploymentsByAPI[apiName]
 		if exists {
 			if asyncType == "api" {
 				apiResources.APIDeployment = &deployment
@@ -123,39 +109,13 @@ func groupResourcesByAPI(deployments []kapps.Deployment, pods []kcore.Pod) map[s
 			}
 		} else {
 			if asyncType == "api" {
-				resourcesByAPI[apiName] = &asyncResourceGroup{APIDeployment: &deployment}
+				deploymentsByAPI[apiName] = &asyncDeployments{APIDeployment: &deployment}
 			} else {
-				resourcesByAPI[apiName] = &asyncResourceGroup{GatewayDeployment: &deployment}
+				deploymentsByAPI[apiName] = &asyncDeployments{GatewayDeployment: &deployment}
 			}
 		}
 	}
-
-	for _, pod := range pods {
-		apiName := pod.Labels["apiName"]
-		asyncType := pod.Labels["cortex.dev/async"]
-		apiResources, exists := resourcesByAPI[apiName]
-		if !exists {
-			// ignore pods that might still be waiting to be deleted while the deployment has already been deleted
-			continue
-		}
-
-		if asyncType == "api" {
-			apiResources.APIPods = append(resourcesByAPI[apiName].APIPods, pod)
-		} else {
-			apiResources.GatewayPods = append(resourcesByAPI[apiName].GatewayPods, pod)
-		}
-	}
-	return resourcesByAPI
-}
-
-func apiStatus(deployment *kapps.Deployment) *status.Status {
-	return &status.Status{
-		APIName:   deployment.Labels["apiName"],
-		APIID:     deployment.Labels["apiID"],
-		Ready:     deployment.Status.ReadyReplicas,
-		Requested: deployment.Status.Replicas,
-		UpToDate:  deployment.Status.UpdatedReplicas,
-	}
+	return deploymentsByAPI
 }
 
 func getStatusCode(apiCounts status.ReplicaCounts, gatewayCounts status.ReplicaCounts, apiMinReplicas int32) status.Code {

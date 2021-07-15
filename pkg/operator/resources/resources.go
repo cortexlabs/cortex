@@ -158,7 +158,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*schema.APIResponse, stri
 		apiEndpoint, _ := operator.APIEndpoint(api)
 
 		return &schema.APIResponse{
-			Spec:     *api,
+			Spec:     api,
 			Endpoint: apiEndpoint,
 		}, msg, nil
 	}
@@ -310,15 +310,12 @@ func GetAPIs() ([]schema.APIResponse, error) {
 
 	var batchAPIPods []kcore.Pod
 	var taskAPIPods []kcore.Pod
-	var asyncAPIPods []kcore.Pod
 	for _, pod := range pods {
 		switch pod.Labels["apiKind"] {
 		case userconfig.BatchAPIKind.String():
 			batchAPIPods = append(batchAPIPods, pod)
 		case userconfig.TaskAPIKind.String():
 			taskAPIPods = append(taskAPIPods, pod)
-		case userconfig.AsyncAPIKind.String():
-			asyncAPIPods = append(asyncAPIPods, pod)
 		}
 	}
 
@@ -353,7 +350,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	asyncAPIList, err := asyncapi.GetAllAPIs(asyncAPIPods, asyncAPIDeployments)
+	asyncAPIList, err := asyncapi.GetAllAPIs(asyncAPIDeployments)
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +443,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 
 	return []schema.APIResponse{
 		{
-			Spec: *apiSpec,
+			Spec: apiSpec,
 		},
 	}, nil
 }

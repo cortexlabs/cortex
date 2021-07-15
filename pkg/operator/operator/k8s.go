@@ -63,3 +63,16 @@ func APIEndpoint(api *spec.API) (string, error) {
 
 	return urls.Join(baseAPIEndpoint, *api.Networking.Endpoint), nil
 }
+
+func APIEndpointFromPath(apiNetworkingPath string) (string, error) {
+	var err error
+	baseAPIEndpoint := ""
+
+	baseAPIEndpoint, err = APILoadBalancerURL()
+	if err != nil {
+		return "", err
+	}
+	baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
+
+	return urls.Join(baseAPIEndpoint, apiNetworkingPath), nil
+}

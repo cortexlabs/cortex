@@ -219,7 +219,11 @@ func getAPIsInAllEnvironments() (string, error) {
 
 		if err == nil {
 			for _, api := range apisRes {
-				switch api.Spec.Kind {
+				if api.Status == nil {
+					// TODO remove this once the status is present for all
+					continue
+				}
+				switch api.Status.APIKind {
 				case userconfig.BatchAPIKind:
 					allBatchAPIEnvs = append(allBatchAPIEnvs, env.Name)
 					allBatchAPIs = append(allBatchAPIs, api)
