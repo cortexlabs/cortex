@@ -34,12 +34,9 @@ function main() {
 
 function cluster_up() {
   create_eks
-
-  echo -n "￮ creating namespaces "
-  setup_namespaces
-  echo "✓"
-
+  
   echo -n "￮ updating cluster configuration "
+  setup_namespaces
   setup_configmap
   echo "✓"
 
