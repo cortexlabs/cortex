@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	kapps "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -296,8 +297,11 @@ func getLoadBalancerHealth(awsClient *awslib.Client, clusterName string, loadBal
 
 func getPodMemorySaturation(k8sClient *k8s.Client, podName, namespace string) (float64, error) {
 	ctx := context.Background()
-	pod, err := k8sClient.GetPod(podName)
-	if err != nil {
+	var pod v1.Pod
+	if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
+		Namespace: namespace,
+		Name:      podName,
+	}, &pod); err != nil {
 		return 0, err
 	}
 
