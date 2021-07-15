@@ -218,7 +218,7 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 func GetWarnings(k8sClient *k8s.Client) (ClusterWarnings, error) {
 	var prometheusMemorySaturationWarn string
 
-	saturation, err := getPodMemorySaturation(k8sClient, "prometheus-prometheus-0", "default")
+	saturation, err := getPodMemorySaturation(k8sClient, "prometheus-prometheus-0", consts.PrometheusNamespace)
 	if err != nil {
 		return ClusterWarnings{}, err
 	}

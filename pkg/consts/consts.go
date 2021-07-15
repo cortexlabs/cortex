@@ -27,11 +27,11 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	KubeSystemNamespace = "kube-system"
 	DefaultNamespace    = "default"
+	KubeSystemNamespace = "kube-system"
+	IstioNamespace      = "istio-system"
 	PrometheusNamespace = "prometheus"
 	LoggingNamespace    = "logging"
-	IstioNamespace      = "istio-system"
 
 	DefaultMaxQueueLength = int64(100)
 	DefaultMaxConcurrency = int64(1)
