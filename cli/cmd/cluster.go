@@ -814,6 +814,11 @@ var _clusterHealthCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		k8sClient, err = k8s.New(consts.PrometheusNamespace, false, restConfig, scheme)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		clusterWarnings, err := health.GetWarnings(k8sClient)
 		if err != nil {
 			exit.Error(err)
