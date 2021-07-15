@@ -52,7 +52,7 @@ func (s *AsyncScaler) Scale(apiName string, request int32) error {
 		return errors.ErrorUnexpected("unable to find k8s deployment", apiName)
 	}
 
-	current := deployment.Status.Replicas
+	current := *deployment.Spec.Replicas
 	if current == request {
 		return nil
 	}
@@ -126,5 +126,5 @@ func (s *AsyncScaler) CurrentReplicas(apiName string) (int32, error) {
 		return 0, errors.ErrorUnexpected("unable to find k8s deployment", apiName)
 	}
 
-	return deployment.Status.Replicas, nil
+	return *deployment.Spec.Replicas, nil
 }

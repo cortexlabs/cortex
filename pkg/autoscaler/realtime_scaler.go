@@ -63,7 +63,7 @@ func (s *RealtimeScaler) Scale(apiName string, request int32) error {
 		return errors.Wrap(err, "failed to get deployment")
 	}
 
-	current := deployment.Status.Replicas
+	current := *deployment.Spec.Replicas
 
 	if current == request {
 		return nil
@@ -163,7 +163,7 @@ func (s *RealtimeScaler) CurrentReplicas(apiName string) (int32, error) {
 		return 0, errors.Wrap(err, "failed to get deployment")
 	}
 
-	return deployment.Status.Replicas, nil
+	return *deployment.Spec.Replicas, nil
 }
 
 func (s *RealtimeScaler) routeToService(deployment *kapps.Deployment) error {
