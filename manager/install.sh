@@ -237,8 +237,8 @@ function setup_prometheus() {
   envsubst < manifests/prometheus-node-exporter.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-monitoring.yaml | kubectl apply -f - >/dev/null
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-additional-scrape-configs.yaml.j2 > prometheus-additional-scrape-configs.yaml
-  if ! kubectl get secret additional-scrape-configs >/dev/null 2>&1; then
-    kubectl create secret generic additional-scrape-configs --from-file=prometheus-additional-scrape-configs.yaml > /dev/null
+  if ! kubectl get secret -n prometheus additional-scrape-configs >/dev/null 2>&1; then
+    kubectl create secret generic -n prometheus additional-scrape-configs --from-file=prometheus-additional-scrape-configs.yaml > /dev/null
   fi
 }
 
