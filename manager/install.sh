@@ -36,7 +36,7 @@ function cluster_up() {
   create_eks
 
   echo -n "￮ creating namespaces "
-  kubectl apply -f manifests/namespaces.yaml >/dev/null
+  setup_namespaces
   echo "✓"
 
   echo -n "￮ updating cluster configuration "
@@ -199,6 +199,12 @@ function write_kubeconfig() {
   out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
 }
 
+function setup_namespaces() {
+  # doing a patch to prevent getting the kubectl.kubernetes.io/last-applied-configuration annotation warning
+  kubectl patch namespace default -p '{"metadata": {"labels": {"istio-discovery": "enabled"}}}' >/dev/null
+  kubectl apply -f manifests/namespaces.yaml >/dev/null
+}
+
 function setup_configmap() {
   envsubst < manifests/default_cortex_cli_config.yaml > tmp_cli_config.yaml
   kubectl -n=default create configmap 'client-config' \
@@ -232,7 +238,7 @@ function setup_prometheus() {
   envsubst < manifests/prometheus-monitoring.yaml | kubectl apply -f - >/dev/null
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-additional-scrape-configs.yaml.j2 > prometheus-additional-scrape-configs.yaml
   if ! kubectl get secret additional-scrape-configs >/dev/null 2>&1; then
-    kubectl create secret generic additional-scrape-configs --from-file=prometheus-additional-scrape-configs.yaml
+    kubectl create secret generic additional-scrape-configs --from-file=prometheus-additional-scrape-configs.yaml > /dev/null
   fi
 }
 
