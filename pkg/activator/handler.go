@@ -26,6 +26,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/proxy"
 	"go.uber.org/zap"
 )
@@ -66,6 +67,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
+			telemetry.Error(err)
 		}
 	}
 }

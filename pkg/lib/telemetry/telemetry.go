@@ -57,11 +57,11 @@ const (
 
 type silentSegmentLogger struct{}
 
-func (logger silentSegmentLogger) Logf(format string, args ...interface{}) {
+func (logger silentSegmentLogger) Logf(_ string, _ ...interface{}) {
 	return
 }
 
-func (logger silentSegmentLogger) Errorf(format string, args ...interface{}) {
+func (logger silentSegmentLogger) Errorf(_ string, _ ...interface{}) {
 	return
 }
 
@@ -166,7 +166,7 @@ func eventHelper(name string, properties map[string]interface{}, integrations ma
 }
 
 func Error(err error, tags ...map[string]string) {
-	if err == nil || _config == nil {
+	if err == nil || _config == nil || errors.IsNoTelemetry(err) {
 		return
 	}
 
@@ -217,24 +217,12 @@ func EventFromException(exception error) *sentry.Event {
 	return event
 }
 
-func RecordEmail(email string) {
-	if _config == nil || !_config.Enabled || strings.ToLower(os.Getenv("CORTEX_TELEMETRY_DISABLE")) == "true" {
-		return
-	}
-
-	_segment.Enqueue(analytics.Identify{
-		UserId: _config.UserID,
-		Traits: analytics.NewTraits().
-			SetEmail(email),
-	})
-}
-
 func RecordOperatorID(clientID string, operatorID string) {
 	if _config == nil || !_config.Enabled || strings.ToLower(os.Getenv("CORTEX_TELEMETRY_DISABLE")) == "true" {
 		return
 	}
 
-	_segment.Enqueue(analytics.Identify{
+	_ = _segment.Enqueue(analytics.Identify{
 		UserId: clientID,
 		Traits: analytics.NewTraits().
 			Set("operator_id", operatorID),

@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -42,6 +43,7 @@ func (h *Handler) Awaken(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.autoscaler.Awaken(api); err != nil {
 		http.Error(w, errors.Wrap(err, "failed to awaken api").Error(), http.StatusInternalServerError)
+		telemetry.Error(err)
 		return
 	}
 

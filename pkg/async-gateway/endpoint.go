@@ -118,8 +118,6 @@ func respondJSON(w http.ResponseWriter, statusCode int, s interface{}) error {
 }
 
 func logErrorWithTelemetry(log *zap.SugaredLogger, err error) {
-	if err != nil && !errors.IsNoTelemetry(err) {
-		telemetry.Error(err)
-	}
+	telemetry.Error(err)
 	log.Error(err)
 }

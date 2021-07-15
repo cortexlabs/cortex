@@ -30,33 +30,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
 const (
 	_defaultPort = "8080"
 )
-
-var (
-	gatewayLogger = logging.GetLogger()
-)
-
-func Exit(err error, wrapStrs ...string) {
-	for _, str := range wrapStrs {
-		err = errors.Wrap(err, str)
-	}
-
-	if err != nil && !errors.IsNoTelemetry(err) {
-		telemetry.Error(err)
-	}
-
-	if err != nil && !errors.IsNoPrint(err) {
-		gatewayLogger.Error(err)
-	}
-
-	telemetry.Close()
-
-	os.Exit(1)
-}
 
 // usage: ./gateway -bucket <bucket> -region <region> -port <port> -queue queue <apiName>
 func main() {
@@ -86,17 +65,17 @@ func main() {
 
 	clusterConfig, err := clusterconfig.NewForFile(*clusterConfigPath)
 	if err != nil {
-		Exit(err)
+		exit(log, err)
 	}
 
 	awsClient, err := aws.NewForRegion(clusterConfig.Region)
 	if err != nil {
-		Exit(err)
+		exit(log, err)
 	}
 
 	_, userID, err := awsClient.CheckCredentials()
 	if err != nil {
-		Exit(err)
+		exit(log, err)
 	}
 
 	err = telemetry.Init(telemetry.Config{
@@ -111,8 +90,9 @@ func main() {
 		BackoffMode: telemetry.BackoffDuplicateMessages,
 	})
 	if err != nil {
-		Exit(err)
+		log.Fatalw("failed to initialize telemetry", zap.Error(err))
 	}
+	defer telemetry.Close()
 
 	sess := awsClient.Session()
 	s3Storage := gateway.NewS3(sess, clusterConfig.Bucket)
@@ -145,6 +125,22 @@ func main() {
 
 	log.Info("Running on port " + *port)
 	if err = http.ListenAndServe(":"+*port, handlers.CORS(corsOptions...)(router)); err != nil {
-		Exit(err)
+		exit(log, err)
 	}
+}
+
+func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
+	if err == nil {
+		os.Exit(0)
+	}
+
+	for _, str := range wrapStrs {
+		err = errors.Wrap(err, str)
+	}
+
+	telemetry.Error(err)
+	if !errors.IsNoPrint(err) {
+		log.Fatal(err)
+	}
+	os.Exit(1)
 }

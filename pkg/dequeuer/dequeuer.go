@@ -117,6 +117,7 @@ loop:
 			if message == nil { // no message received
 				queueAttributes, err := GetQueueAttributes(d.aws, d.config.QueueURL)
 				if err != nil {
+					telemetry.Error(err)
 					return err
 				}
 
@@ -137,9 +138,7 @@ loop:
 			err = d.handleMessage(message, messageHandler, done)
 			if err != nil {
 				d.log.Error(err)
-				if !errors.IsNoTelemetry(err) {
-					telemetry.Error(err)
-				}
+				telemetry.Error(err)
 			}
 		}
 	}
