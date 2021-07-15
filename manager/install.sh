@@ -540,8 +540,8 @@ function validate_cortex() {
     fi
 
     if [ "$prometheus_ready" == "" ]; then
-      readyReplicas=$(kubectl get statefulset -n default prometheus-prometheus -o jsonpath='{.status.readyReplicas}' 2> /dev/null)
-      desiredReplicas=$(kubectl get statefulset -n default prometheus-prometheus -o jsonpath='{.status.replicas}' 2> /dev/null)
+      readyReplicas=$(kubectl get statefulset -n prometheus prometheus-prometheus -o jsonpath='{.status.readyReplicas}' 2> /dev/null)
+      desiredReplicas=$(kubectl get statefulset -n prometheus prometheus-prometheus -o jsonpath='{.status.replicas}' 2> /dev/null)
 
       if [ "$readyReplicas" != "" ] && [ "$desiredReplicas" != "" ]; then
         if [ "$readyReplicas" == "$desiredReplicas" ]; then
