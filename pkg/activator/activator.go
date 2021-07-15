@@ -36,6 +36,11 @@ type ctxValue string
 
 const APINameCtxKey ctxValue = "apiName"
 
+type StatsReporter interface {
+	AddAPI(apiName string)
+	RemoveAPI(apiName string)
+}
+
 type Activator interface {
 	Try(ctx context.Context, fn func() error) error
 }
@@ -47,6 +52,7 @@ type activator struct {
 	apiActivators     map[string]*apiActivator
 	readinessTrackers map[string]*readinessTracker
 	istioClient       istionetworkingclient.VirtualServiceInterface
+	reporter          StatsReporter
 	logger            *zap.SugaredLogger
 }
 
@@ -55,6 +61,7 @@ func New(
 	deploymentInformer cache.SharedIndexInformer,
 	virtualServiceInformer cache.SharedIndexInformer,
 	autoscalerClient autoscaler.Client,
+	reporter StatsReporter,
 	logger *zap.SugaredLogger,
 ) Activator {
 	log := logger.With(zap.String("apiKind", userconfig.RealtimeAPIKind.String()))
@@ -65,6 +72,7 @@ func New(
 		istioClient:       istioClient,
 		logger:            log,
 		autoscalerClient:  autoscalerClient,
+		reporter:          reporter,
 	}
 
 	virtualServiceInformer.AddEventHandler(
@@ -169,6 +177,8 @@ func (a *activator) addAPI(obj interface{}) {
 		a.apiActivators[apiName] = newAPIActivator(apiMetadata.maxQueueLength, apiMetadata.maxConcurrency)
 	}
 	a.activatorsMux.Unlock()
+
+	a.reporter.AddAPI(apiName)
 }
 
 func (a *activator) updateAPI(oldObj interface{}, newObj interface{}) {
@@ -218,6 +228,8 @@ func (a *activator) removeAPI(obj interface{}) {
 	a.activatorsMux.Lock()
 	delete(a.apiActivators, apiMetadata.apiName)
 	a.activatorsMux.Unlock()
+
+	a.reporter.RemoveAPI(apiMetadata.apiName)
 }
 
 func (a *activator) awakenAPI(apiName string) {
