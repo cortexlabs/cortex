@@ -22,7 +22,7 @@ Deploy, manage, and scale containers without worrying about Kubernetes.
 
 <br>
 
-## Cluster management
+## Automated cluster management
 
 **Autoscaling** - elastically scale clusters with CPU and GPU instances.
 
