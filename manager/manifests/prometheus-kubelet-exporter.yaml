@@ -19,7 +19,7 @@ metadata:
     k8s-app: kubelet
     monitoring.cortex.dev: kubelet-exporter
   name: kubelet
-  namespace: default
+  namespace: prometheus
 spec:
   endpoints:
   - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token

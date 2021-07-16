@@ -358,7 +358,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		k8sClient, err := k8s.New("default", false, restConfig, scheme)
+		k8sClient, err := k8s.New(consts.DefaultNamespace, false, restConfig, scheme)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -804,7 +804,7 @@ var _clusterHealthCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		k8sClient, err := k8s.New("default", false, restConfig, scheme)
+		k8sClient, err := k8s.New(consts.DefaultNamespace, false, restConfig, scheme)
 		if err != nil {
 			exit.Error(err)
 		}
