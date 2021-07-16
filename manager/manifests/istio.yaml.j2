@@ -18,6 +18,10 @@ spec:
   profile: minimal
   hub: {{ env['CORTEX_IMAGE_ISTIO_PROXY_HUB'] }}  # this is only used by proxy, since pilot overrides it (proxy doesn't have dedicated hub config)
   tag: {{ env['CORTEX_IMAGE_ISTIO_PROXY_TAG'] }}  # this is only used by proxy, since pilot overrides it (proxy doesn't have dedicated tag config)
+  meshConfig:
+    discoverySelectors:
+      - matchLabels:
+          istio-discovery: enabled
   components:
     pilot:  # "pilot" refers to the istiod container
       hub: {{ env['CORTEX_IMAGE_ISTIO_PILOT_HUB'] }}
@@ -26,7 +30,23 @@ spec:
         resources:
           requests:
             cpu: 100m  # default is 500m
-            memory: 200Mi  # default is 2048Mi == 2Gi
+            memory: 700Mi  # default is 2048Mi == 2Gi
+        hpaSpec:
+          minReplicas: 1
+          maxReplicas: 5
+          metrics:
+            - type: Resource
+              resource:
+                name: cpu
+                targetAverageUtilization: 90
+            - type: Resource
+              resource:
+                name: memory
+                targetAverageUtilization: 90
+          scaleTargetRef:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: istiod
     cni:
       enabled: false
     ingressGateways:
@@ -71,7 +91,7 @@ spec:
           replicaCount: 1
           hpaSpec:
             minReplicas: 1
-            maxReplicas: 1  # edit autoscaleEnabled in values if increasing this
+            maxReplicas: 1
             metrics:
               - type: Resource
                 resource:
@@ -124,7 +144,7 @@ spec:
           replicaCount: 1
           hpaSpec:
             minReplicas: 1
-            maxReplicas: 100  # edit autoscaleEnabled in values if increasing this
+            maxReplicas: 100
             metrics:
               - type: Resource
                 resource:

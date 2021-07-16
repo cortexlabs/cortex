@@ -13,15 +13,10 @@
 # limitations under the License.
 
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: monitoring
----
-apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: dcgm-exporter
-  namespace: default
+  namespace: prometheus
   labels:
     app.kubernetes.io/name: dcgm-exporter
     app.kubernetes.io/instance: dcgm-exporter
@@ -31,7 +26,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: dcgm-exporter
-  namespace: default
+  namespace: prometheus
   labels:
     app.kubernetes.io/name: dcgm-exporter
     app.kubernetes.io/instance: dcgm-exporter
@@ -106,7 +101,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: dcgm-exporter
-  namespace: default
+  namespace: prometheus
   labels:
     monitoring.cortex.dev: dcgm-exporter
     app.kubernetes.io/name: dcgm-exporter

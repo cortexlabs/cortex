@@ -18,7 +18,7 @@
 
 CLUSTER_CONFIG=$1
 
-port_forward_cmd="kubectl port-forward -n default prometheus-prometheus-0 9090"
+port_forward_cmd="kubectl port-forward -n prometheus prometheus-prometheus-0 9090"
 kill $(pgrep -f "${port_forward_cmd}") >/dev/null 2>&1 || true
 
 echo "Port-forwarding Prometheus to localhost:9090"
