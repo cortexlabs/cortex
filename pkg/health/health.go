@@ -22,6 +22,7 @@ import (
 	"reflect"
 
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -29,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	kapps "k8s.io/api/apps/v1"
+	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -106,47 +108,47 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 	if err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			operatorHealth, err = getDeploymentReadiness(k8sClient, "operator", "default")
+			operatorHealth, err = getDeploymentReadiness(k8sClient, "operator", consts.DefaultNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			controllerManagerHealth, err = getDeploymentReadiness(k8sClient, "operator-controller-manager", "default")
+			controllerManagerHealth, err = getDeploymentReadiness(k8sClient, "operator-controller-manager", consts.DefaultNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			prometheusHealth, err = getStatefulSetReadiness(k8sClient, "prometheus-prometheus", "default")
+			prometheusHealth, err = getStatefulSetReadiness(k8sClient, "prometheus-prometheus", consts.PrometheusNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			autoscalerHealth, err = getDeploymentReadiness(k8sClient, "autoscaler", "default")
+			autoscalerHealth, err = getDeploymentReadiness(k8sClient, "autoscaler", consts.DefaultNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			activatorHealth, err = getDeploymentReadiness(k8sClient, "activator", "default")
+			activatorHealth, err = getDeploymentReadiness(k8sClient, "activator", consts.DefaultNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			grafanaHealth, err = getStatefulSetReadiness(k8sClient, "grafana", "default")
+			grafanaHealth, err = getStatefulSetReadiness(k8sClient, "grafana", consts.DefaultNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			operatorGatewayHealth, err = getDeploymentReadiness(k8sClient, "ingressgateway-operator", "istio-system")
+			operatorGatewayHealth, err = getDeploymentReadiness(k8sClient, "ingressgateway-operator", consts.IstioNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			apisGatewayHealth, err = getDeploymentReadiness(k8sClient, "ingressgateway-apis", "istio-system")
+			apisGatewayHealth, err = getDeploymentReadiness(k8sClient, "ingressgateway-apis", consts.IstioNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			clusterAutoscalerHealth, err = getDeploymentReadiness(k8sClient, "cluster-autoscaler", "kube-system")
+			clusterAutoscalerHealth, err = getDeploymentReadiness(k8sClient, "cluster-autoscaler", consts.KubeSystemNamespace)
 			return err
 		},
 		func() error {
@@ -161,32 +163,32 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 		},
 		func() error {
 			var err error
-			fluentBitHealth, err = getDaemonSetReadiness(k8sClient, "fluent-bit", "default")
+			fluentBitHealth, err = getDaemonSetReadiness(k8sClient, "fluent-bit", consts.LoggingNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			dcgmExporterHealth, err = getDaemonSetReadiness(k8sClient, "dcgm-exporter", "default")
+			dcgmExporterHealth, err = getDaemonSetReadiness(k8sClient, "dcgm-exporter", consts.PrometheusNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			nodeExporterHealth, err = getDaemonSetReadiness(k8sClient, "node-exporter", "default")
+			nodeExporterHealth, err = getDaemonSetReadiness(k8sClient, "node-exporter", consts.PrometheusNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			statsdExporterHealth, err = getDeploymentReadiness(k8sClient, "prometheus-statsd-exporter", "default")
+			statsdExporterHealth, err = getDeploymentReadiness(k8sClient, "prometheus-statsd-exporter", consts.PrometheusNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			eventExporterHealth, err = getDeploymentReadiness(k8sClient, "event-exporter", "default")
+			eventExporterHealth, err = getDeploymentReadiness(k8sClient, "event-exporter", consts.LoggingNamespace)
 			return err
 		},
 		func() error {
 			var err error
-			kubeStateMetricsHealth, err = getDeploymentReadiness(k8sClient, "kube-state-metrics", "default")
+			kubeStateMetricsHealth, err = getDeploymentReadiness(k8sClient, "kube-state-metrics", consts.PrometheusNamespace)
 			return err
 		},
 	); err != nil {
@@ -217,7 +219,7 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 func GetWarnings(k8sClient *k8s.Client) (ClusterWarnings, error) {
 	var prometheusMemorySaturationWarn string
 
-	saturation, err := getPodMemorySaturation(k8sClient, "prometheus-prometheus-0", "default")
+	saturation, err := getPodMemorySaturation(k8sClient, "prometheus-prometheus-0", consts.PrometheusNamespace)
 	if err != nil {
 		return ClusterWarnings{}, err
 	}
@@ -295,8 +297,11 @@ func getLoadBalancerHealth(awsClient *awslib.Client, clusterName string, loadBal
 
 func getPodMemorySaturation(k8sClient *k8s.Client, podName, namespace string) (float64, error) {
 	ctx := context.Background()
-	pod, err := k8sClient.GetPod(podName)
-	if err != nil {
+	var pod kcore.Pod
+	if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
+		Namespace: namespace,
+		Name:      podName,
+	}, &pod); err != nil {
 		return 0, err
 	}
 

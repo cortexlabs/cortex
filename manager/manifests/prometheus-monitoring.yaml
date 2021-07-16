@@ -27,6 +27,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
   name: prometheus
+  namespace: prometheus
 spec:
   image: $CORTEX_IMAGE_PROMETHEUS
   serviceAccountName: prometheus
@@ -73,6 +74,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: prometheus
+  namespace: prometheus
 
 ---
 
@@ -114,7 +116,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: prometheus
-    namespace: default
+    namespace: prometheus
 
 ---
 
@@ -122,6 +124,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: prometheus
+  namespace: prometheus
 spec:
   type: ClusterIP
   ports:
@@ -136,6 +139,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: istio-stats
+  namespace: prometheus
   labels:
     monitoring.cortex.dev: "istio"
 spec:
@@ -187,6 +191,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: proxy-stats
+  namespace: prometheus
   labels:
     monitoring.cortex.dev: "proxy"
 spec:
@@ -240,6 +245,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: async-stats
+  namespace: prometheus
   labels:
     monitoring.cortex.dev: "dequeuer-async"
 spec:
@@ -294,6 +300,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: prometheus-statsd-exporter
+  namespace: prometheus
   labels:
     name: prometheus-statsd-exporter
     monitoring.cortex.dev: "statsd-exporter"
@@ -320,6 +327,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: operator
+  namespace: prometheus
   labels:
     name: operator
     monitoring.cortex.dev: "operator"
