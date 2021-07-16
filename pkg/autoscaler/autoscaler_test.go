@@ -41,6 +41,207 @@ func newLogger(t *testing.T) *zap.SugaredLogger {
 	return logr
 }
 
+func generateRecommendationTimeline(t *testing.T, recs []int32, interval time.Duration) *recommendations {
+	t.Helper()
+
+	startTime := time.Now()
+	recsTimeline := map[time.Time]int32{}
+
+	for i := range recs {
+		timestamp := startTime.Add(time.Duration(i) * interval)
+		recsTimeline[timestamp] = recs[i]
+	}
+
+	return &recommendations{
+		timeline: recsTimeline,
+	}
+}
+
+func TestAutoscaler_AutoscaleFn(t *testing.T) {
+	t.Parallel()
+	log := newLogger(t)
+
+	interval := 250 * time.Millisecond
+
+	cases := []struct {
+		name                   string
+		autoscalingSpec        userconfig.Autoscaling
+		inFlight               float64
+		currentReplicas        int32
+		recommendationTimeline []int32
+		expectedRequest        *int32
+	}{
+		{
+			name: "no scale below zero within stabilization period",
+			autoscalingSpec: userconfig.Autoscaling{
+				MinReplicas:                  0,
+				MaxReplicas:                  5,
+				InitReplicas:                 0,
+				TargetInFlight:               pointer.Float64(1),
+				Window:                       4 * interval,
+				DownscaleStabilizationPeriod: time.Second,
+				UpscaleStabilizationPeriod:   time.Second,
+				MaxDownscaleFactor:           0.75,
+				MaxUpscaleFactor:             1.5,
+				DownscaleTolerance:           0.05,
+				UpscaleTolerance:             0.05,
+			},
+			inFlight:        0,
+			currentReplicas: 1,
+			expectedRequest: nil,
+		},
+		{
+			name: "downscale no stabilization",
+			autoscalingSpec: userconfig.Autoscaling{
+				MinReplicas:                  1,
+				MaxReplicas:                  5,
+				InitReplicas:                 1,
+				TargetInFlight:               pointer.Float64(1),
+				Window:                       4 * interval,
+				DownscaleStabilizationPeriod: 0,
+				UpscaleStabilizationPeriod:   0,
+				MaxDownscaleFactor:           0.5,
+				MaxUpscaleFactor:             1.5,
+				DownscaleTolerance:           0.05,
+				UpscaleTolerance:             0.05,
+			},
+			inFlight:               2,
+			currentReplicas:        5,
+			recommendationTimeline: []int32{5, 2, 2, 2},
+			expectedRequest:        pointer.Int32(3),
+		},
+		{
+			name: "downscale with stabilization",
+			autoscalingSpec: userconfig.Autoscaling{
+				MinReplicas:                  1,
+				MaxReplicas:                  5,
+				InitReplicas:                 1,
+				TargetInFlight:               pointer.Float64(1),
+				Window:                       4 * interval,
+				DownscaleStabilizationPeriod: time.Second,
+				UpscaleStabilizationPeriod:   time.Second,
+				MaxDownscaleFactor:           0.5,
+				MaxUpscaleFactor:             1.5,
+				DownscaleTolerance:           0.05,
+				UpscaleTolerance:             0.05,
+			},
+			inFlight:               5,
+			currentReplicas:        1,
+			recommendationTimeline: []int32{5, 5, 2, 2},
+			expectedRequest:        nil,
+		},
+		{
+			name: "upscale no stabilization",
+			autoscalingSpec: userconfig.Autoscaling{
+				MinReplicas:                  1,
+				MaxReplicas:                  5,
+				InitReplicas:                 1,
+				TargetInFlight:               pointer.Float64(1),
+				Window:                       4 * interval,
+				DownscaleStabilizationPeriod: 0,
+				UpscaleStabilizationPeriod:   0,
+				MaxDownscaleFactor:           0.5,
+				MaxUpscaleFactor:             1.5,
+				DownscaleTolerance:           0.05,
+				UpscaleTolerance:             0.05,
+			},
+			inFlight:        3,
+			currentReplicas: 1,
+			expectedRequest: pointer.Int32(2),
+		},
+		{
+			name: "upscale with stabilization",
+			autoscalingSpec: userconfig.Autoscaling{
+				MinReplicas:                  1,
+				MaxReplicas:                  5,
+				InitReplicas:                 1,
+				TargetInFlight:               pointer.Float64(1),
+				Window:                       4 * interval,
+				DownscaleStabilizationPeriod: time.Second,
+				UpscaleStabilizationPeriod:   time.Second,
+				MaxDownscaleFactor:           0.5,
+				MaxUpscaleFactor:             1.5,
+				DownscaleTolerance:           0.05,
+				UpscaleTolerance:             0.05,
+			},
+			inFlight:               5,
+			currentReplicas:        2,
+			recommendationTimeline: []int32{2, 2, 2, 5},
+			expectedRequest:        nil,
+		},
+		{
+			name: "no upscale below current replicas",
+			autoscalingSpec: userconfig.Autoscaling{
+				MinReplicas:                  0,
+				MaxReplicas:                  5,
+				InitReplicas:                 0,
+				TargetInFlight:               pointer.Float64(1),
+				Window:                       4 * interval,
+				DownscaleStabilizationPeriod: time.Second,
+				UpscaleStabilizationPeriod:   time.Second,
+				MaxDownscaleFactor:           0.75,
+				MaxUpscaleFactor:             1.5,
+				DownscaleTolerance:           0.05,
+				UpscaleTolerance:             0.05,
+			},
+			inFlight:               3,
+			currentReplicas:        2,
+			recommendationTimeline: []int32{0, 1, 2, 3},
+			expectedRequest:        nil,
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var latestRequest *int32
+
+			scalerMock := &ScalerFunc{
+				ScaleFunc: func(apiName string, request int32) error {
+					latestRequest = pointer.Int32(request)
+					return nil
+				},
+				GetInFlightRequestsFunc: func(apiName string, window time.Duration) (*float64, error) {
+					return pointer.Float64(tt.inFlight), nil
+				},
+				GetAutoscalingSpecFunc: func(apiName string) (*userconfig.Autoscaling, error) {
+					return &tt.autoscalingSpec, nil
+				},
+				CurrentReplicasFunc: func(apiName string) (int32, error) {
+					return tt.currentReplicas, nil
+				},
+			}
+
+			autoScaler := &Autoscaler{
+				logger:  log,
+				crons:   make(map[string]cron.Cron),
+				scalers: make(map[userconfig.Kind]Scaler),
+				recs:    make(map[string]*recommendations),
+			}
+			autoScaler.AddScaler(scalerMock, userconfig.RealtimeAPIKind)
+
+			apiName := "test"
+			api := userconfig.Resource{
+				Name: apiName,
+				Kind: userconfig.RealtimeAPIKind,
+			}
+
+			autoScaler.recs[apiName] = generateRecommendationTimeline(t, tt.recommendationTimeline, interval)
+			autoscaleFn, err := autoScaler.autoscaleFn(api)
+			require.NoError(t, err)
+
+			time.Sleep(interval)
+
+			err = autoscaleFn()
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expectedRequest, latestRequest)
+		})
+	}
+
+}
+
 func TestAutoscaler_Awake(t *testing.T) {
 	t.Parallel()
 	log := newLogger(t)
@@ -78,15 +279,16 @@ func TestAutoscaler_Awake(t *testing.T) {
 	}
 
 	autoScaler := &Autoscaler{
-		logger:              log,
-		crons:               make(map[string]cron.Cron),
-		scalers:             make(map[userconfig.Kind]Scaler),
-		lastAwakenTimestamp: make(map[string]time.Time),
+		logger:  log,
+		crons:   make(map[string]cron.Cron),
+		scalers: make(map[userconfig.Kind]Scaler),
+		recs:    make(map[string]*recommendations),
 	}
 	autoScaler.AddScaler(scalerMock, userconfig.RealtimeAPIKind)
 
+	apiName := "test"
 	api := userconfig.Resource{
-		Name: "test",
+		Name: apiName,
 		Kind: userconfig.RealtimeAPIKind,
 	}
 
@@ -106,9 +308,6 @@ func TestAutoscaler_Awake(t *testing.T) {
 
 	err = autoScaler.Awaken(api)
 	require.NoError(t, err)
-
-	_, ok := autoScaler.lastAwakenTimestamp[api.Name]
-	require.True(t, ok)
 
 	require.Never(t, func() bool {
 		mux.RLock()
@@ -155,15 +354,16 @@ func TestAutoscaler_MinReplicas(t *testing.T) {
 	}
 
 	autoScaler := &Autoscaler{
-		logger:              log,
-		crons:               make(map[string]cron.Cron),
-		scalers:             make(map[userconfig.Kind]Scaler),
-		lastAwakenTimestamp: make(map[string]time.Time),
+		logger:  log,
+		crons:   make(map[string]cron.Cron),
+		scalers: make(map[userconfig.Kind]Scaler),
+		recs:    make(map[string]*recommendations),
 	}
 	autoScaler.AddScaler(scalerMock, userconfig.RealtimeAPIKind)
 
+	apiName := "test"
 	api := userconfig.Resource{
-		Name: "test",
+		Name: apiName,
 		Kind: userconfig.RealtimeAPIKind,
 	}
 
@@ -226,15 +426,16 @@ func TestAutoscaler_MaxReplicas(t *testing.T) {
 	}
 
 	autoScaler := &Autoscaler{
-		logger:              log,
-		crons:               make(map[string]cron.Cron),
-		scalers:             make(map[userconfig.Kind]Scaler),
-		lastAwakenTimestamp: make(map[string]time.Time),
+		logger:  log,
+		crons:   make(map[string]cron.Cron),
+		scalers: make(map[userconfig.Kind]Scaler),
+		recs:    make(map[string]*recommendations),
 	}
 	autoScaler.AddScaler(scalerMock, userconfig.RealtimeAPIKind)
 
+	apiName := "test"
 	api := userconfig.Resource{
-		Name: "test",
+		Name: apiName,
 		Kind: userconfig.RealtimeAPIKind,
 	}
 
