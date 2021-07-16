@@ -44,8 +44,8 @@ Deploy, manage, and scale containers without worrying about Kubernetes.
 
 ## Built for AWS
 
-**Elastic Kubernetes Service** - Cortex runs on top of EKS to scale workloads reliably and cost-effectively.
+**EKS** - Cortex runs on top of EKS to scale workloads reliably and cost-effectively.
 
-**Virtual Private Cloud** - deploy clusters into a VPC on your AWS account to keep your data private.
+**VPC** - deploy clusters into a VPC on your AWS account to keep your data private.
 
-**Identity and Access Management** - integrate with IAM for authentication and authorization workflows.
+**IAM** - integrate with IAM for authentication and authorization workflows.
