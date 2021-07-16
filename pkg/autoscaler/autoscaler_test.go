@@ -191,7 +191,7 @@ func TestAutoscaler_AutoscaleFn(t *testing.T) {
 		},
 	}
 
-	for _, tt := range cases {
+	for i, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -206,7 +206,7 @@ func TestAutoscaler_AutoscaleFn(t *testing.T) {
 					return pointer.Float64(tt.inFlight), nil
 				},
 				GetAutoscalingSpecFunc: func(apiName string) (*userconfig.Autoscaling, error) {
-					return &tt.autoscalingSpec, nil
+					return &cases[i].autoscalingSpec, nil
 				},
 				CurrentReplicasFunc: func(apiName string) (int32, error) {
 					return tt.currentReplicas, nil
