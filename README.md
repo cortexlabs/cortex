@@ -24,7 +24,7 @@ Deploy, manage, and scale containers without worrying about Kubernetes.
 
 ## Cluster management
 
-**Cluster autoscaling** - elastically scale clusters with CPU and GPU instances.
+**Autoscaling** - elastically scale clusters with CPU and GPU instances.
 
 **Spot instances** - run workloads on spot instances with automated on-demand backups.
 
