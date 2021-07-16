@@ -17,7 +17,7 @@ metadata:
   labels:
     app.kubernetes.io/name: kube-state-metrics
   name: kube-state-metrics
-  namespace: default
+  namespace: prometheus
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -180,13 +180,13 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kube-state-metrics
-  namespace: default
+  namespace: prometheus
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kube-state-metrics
-  namespace: default
+  namespace: prometheus
   labels:
     app.kubernetes.io/name: kube-state-metrics
     app.kubernetes.io/version: "2.1.0"
@@ -245,7 +245,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: kube-state-metrics
-  namespace: default
+  namespace: prometheus
   labels:
     name: kube-state-metrics
     monitoring.cortex.dev: kube-state-metrics

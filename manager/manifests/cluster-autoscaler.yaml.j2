@@ -137,7 +137,7 @@ metadata:
   namespace: kube-system
 data:
   priorities: |-
-  {% for p in range(1, 100) %}
+  {% for p in range(1, 101) %}
     {% set found = {'priority': False} %}
     {% for ng in config['node_groups'] %}
       {% if ng['priority'] == p %}

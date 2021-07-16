@@ -17,6 +17,7 @@ limitations under the License.
 package workloads
 
 import (
+	"fmt"
 	"path"
 	"strings"
 
@@ -60,13 +61,13 @@ const (
 	_clusterConfigDirVolume = "cluster-config"
 	_clusterConfigConfigMap = "cluster-config"
 	_clusterConfigDir       = "/configs/cluster"
-
-	_statsdAddress = "prometheus-statsd-exporter.default:9125"
 )
 
 var (
 	_asyncGatewayCPURequest = kresource.MustParse("100m")
 	_asyncGatewayMemRequest = kresource.MustParse("100Mi")
+
+	_statsdAddress = fmt.Sprintf("prometheus-statsd-exporter.%s:9125", consts.PrometheusNamespace)
 
 	// each Inferentia chip requires 128 HugePages with each HugePage having a size of 2Mi
 	_hugePagesMemPerInf = int64(128 * 2 * 1024 * 1024) // bytes

@@ -16,7 +16,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: prometheus-statsd-exporter-config
-  namespace: default
+  namespace: prometheus
 data:
   statsd-mapping.yaml: |
     defaults:
@@ -27,7 +27,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prometheus-statsd-exporter
-  namespace: default
+  namespace: prometheus
 spec:
   replicas: 1
   selector:
@@ -93,7 +93,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: default
+  namespace: prometheus
   name: prometheus-statsd-exporter
   labels:
     cortex.dev/name: prometheus-statsd-exporter
