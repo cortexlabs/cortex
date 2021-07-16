@@ -34,7 +34,7 @@ function main() {
 
 function cluster_up() {
   create_eks
-  
+
   echo -n "￮ updating cluster configuration "
   setup_namespaces
   setup_configmap
