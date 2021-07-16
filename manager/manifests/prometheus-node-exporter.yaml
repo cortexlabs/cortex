@@ -18,7 +18,7 @@ metadata:
   labels:
     app.kubernetes.io/version: v1.1.2
   name: node-exporter
-  namespace: default
+  namespace: prometheus
 
 ---
 
@@ -57,7 +57,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: node-exporter
-    namespace: default
+    namespace: prometheus
 
 ---
 
@@ -68,7 +68,7 @@ metadata:
     app.kubernetes.io/name: node-exporter
     app.kubernetes.io/version: v1.1.2
   name: node-exporter
-  namespace: default
+  namespace: prometheus
 spec:
   clusterIP: None
   ports:
@@ -87,7 +87,7 @@ metadata:
     app.kubernetes.io/name: node-exporter
     app.kubernetes.io/version: v1.1.2
   name: node-exporter
-  namespace: default
+  namespace: prometheus
 spec:
   selector:
     matchLabels:
@@ -181,7 +181,7 @@ metadata:
     app.kubernetes.io/version: v1.1.2
     monitoring.cortex.dev: node-exporter
   name: node-exporter
-  namespace: default
+  namespace: prometheus
 spec:
   endpoints:
     - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
@@ -240,7 +240,7 @@ metadata:
     app.kubernetes.io/version: 1.1.2
     prometheus: k8s
   name: node-exporter-rules
-  namespace: default
+  namespace: prometheus
 spec:
   groups:
     - name: node-exporter.rules

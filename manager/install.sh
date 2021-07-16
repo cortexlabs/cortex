@@ -36,6 +36,7 @@ function cluster_up() {
   create_eks
 
   echo -n "￮ updating cluster configuration "
+  setup_namespaces
   setup_configmap
   echo "✓"
 
@@ -195,6 +196,12 @@ function write_kubeconfig() {
   out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
 }
 
+function setup_namespaces() {
+  # doing a patch to prevent getting the kubectl.kubernetes.io/last-applied-configuration annotation warning
+  kubectl patch namespace default -p '{"metadata": {"labels": {"istio-discovery": "enabled"}}}' >/dev/null
+  kubectl apply -f manifests/namespaces.yaml >/dev/null
+}
+
 function setup_configmap() {
   envsubst < manifests/default_cortex_cli_config.yaml > tmp_cli_config.yaml
   kubectl -n=default create configmap 'client-config' \
@@ -227,7 +234,9 @@ function setup_prometheus() {
   envsubst < manifests/prometheus-node-exporter.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-monitoring.yaml | kubectl apply -f - >/dev/null
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-additional-scrape-configs.yaml.j2 > prometheus-additional-scrape-configs.yaml
-  kubectl create secret generic additional-scrape-configs --from-file=prometheus-additional-scrape-configs.yaml
+  if ! kubectl get secret -n prometheus additional-scrape-configs >/dev/null 2>&1; then
+    kubectl create secret generic -n prometheus additional-scrape-configs --from-file=prometheus-additional-scrape-configs.yaml > /dev/null
+  fi
 }
 
 function setup_grafana() {
@@ -360,8 +369,6 @@ function remove_nodegroups() {
 }
 
 function setup_istio() {
-  envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
-
   if ! grep -q "istio-customgateway-certs" <<< $(kubectl get secret -n istio-system); then
     WEBSITE=localhost
     openssl req -subj "/C=US/CN=$WEBSITE" -newkey rsa:2048 -nodes -keyout $WEBSITE.key -x509 -days 3650 -out $WEBSITE.crt >/dev/null 2>&1
@@ -530,8 +537,8 @@ function validate_cortex() {
     fi
 
     if [ "$prometheus_ready" == "" ]; then
-      readyReplicas=$(kubectl get statefulset -n default prometheus-prometheus -o jsonpath='{.status.readyReplicas}' 2> /dev/null)
-      desiredReplicas=$(kubectl get statefulset -n default prometheus-prometheus -o jsonpath='{.status.replicas}' 2> /dev/null)
+      readyReplicas=$(kubectl get statefulset -n prometheus prometheus-prometheus -o jsonpath='{.status.readyReplicas}' 2> /dev/null)
+      desiredReplicas=$(kubectl get statefulset -n prometheus prometheus-prometheus -o jsonpath='{.status.replicas}' 2> /dev/null)
 
       if [ "$readyReplicas" != "" ] && [ "$desiredReplicas" != "" ]; then
         if [ "$readyReplicas" == "$desiredReplicas" ]; then
