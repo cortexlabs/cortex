@@ -186,7 +186,6 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, headers http.H
 	}
 
 	req.Header = headers
-	req.Header.Set("Content-Type", payload.ContentType)
 	req.Header.Set(CortexRequestIDHeader, requestID)
 
 	startTime := time.Now()

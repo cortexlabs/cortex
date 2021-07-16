@@ -56,14 +56,8 @@ func NewService(clusterUID, apiName string, queue Queue, storage Storage, logger
 
 // CreateWorkload enqueues an async workload request and uploads the request payload to S3
 func (s *service) CreateWorkload(id string, payload io.Reader, headers http.Header) (string, error) {
-	contentType := headers.Get("Content-Type")
-	if contentType == "" {
-		return "", errors.ErrorUnexpected("missing content-type in headers")
-	}
-	headers.Del("Content-Type")
-
 	prefix := async.StoragePath(s.clusterUID, s.apiName)
-	log := s.logger.With(zap.String("id", id), zap.String("contentType", contentType))
+	log := s.logger.With(zap.String("id", id))
 
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(headers); err != nil {
@@ -76,6 +70,7 @@ func (s *service) CreateWorkload(id string, payload io.Reader, headers http.Head
 		return "", errors.Wrap(err, "failed to upload headers")
 	}
 
+	contentType := headers.Get("Content-Type")
 	payloadPath := async.PayloadPath(prefix, id)
 	log.Debugw("uploading payload", zap.String("path", payloadPath))
 	if err := s.storage.Upload(payloadPath, payload, contentType); err != nil {
