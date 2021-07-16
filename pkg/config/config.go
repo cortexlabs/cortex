@@ -152,7 +152,7 @@ func Init() error {
 
 	prometheusURL := os.Getenv("CORTEX_PROMETHEUS_URL")
 	if len(prometheusURL) == 0 {
-		prometheusURL = fmt.Sprintf("http://prometheus.%s:9090", consts.DefaultNamespace)
+		prometheusURL = fmt.Sprintf("http://prometheus.%s:9090", consts.PrometheusNamespace)
 	}
 
 	promClient, err := promapi.NewClient(promapi.Config{
@@ -168,7 +168,7 @@ func Init() error {
 	}
 
 	if OperatorMetadata.IsOperatorInCluster {
-		MetricsClient, err = statsd.New(fmt.Sprintf("prometheus-statsd-exporter.%s:9125", consts.DefaultNamespace))
+		MetricsClient, err = statsd.New(fmt.Sprintf("prometheus-statsd-exporter.%s:9125", consts.PrometheusNamespace))
 		if err != nil {
 			return errors.Wrap(errors.WithStack(err), "unable to initialize metrics client")
 		}
