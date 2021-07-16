@@ -6,23 +6,23 @@
 
 <br>
 
-# Build your own serverless platform
+# Containers as a service on AWS
 
-Build modern internal developer platforms without worrying about infrastructure.
-
-<br>
-
-## Deploy, manage, and scale containers in production
-
-**Realtime workloads** - respond to requests in real-time and autoscale based on in-flight request volumes.
-
-**Async workloads** - process requests asynchronously and autoscale based on request queue length.
-
-**Batch workloads** - run distributed and fault-tolerant batch processing jobs on-demand.
+Deploy, manage, and scale containers without worrying about Kubernetes.
 
 <br>
 
-## Control and minimize your AWS spend
+## Serverless workloads
+
+**Realtime** - respond to requests in real-time and autoscale based on in-flight request volumes.
+
+**Async** - process requests asynchronously and autoscale based on request queue length.
+
+**Batch** - run distributed and fault-tolerant batch processing jobs on-demand.
+
+<br>
+
+## Cluster management
 
 **Cluster autoscaling** - elastically scale clusters with CPU and GPU instances.
 
@@ -32,7 +32,7 @@ Build modern internal developer platforms without worrying about infrastructure.
 
 <br>
 
-## Integrate with your CI/CD and observability tools
+## CI/CD and observability integrations
 
 **Provisioning** - provision clusters with declarative configuration or a Terraform provider.
 
@@ -42,7 +42,7 @@ Build modern internal developer platforms without worrying about infrastructure.
 
 <br>
 
-## Build on your AWS account
+## Built for AWS
 
 **Elastic Kubernetes Service** - Cortex runs on top of EKS to scale workloads reliably and cost-effectively.
 
