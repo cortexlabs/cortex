@@ -176,13 +176,13 @@ spec:
         app: cluster-autoscaler
     spec:
       serviceAccountName: cluster-autoscaler
+      priorityClassName: system-cluster-critical
       containers:
         - image: {{ config['image_cluster_autoscaler'] }}
           name: cluster-autoscaler
           resources:
             limits:
               cpu: 300m
-              memory: 1Gi
             requests:
               cpu: 100m
               memory: 200Mi
