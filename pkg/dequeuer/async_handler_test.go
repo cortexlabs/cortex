@@ -68,7 +68,10 @@ func TestAsyncMessageHandler_Handle(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = awsClient.UploadStringToS3("{}", asyncHandler.config.Bucket, fmt.Sprintf("%s/%s/payload", asyncHandler.storagePath, requestID))
+	err = awsClient.UploadStringToS3("{}", asyncHandler.config.Bucket, async.PayloadPath(asyncHandler.storagePath, requestID))
+	require.NoError(t, err)
+
+	err = awsClient.UploadStringToS3("{}", asyncHandler.config.Bucket, async.HeadersPath(asyncHandler.storagePath, requestID))
 	require.NoError(t, err)
 
 	err = asyncHandler.Handle(&sqs.Message{

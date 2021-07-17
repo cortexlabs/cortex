@@ -50,20 +50,14 @@ func (e *Endpoint) CreateWorkload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contentType := r.Header.Get("Content-Type")
-	if contentType == "" {
-		respondPlainText(w, http.StatusBadRequest, "error: missing Content-Type key in request header")
-		return
-	}
-
 	body := r.Body
 	defer func() {
 		_ = r.Body.Close()
 	}()
 
-	log := e.logger.With(zap.String("id", requestID), zap.String("contentType", contentType))
+	log := e.logger.With(zap.String("id", requestID))
 
-	id, err := e.service.CreateWorkload(requestID, body, contentType)
+	id, err := e.service.CreateWorkload(requestID, body, r.Header)
 	if err != nil {
 		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
 		logErrorWithTelemetry(log, errors.Wrap(err, "failed to create workload"))
