@@ -23,10 +23,10 @@ import (
 )
 
 type ScalerFunc struct {
-	ScaleFunc               func(apiName string, request int32) error
-	GetInFlightRequestsFunc func(apiName string, window time.Duration) (*float64, error)
-	GetAutoscalingSpecFunc  func(apiName string) (*userconfig.Autoscaling, error)
-	CurrentReplicasFunc     func(apiName string) (int32, error)
+	ScaleFunc                    func(apiName string, request int32) error
+	GetInFlightRequestsFunc      func(apiName string, window time.Duration) (*float64, error)
+	GetAutoscalingSpecFunc       func(apiName string) (*userconfig.Autoscaling, error)
+	CurrentRequestedReplicasFunc func(apiName string) (int32, error)
 }
 
 func (s *ScalerFunc) Scale(apiName string, request int32) error {
@@ -53,10 +53,10 @@ func (s *ScalerFunc) GetAutoscalingSpec(apiName string) (*userconfig.Autoscaling
 	return s.GetAutoscalingSpecFunc(apiName)
 }
 
-func (s *ScalerFunc) CurrentReplicas(apiName string) (int32, error) {
-	if s.CurrentReplicasFunc == nil {
+func (s *ScalerFunc) CurrentRequestedReplicas(apiName string) (int32, error) {
+	if s.CurrentRequestedReplicasFunc == nil {
 		return 0, nil
 	}
 
-	return s.CurrentReplicasFunc(apiName)
+	return s.CurrentRequestedReplicasFunc(apiName)
 }

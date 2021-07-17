@@ -107,7 +107,7 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 	}
 
 	apiName := apiSpec.Name
-	currentReplicas := *initialDeployment.Spec.Replicas
+	currentRequestedReplicas := *initialDeployment.Spec.Replicas
 
 	apiLogger, err := operator.GetRealtimeAPILoggerFromSpec(apiSpec)
 	if err != nil {
@@ -136,22 +136,22 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 		rawRecommendation := *avgInFlight / *autoscalingSpec.TargetInFlight
 		recommendation := int32(math.Ceil(rawRecommendation))
 
-		if rawRecommendation < float64(currentReplicas) && rawRecommendation > float64(currentReplicas)*(1-autoscalingSpec.DownscaleTolerance) {
-			recommendation = currentReplicas
+		if rawRecommendation < float64(currentRequestedReplicas) && rawRecommendation > float64(currentRequestedReplicas)*(1-autoscalingSpec.DownscaleTolerance) {
+			recommendation = currentRequestedReplicas
 		}
 
-		if rawRecommendation > float64(currentReplicas) && rawRecommendation < float64(currentReplicas)*(1+autoscalingSpec.UpscaleTolerance) {
-			recommendation = currentReplicas
+		if rawRecommendation > float64(currentRequestedReplicas) && rawRecommendation < float64(currentRequestedReplicas)*(1+autoscalingSpec.UpscaleTolerance) {
+			recommendation = currentRequestedReplicas
 		}
 
 		// always allow subtraction of 1
-		downscaleFactorFloor := math2.MinInt32(currentReplicas-1, int32(math.Ceil(float64(currentReplicas)*autoscalingSpec.MaxDownscaleFactor)))
+		downscaleFactorFloor := math2.MinInt32(currentRequestedReplicas-1, int32(math.Ceil(float64(currentRequestedReplicas)*autoscalingSpec.MaxDownscaleFactor)))
 		if recommendation < downscaleFactorFloor {
 			recommendation = downscaleFactorFloor
 		}
 
 		// always allow addition of 1
-		upscaleFactorCeil := math2.MaxInt32(currentReplicas+1, int32(math.Ceil(float64(currentReplicas)*autoscalingSpec.MaxUpscaleFactor)))
+		upscaleFactorCeil := math2.MaxInt32(currentRequestedReplicas+1, int32(math.Ceil(float64(currentRequestedReplicas)*autoscalingSpec.MaxUpscaleFactor)))
 		if recommendation > upscaleFactorCeil {
 			recommendation = upscaleFactorCeil
 		}
@@ -175,18 +175,18 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 		var downscaleStabilizationFloor *int32
 		var upscaleStabilizationCeil *int32
 
-		if request < currentReplicas {
+		if request < currentRequestedReplicas {
 			downscaleStabilizationFloor = recs.maxSince(autoscalingSpec.DownscaleStabilizationPeriod)
 			if time.Since(startTime) < autoscalingSpec.DownscaleStabilizationPeriod {
-				request = currentReplicas
+				request = currentRequestedReplicas
 			} else if downscaleStabilizationFloor != nil && request < *downscaleStabilizationFloor {
 				request = *downscaleStabilizationFloor
 			}
 		}
-		if request > currentReplicas {
+		if request > currentRequestedReplicas {
 			upscaleStabilizationCeil = recs.minSince(autoscalingSpec.UpscaleStabilizationPeriod)
 			if time.Since(startTime) < autoscalingSpec.UpscaleStabilizationPeriod {
-				request = currentReplicas
+				request = currentRequestedReplicas
 			} else if upscaleStabilizationCeil != nil && request > *upscaleStabilizationCeil {
 				request = *upscaleStabilizationCeil
 			}
@@ -197,7 +197,7 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 				"avg_in_flight":                  *avgInFlight,
 				"target_in_flight":               *autoscalingSpec.TargetInFlight,
 				"raw_recommendation":             rawRecommendation,
-				"current_replicas":               currentReplicas,
+				"current_replicas":               currentRequestedReplicas,
 				"downscale_tolerance":            autoscalingSpec.DownscaleTolerance,
 				"upscale_tolerance":              autoscalingSpec.UpscaleTolerance,
 				"max_downscale_factor":           autoscalingSpec.MaxDownscaleFactor,
@@ -215,8 +215,8 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 			},
 		)
 
-		if currentReplicas != request {
-			apiLogger.Infof("%s autoscaling event: %d -> %d", apiName, currentReplicas, request)
+		if currentRequestedReplicas != request {
+			apiLogger.Infof("%s autoscaling event: %d -> %d", apiName, currentRequestedReplicas, request)
 
 			deployment, err := config.K8s.GetDeployment(initialDeployment.Name)
 			if err != nil {
@@ -233,7 +233,7 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 				return err
 			}
 
-			currentReplicas = request
+			currentRequestedReplicas = request
 		}
 
 		return nil
