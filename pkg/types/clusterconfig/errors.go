@@ -60,6 +60,7 @@ const (
 	ErrUnsupportedAvailabilityZone            = "clusterconfig.unsupported_availability_zone"
 	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
 	ErrNoNATGatewayWithSubnets                = "clusterconfig.no_nat_gateway_with_subnets"
+	ErrSubnetMaskOutOfRange                   = "clusterconfig.subnet_mask_out_of_range"
 	ErrConfigCannotBeChangedOnConfigure       = "clusterconfig.config_cannot_be_changed_on_configure"
 	ErrNodeGroupCanOnlyBeScaled               = "clusterconfig.node_group_can_only_be_scaled"
 	ErrSpecifyOneOrNone                       = "clusterconfig.specify_one_or_none"
@@ -306,6 +307,13 @@ func ErrorNoNATGatewayWithSubnets() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoNATGatewayWithSubnets,
 		Message: fmt.Sprintf("nat gateway cannot be automatically created when specifying subnets for your cluster; please unset %s or %s", NATGatewayKey, SubnetsKey),
+	})
+}
+
+func ErrorSubnetMaskOutOfRange(requestedMaskSize, minMaskSize, maxMaskSize int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSubnetMaskOutOfRange,
+		Message: fmt.Sprintf("invalid network size /%d; the network size must be between /%d and /%d", requestedMaskSize, minMaskSize, maxMaskSize),
 	})
 }
 
