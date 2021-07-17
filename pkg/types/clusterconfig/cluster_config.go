@@ -86,6 +86,9 @@ var (
 	_maxIOPSToVolumeSizeRatioForGP3 = int64(500)
 	_minIOPSToThroughputRatioForGP3 = int64(4)
 
+	_minLeadingOnesInTheSubnetMask = 16
+	_maxLeadingOnesInTheSubnetMask = 24
+
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
@@ -1467,9 +1470,16 @@ func (ng *NodeGroup) FillEmptySpotFields(region string) {
 }
 
 func validateCIDR(cidr string) (string, error) {
-	_, _, err := net.ParseCIDR(cidr)
+	_, network, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return "", errors.WithStack(err)
+	}
+
+	if network != nil {
+		leadingOnesInMask, _ := network.Mask.Size()
+		if leadingOnesInMask < _minLeadingOnesInTheSubnetMask || leadingOnesInMask > _maxLeadingOnesInTheSubnetMask {
+			return "", ErrorSubnetMaskOutOfRange(leadingOnesInMask, _minLeadingOnesInTheSubnetMask, _maxLeadingOnesInTheSubnetMask)
+		}
 	}
 
 	return cidr, nil
