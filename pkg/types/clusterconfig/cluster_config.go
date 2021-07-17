@@ -86,8 +86,8 @@ var (
 	_maxIOPSToVolumeSizeRatioForGP3 = int64(500)
 	_minIOPSToThroughputRatioForGP3 = int64(4)
 
-	_minLeadingOnesInTheSubnetMask = 16
-	_maxLeadingOnesInTheSubnetMask = 24
+	_minSubnetMask = 16
+	_maxSubnetMask = 24
 
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
@@ -1476,9 +1476,9 @@ func validateCIDR(cidr string) (string, error) {
 	}
 
 	if network != nil {
-		leadingOnesInMask, _ := network.Mask.Size()
-		if leadingOnesInMask < _minLeadingOnesInTheSubnetMask || leadingOnesInMask > _maxLeadingOnesInTheSubnetMask {
-			return "", ErrorSubnetMaskOutOfRange(leadingOnesInMask, _minLeadingOnesInTheSubnetMask, _maxLeadingOnesInTheSubnetMask)
+		maskSize, _ := network.Mask.Size()
+		if maskSize < _minSubnetMask || maskSize > _maxSubnetMask {
+			return "", ErrorSubnetMaskOutOfRange(maskSize, _minSubnetMask, _maxSubnetMask)
 		}
 	}
 
