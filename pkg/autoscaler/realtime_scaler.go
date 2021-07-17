@@ -63,8 +63,11 @@ func (s *RealtimeScaler) Scale(apiName string, request int32) error {
 		return errors.Wrap(err, "failed to get deployment")
 	}
 
-	current := *deployment.Spec.Replicas
+	if deployment.Spec.Replicas == nil {
+		return errors.Wrap(err, "k8s deployment doesn't have the replicas field set")
+	}
 
+	current := *deployment.Spec.Replicas
 	if current == request {
 		return nil
 	}
@@ -150,7 +153,7 @@ func (s *RealtimeScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autosca
 	return autoscalingSpec, nil
 }
 
-func (s *RealtimeScaler) CurrentReplicas(apiName string) (int32, error) {
+func (s *RealtimeScaler) CurrentRequestedReplicas(apiName string) (int32, error) {
 	ctx := context.Background()
 
 	// we use the controller-runtime client to make use of the cache mechanism
@@ -161,6 +164,10 @@ func (s *RealtimeScaler) CurrentReplicas(apiName string) (int32, error) {
 	}, &deployment)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to get deployment")
+	}
+
+	if deployment.Spec.Replicas == nil {
+		return 0, errors.Wrap(err, "k8s deployment doesn't have the replicas field set")
 	}
 
 	return *deployment.Spec.Replicas, nil

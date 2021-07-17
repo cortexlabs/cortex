@@ -72,7 +72,7 @@ func TestAutoscaler_Awake(t *testing.T) {
 				MaxUpscaleFactor:             1.5,
 			}, nil
 		},
-		CurrentReplicasFunc: func(apiName string) (int32, error) {
+		CurrentRequestedReplicasFunc: func(apiName string) (int32, error) {
 			return 0, nil
 		},
 	}
@@ -149,7 +149,7 @@ func TestAutoscaler_MinReplicas(t *testing.T) {
 				MaxUpscaleFactor:   1.5,
 			}, nil
 		},
-		CurrentReplicasFunc: func(apiName string) (int32, error) {
+		CurrentRequestedReplicasFunc: func(apiName string) (int32, error) {
 			return minReplicas + 1, nil
 		},
 	}
@@ -220,7 +220,7 @@ func TestAutoscaler_MaxReplicas(t *testing.T) {
 				MaxUpscaleFactor:   1.5,
 			}, nil
 		},
-		CurrentReplicasFunc: func(apiName string) (int32, error) {
+		CurrentRequestedReplicasFunc: func(apiName string) (int32, error) {
 			return minReplicas, nil
 		},
 	}
