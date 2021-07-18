@@ -69,11 +69,11 @@ def default_nodegroup(cluster_config):
         },
         "preBootstrapCommands": [
             "sudo yum install -y ipvsadm",
-            "sudo modprobe ip_vs", # IP virtual server
-            "sudo modprobe ip_vs_rr", # round robing load balancer
-            "sudo modprobe ip_vs_lc", # least connected load balancer
-            "sudo modprobe ip_vs_wrr", # weighted round robin load balancer
-            "sudo modprobe ip_vs_sh", # source-hashing load balancer
+            "sudo modprobe ip_vs",  # IP virtual server
+            "sudo modprobe ip_vs_rr",  # round robing load balancer
+            "sudo modprobe ip_vs_lc",  # least connected load balancer
+            "sudo modprobe ip_vs_wrr",  # weighted round robin load balancer
+            "sudo modprobe ip_vs_sh",  # source-hashing load balancer
             "sudo modprobe nf_conntrack_ipv4",
         ],
     }
