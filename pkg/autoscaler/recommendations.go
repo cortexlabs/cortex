@@ -18,29 +18,48 @@ package autoscaler
 
 import (
 	"math"
+	"sync"
 	"time"
 )
 
-type recommendations map[time.Time]int32
-
-func (r recommendations) add(rec int32) {
-	r[time.Now()] = rec
+type recommendations struct {
+	mux      sync.RWMutex
+	timeline map[time.Time]int32
 }
 
-func (r recommendations) deleteOlderThan(period time.Duration) {
-	for t := range r {
+func newRecommendations() *recommendations {
+	return &recommendations{
+		timeline: make(map[time.Time]int32),
+	}
+}
+
+func (r *recommendations) add(rec int32) {
+	r.mux.Lock()
+	defer r.mux.Unlock()
+
+	r.timeline[time.Now()] = rec
+}
+
+func (r *recommendations) deleteOlderThan(period time.Duration) {
+	r.mux.Lock()
+	defer r.mux.Unlock()
+
+	for t := range r.timeline {
 		if time.Since(t) > period {
-			delete(r, t)
+			delete(r.timeline, t)
 		}
 	}
 }
 
 // Returns nil if no recommendations in the period
-func (r recommendations) maxSince(period time.Duration) *int32 {
+func (r *recommendations) maxSince(period time.Duration) *int32 {
+	r.mux.RLock()
+	defer r.mux.RUnlock()
+
 	max := int32(math.MinInt32)
 	foundRecommendation := false
 
-	for t, rec := range r {
+	for t, rec := range r.timeline {
 		if time.Since(t) <= period && rec > max {
 			max = rec
 			foundRecommendation = true
@@ -55,11 +74,14 @@ func (r recommendations) maxSince(period time.Duration) *int32 {
 }
 
 // Returns nil if no recommendations in the period
-func (r recommendations) minSince(period time.Duration) *int32 {
+func (r *recommendations) minSince(period time.Duration) *int32 {
+	r.mux.RLock()
+	defer r.mux.RUnlock()
+
 	min := int32(math.MaxInt32)
 	foundRecommendation := false
 
-	for t, rec := range r {
+	for t, rec := range r.timeline {
 		if time.Since(t) <= period && rec < min {
 			min = rec
 			foundRecommendation = true
