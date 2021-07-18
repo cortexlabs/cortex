@@ -167,17 +167,17 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 		)
 	}
 
-	autoscalingSpec, err := scaler.GetAutoscalingSpec(api.Name)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get autoscaling spec")
-	}
-
 	log.Info("autoscaler init")
 
 	var startTime time.Time
 	recs := make(recommendations)
 
 	return func() error {
+		autoscalingSpec, err := scaler.GetAutoscalingSpec(api.Name)
+		if err != nil {
+			return errors.Wrap(err, "failed to get autoscaling spec")
+		}
+
 		currentReplicas, err := scaler.CurrentReplicas(api.Name)
 		if err != nil {
 			return errors.Wrap(err, "failed to get current replicas")
