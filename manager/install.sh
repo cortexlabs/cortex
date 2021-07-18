@@ -41,6 +41,7 @@ function cluster_up() {
   echo "✓"
 
   echo -n "￮ configuring networking (this will take a few minutes) "
+  setup_ipvs
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 | kubectl apply -f - >/dev/null
   echo "✓"
@@ -366,6 +367,15 @@ function remove_nodegroups() {
   eksctl delete nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --approve -f /workspace/nodegroups.yaml
   rm /workspace/nodegroups.yaml
   echo
+}
+
+func setup_ipvs() {
+  kube_proxy_pod=$(kubectl get pod -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[*].metadata.name}' | cut -d " " -f1)
+  kubectl exec -it -n kube-system ${kube_proxy_pod} -- cat /var/lib/kube-proxy-config/config > proxy_config.yaml
+  python upgrade_kube_proxy_mode.py proxy_config.yaml > proxy_config.yaml
+  kubectl get configmap -n kube-system kube-proxy -o yaml | yq --arg replace "`cat proxy_config.yaml`" '.data.config=$replace'
+  kubectl patch ds -n kube-system kube-proxy --patch "$(cat manifests/kube-proxy.yaml)" >/dev/null
+  kubectl rollout status daemonset kube-proxy -n kube-system --timeout 30m >/dev/null
 }
 
 function setup_istio() {
