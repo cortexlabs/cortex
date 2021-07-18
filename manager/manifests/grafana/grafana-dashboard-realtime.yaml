@@ -427,7 +427,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "count(cortex_in_flight_requests{api_name=~\"$api_name\"}) by (api_name)",
+              "expr": "count(cortex_in_flight_requests{api_name=~\"$api_name\", container!=\"activator\"}) by (api_name)",
               "interval": "",
               "legendFormat": "{{api_name}}",
               "refId": "Active Replicas"
@@ -2027,7 +2027,7 @@ data:
               "value": "None"
             },
             "datasource": null,
-            "definition": "label_values(cortex_in_flight_requests{api_kind=\"RealtimeAPI\"}, api_name)",
+            "definition": "label_values(cortex_in_flight_requests, api_name)",
             "description": null,
             "error": null,
             "hide": 0,
@@ -2037,7 +2037,7 @@ data:
             "name": "api_name",
             "options": [],
             "query": {
-              "query": "label_values(cortex_in_flight_requests{api_kind=\"RealtimeAPI\"}, api_name)",
+              "query": "label_values(cortex_in_flight_requests, api_name)",
               "refId": "StandardVariableQuery"
             },
             "refresh": 1,
