@@ -31,7 +31,7 @@ TEST_APIS = [
 
 
 @pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("apis", TEST_APIS)
+@pytest.mark.parametrize("apis", TEST_APIS, ids=[api["primary"] for api in TEST_APIS])
 def test_autoscaling(printer: Callable, config: Dict, client: cx.Client, apis: Dict[str, Any]):
     skip_autoscaling_test = config["global"].get("skip_autoscaling", False)
     if skip_autoscaling_test:

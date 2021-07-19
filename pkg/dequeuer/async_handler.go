@@ -55,11 +55,6 @@ type AsyncMessageHandlerConfig struct {
 	TargetURL  string
 }
 
-type userPayload struct {
-	Body        io.ReadCloser
-	ContentType string
-}
-
 func NewAsyncMessageHandler(config AsyncMessageHandlerConfig, awsClient *awslib.Client, eventHandler RequestEventHandler, logger *zap.SugaredLogger) *AsyncMessageHandler {
 	return &AsyncMessageHandler{
 		config:       config,
@@ -104,9 +99,21 @@ func (h *AsyncMessageHandler) handleMessage(requestID string) error {
 		}
 		return errors.Wrap(err, "failed to get payload")
 	}
-	defer h.deletePayload(requestID)
+	defer func() {
+		h.deletePayload(requestID)
+		_ = payload.Close()
+	}()
 
-	result, err := h.submitRequest(payload, requestID)
+	headers, err := h.getHeaders(requestID)
+	if err != nil {
+		updateStatusErr := h.updateStatus(requestID, async.StatusFailed)
+		if updateStatusErr != nil {
+			h.log.Errorw("failed to update status after failure to get headers", "id", requestID, "error", updateStatusErr)
+		}
+		return errors.Wrap(err, "failed to get payload")
+	}
+
+	result, err := h.submitRequest(payload, headers, requestID)
 	if err != nil {
 		h.log.Errorw("failed to submit request to user container", "id", requestID, "error", err)
 		updateStatusErr := h.updateStatus(requestID, async.StatusFailed)
@@ -138,7 +145,7 @@ func (h *AsyncMessageHandler) updateStatus(requestID string, status async.Status
 	return h.aws.UploadStringToS3("", h.config.Bucket, key)
 }
 
-func (h *AsyncMessageHandler) getPayload(requestID string) (*userPayload, error) {
+func (h *AsyncMessageHandler) getPayload(requestID string) (io.ReadCloser, error) {
 	key := async.PayloadPath(h.storagePath, requestID)
 	output, err := h.aws.S3().GetObject(
 		&s3.GetObjectInput{
@@ -149,16 +156,7 @@ func (h *AsyncMessageHandler) getPayload(requestID string) (*userPayload, error)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-
-	contentType := "application/octet-stream"
-	if output.ContentType != nil {
-		contentType = *output.ContentType
-	}
-
-	return &userPayload{
-		Body:        output.Body,
-		ContentType: contentType,
-	}, nil
+	return output.Body, nil
 }
 
 func (h *AsyncMessageHandler) deletePayload(requestID string) {
@@ -170,13 +168,13 @@ func (h *AsyncMessageHandler) deletePayload(requestID string) {
 	}
 }
 
-func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID string) (interface{}, error) {
-	req, err := http.NewRequest(http.MethodPost, h.config.TargetURL, payload.Body)
+func (h *AsyncMessageHandler) submitRequest(payload io.Reader, headers http.Header, requestID string) (interface{}, error) {
+	req, err := http.NewRequest(http.MethodPost, h.config.TargetURL, payload)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	req.Header.Set("Content-Type", payload.ContentType)
+	req.Header = headers
 	req.Header.Set(CortexRequestIDHeader, requestID)
 
 	startTime := time.Now()
@@ -215,4 +213,15 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 func (h *AsyncMessageHandler) uploadResult(requestID string, result interface{}) error {
 	key := async.ResultPath(h.storagePath, requestID)
 	return h.aws.UploadJSONToS3(result, h.config.Bucket, key)
+}
+
+func (h *AsyncMessageHandler) getHeaders(requestID string) (http.Header, error) {
+	key := async.HeadersPath(h.storagePath, requestID)
+
+	var headers http.Header
+	if err := h.aws.ReadJSONFromS3(&headers, h.config.Bucket, key); err != nil {
+		return nil, err
+	}
+
+	return headers, nil
 }
