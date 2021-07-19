@@ -83,7 +83,10 @@ spec:
             - "--namespace=default"
             - "--cluster-config=/configs/cluster/cluster.yaml"
           ports:
-            - containerPort: 8000
+            - name: http
+              containerPort: 8000
+            - name: admin
+              containerPort: 15000
           livenessProbe:
             httpGet:
               port: 8000
