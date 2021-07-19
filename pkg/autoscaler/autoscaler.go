@@ -40,7 +40,7 @@ type Scaler interface {
 	Scale(apiName string, request int32) error
 	GetInFlightRequests(apiName string, window time.Duration) (*float64, error)
 	GetAutoscalingSpec(apiName string) (*userconfig.Autoscaling, error)
-	CurrentReplicas(apiName string) (int32, error)
+	CurrentRequestedReplicas(apiName string) (int32, error)
 }
 
 type Autoscaler struct {
@@ -76,12 +76,12 @@ func (a *Autoscaler) Awaken(api userconfig.Resource) error {
 		zap.String("apiKind", api.Kind.String()),
 	)
 
-	currentReplicas, err := scaler.CurrentReplicas(api.Name)
+	currentRequestedReplicas, err := scaler.CurrentRequestedReplicas(api.Name)
 	if err != nil {
 		return errors.Wrap(err, "failed to get current replicas")
 	}
 
-	if currentReplicas > 0 {
+	if currentRequestedReplicas > 0 {
 		return nil
 	}
 
@@ -166,7 +166,7 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 			return errors.Wrap(err, "failed to get autoscaling spec")
 		}
 
-		currentReplicas, err := scaler.CurrentReplicas(api.Name)
+		currentRequestedReplicas, err := scaler.CurrentRequestedReplicas(api.Name)
 		if err != nil {
 			return errors.Wrap(err, "failed to get current replicas")
 		}
@@ -187,22 +187,22 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 		rawRecommendation := *avgInFlight / *autoscalingSpec.TargetInFlight
 		recommendation := int32(math.Ceil(rawRecommendation))
 
-		if rawRecommendation < float64(currentReplicas) && rawRecommendation > float64(currentReplicas)*(1-autoscalingSpec.DownscaleTolerance) {
-			recommendation = currentReplicas
+		if rawRecommendation < float64(currentRequestedReplicas) && rawRecommendation > float64(currentRequestedReplicas)*(1-autoscalingSpec.DownscaleTolerance) {
+			recommendation = currentRequestedReplicas
 		}
 
-		if rawRecommendation > float64(currentReplicas) && rawRecommendation < float64(currentReplicas)*(1+autoscalingSpec.UpscaleTolerance) {
-			recommendation = currentReplicas
+		if rawRecommendation > float64(currentRequestedReplicas) && rawRecommendation < float64(currentRequestedReplicas)*(1+autoscalingSpec.UpscaleTolerance) {
+			recommendation = currentRequestedReplicas
 		}
 
 		// always allow subtraction of 1
-		downscaleFactorFloor := libmath.MinInt32(currentReplicas-1, int32(math.Ceil(float64(currentReplicas)*autoscalingSpec.MaxDownscaleFactor)))
+		downscaleFactorFloor := libmath.MinInt32(currentRequestedReplicas-1, int32(math.Ceil(float64(currentRequestedReplicas)*autoscalingSpec.MaxDownscaleFactor)))
 		if recommendation < downscaleFactorFloor {
 			recommendation = downscaleFactorFloor
 		}
 
 		// always allow addition of 1
-		upscaleFactorCeil := libmath.MaxInt32(currentReplicas+1, int32(math.Ceil(float64(currentReplicas)*autoscalingSpec.MaxUpscaleFactor)))
+		upscaleFactorCeil := libmath.MaxInt32(currentRequestedReplicas+1, int32(math.Ceil(float64(currentRequestedReplicas)*autoscalingSpec.MaxUpscaleFactor)))
 		if recommendation > upscaleFactorCeil {
 			recommendation = upscaleFactorCeil
 		}
@@ -228,24 +228,24 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 		var downscaleStabilizationFloor *int32
 		var upscaleStabilizationCeil *int32
 
-		if request < currentReplicas {
+		if request < currentRequestedReplicas {
 			downscaleStabilizationFloor = recs.maxSince(autoscalingSpec.DownscaleStabilizationPeriod)
 			if downscaleStabilizationFloor != nil {
-				downscaleStabilizationFloor = pointer.Int32(libmath.MinInt32(*downscaleStabilizationFloor, currentReplicas))
+				downscaleStabilizationFloor = pointer.Int32(libmath.MinInt32(*downscaleStabilizationFloor, currentRequestedReplicas))
 			}
 			if time.Since(startTime) < autoscalingSpec.DownscaleStabilizationPeriod {
-				request = currentReplicas
+				request = currentRequestedReplicas
 			} else if downscaleStabilizationFloor != nil && request < *downscaleStabilizationFloor {
 				request = *downscaleStabilizationFloor
 			}
 		}
-		if request > currentReplicas {
+		if request > currentRequestedReplicas {
 			upscaleStabilizationCeil = recs.minSince(autoscalingSpec.UpscaleStabilizationPeriod)
 			if upscaleStabilizationCeil != nil {
-				upscaleStabilizationCeil = pointer.Int32(libmath.MaxInt32(*upscaleStabilizationCeil, currentReplicas))
+				upscaleStabilizationCeil = pointer.Int32(libmath.MaxInt32(*upscaleStabilizationCeil, currentRequestedReplicas))
 			}
 			if time.Since(startTime) < autoscalingSpec.UpscaleStabilizationPeriod {
-				request = currentReplicas
+				request = currentRequestedReplicas
 			} else if upscaleStabilizationCeil != nil && request > *upscaleStabilizationCeil {
 				request = *upscaleStabilizationCeil
 			}
@@ -256,7 +256,7 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 				"avg_in_flight":                  *avgInFlight,
 				"target_in_flight":               *autoscalingSpec.TargetInFlight,
 				"raw_recommendation":             rawRecommendation,
-				"current_replicas":               currentReplicas,
+				"current_replicas":               currentRequestedReplicas,
 				"downscale_tolerance":            autoscalingSpec.DownscaleTolerance,
 				"upscale_tolerance":              autoscalingSpec.UpscaleTolerance,
 				"max_downscale_factor":           autoscalingSpec.MaxDownscaleFactor,
@@ -274,8 +274,8 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 			},
 		)
 
-		if currentReplicas != request {
-			log.Infof("autoscaling event: %d -> %d", currentReplicas, request)
+		if currentRequestedReplicas != request {
+			log.Infof("autoscaling event: %d -> %d", currentRequestedReplicas, request)
 			if err = scaler.Scale(api.Name, request); err != nil {
 				return err
 			}

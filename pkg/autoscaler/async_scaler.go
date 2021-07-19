@@ -52,8 +52,7 @@ func (s *AsyncScaler) Scale(apiName string, request int32) error {
 		return errors.ErrorUnexpected("unable to find k8s deployment", apiName)
 	}
 
-	current := deployment.Status.Replicas
-	if current == request {
+	if deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == request {
 		return nil
 	}
 
@@ -116,7 +115,7 @@ func (s *AsyncScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autoscalin
 	return autoscalingSpec, nil
 }
 
-func (s *AsyncScaler) CurrentReplicas(apiName string) (int32, error) {
+func (s *AsyncScaler) CurrentRequestedReplicas(apiName string) (int32, error) {
 	deployment, err := s.k8s.GetDeployment(workloads.K8sName(apiName))
 	if err != nil {
 		return 0, err
@@ -126,5 +125,9 @@ func (s *AsyncScaler) CurrentReplicas(apiName string) (int32, error) {
 		return 0, errors.ErrorUnexpected("unable to find k8s deployment", apiName)
 	}
 
-	return deployment.Status.Replicas, nil
+	if deployment.Spec.Replicas == nil {
+		return 0, errors.ErrorUnexpected("k8s deployment doesn't have the replicas field set", apiName)
+	}
+
+	return *deployment.Spec.Replicas, nil
 }
