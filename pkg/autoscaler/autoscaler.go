@@ -55,6 +55,7 @@ func New(logger *zap.SugaredLogger) *Autoscaler {
 		logger:  logger,
 		crons:   make(map[string]cron.Cron),
 		scalers: make(map[userconfig.Kind]Scaler),
+		recs:    make(map[string]*recommendations),
 	}
 }
 
@@ -230,7 +231,7 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 		if request < currentReplicas {
 			downscaleStabilizationFloor = recs.maxSince(autoscalingSpec.DownscaleStabilizationPeriod)
 			if downscaleStabilizationFloor != nil {
-				downscaleStabilizationFloor = pointer.Int32(libmath.MaxInt32(*downscaleStabilizationFloor, 1))
+				downscaleStabilizationFloor = pointer.Int32(libmath.MinInt32(*downscaleStabilizationFloor, currentReplicas))
 			}
 			if time.Since(startTime) < autoscalingSpec.DownscaleStabilizationPeriod {
 				request = currentReplicas
