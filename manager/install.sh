@@ -371,7 +371,7 @@ function remove_nodegroups() {
 
 function setup_ipvs() {
   # get a random kube-proxy pod
-  until [ "$(kubectl get pod -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[*].metadata.name}' | wc -w)" -ne "0" ]; do sleep 1; done
+  kubectl rollout status daemonset kube-proxy -n kube-system --timeout 30m >/dev/null
   kube_proxy_pod=$(kubectl get pod -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[*].metadata.name}' | cut -d " " -f1)
 
   # export kube-proxy's current config
@@ -384,7 +384,7 @@ function setup_ipvs() {
   kubectl get configmap -n kube-system kube-proxy -o yaml | yq --arg replace "`cat upgraded_proxy_config.yaml`" '.data.config=$replace' | kubectl apply -f - >/dev/null
 
   # patch the kube-proxy daemonset
-  kubectl patch ds -n kube-system kube-proxy --patch "$(cat manifests/kube-proxy.yaml)" >/dev/null
+  kubectl patch ds -n kube-system kube-proxy --patch "$(cat manifests/kube-proxy.patch.yaml)" >/dev/null
   kubectl rollout status daemonset kube-proxy -n kube-system --timeout 30m >/dev/null
 }
 
