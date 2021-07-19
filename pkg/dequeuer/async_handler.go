@@ -55,11 +55,6 @@ type AsyncMessageHandlerConfig struct {
 	TargetURL  string
 }
 
-type userPayload struct {
-	Body        io.ReadCloser
-	ContentType string
-}
-
 func NewAsyncMessageHandler(config AsyncMessageHandlerConfig, awsClient *awslib.Client, eventHandler RequestEventHandler, logger *zap.SugaredLogger) *AsyncMessageHandler {
 	return &AsyncMessageHandler{
 		config:       config,
@@ -104,7 +99,10 @@ func (h *AsyncMessageHandler) handleMessage(requestID string) error {
 		}
 		return errors.Wrap(err, "failed to get payload")
 	}
-	defer h.deletePayload(requestID)
+	defer func() {
+		h.deletePayload(requestID)
+		_ = payload.Close()
+	}()
 
 	headers, err := h.getHeaders(requestID)
 	if err != nil {
@@ -147,7 +145,7 @@ func (h *AsyncMessageHandler) updateStatus(requestID string, status async.Status
 	return h.aws.UploadStringToS3("", h.config.Bucket, key)
 }
 
-func (h *AsyncMessageHandler) getPayload(requestID string) (*userPayload, error) {
+func (h *AsyncMessageHandler) getPayload(requestID string) (io.ReadCloser, error) {
 	key := async.PayloadPath(h.storagePath, requestID)
 	output, err := h.aws.S3().GetObject(
 		&s3.GetObjectInput{
@@ -158,16 +156,7 @@ func (h *AsyncMessageHandler) getPayload(requestID string) (*userPayload, error)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-
-	contentType := "application/octet-stream"
-	if output.ContentType != nil {
-		contentType = *output.ContentType
-	}
-
-	return &userPayload{
-		Body:        output.Body,
-		ContentType: contentType,
-	}, nil
+	return output.Body, nil
 }
 
 func (h *AsyncMessageHandler) deletePayload(requestID string) {
@@ -179,8 +168,8 @@ func (h *AsyncMessageHandler) deletePayload(requestID string) {
 	}
 }
 
-func (h *AsyncMessageHandler) submitRequest(payload *userPayload, headers http.Header, requestID string) (interface{}, error) {
-	req, err := http.NewRequest(http.MethodPost, h.config.TargetURL, payload.Body)
+func (h *AsyncMessageHandler) submitRequest(payload io.Reader, headers http.Header, requestID string) (interface{}, error) {
+	req, err := http.NewRequest(http.MethodPost, h.config.TargetURL, payload)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
