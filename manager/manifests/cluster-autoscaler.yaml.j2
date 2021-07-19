@@ -145,7 +145,7 @@ data:
       {% endif %}
     {% endfor %}
     {% if found['priority'] %}
-    {{ 101-p }}:
+    {{ p }}:
     {% endif %}
     {% for ng in config['node_groups'] %}
       {% if ng['priority'] == p %}

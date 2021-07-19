@@ -41,6 +41,7 @@ function cluster_up() {
   echo "✓"
 
   echo -n "￮ configuring networking (this will take a few minutes) "
+  setup_ipvs
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 | kubectl apply -f - >/dev/null
   echo "✓"
@@ -366,6 +367,25 @@ function remove_nodegroups() {
   eksctl delete nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --approve -f /workspace/nodegroups.yaml
   rm /workspace/nodegroups.yaml
   echo
+}
+
+function setup_ipvs() {
+  # get a random kube-proxy pod
+  kubectl rollout status daemonset kube-proxy -n kube-system --timeout 30m >/dev/null
+  kube_proxy_pod=$(kubectl get pod -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[*].metadata.name}' | cut -d " " -f1)
+
+  # export kube-proxy's current config
+  kubectl exec -it -n kube-system ${kube_proxy_pod} -- cat /var/lib/kube-proxy-config/config > proxy_config.yaml
+
+  # upgrade proxy mode from the exported kube-proxy config
+  python upgrade_kube_proxy_mode.py proxy_config.yaml > upgraded_proxy_config.yaml
+
+  # update kube-proxy's configmap to include the updated configuration
+  kubectl get configmap -n kube-system kube-proxy -o yaml | yq --arg replace "`cat upgraded_proxy_config.yaml`" '.data.config=$replace' | kubectl apply -f - >/dev/null
+
+  # patch the kube-proxy daemonset
+  kubectl patch ds -n kube-system kube-proxy --patch "$(cat manifests/kube-proxy.patch.yaml)" >/dev/null
+  kubectl rollout status daemonset kube-proxy -n kube-system --timeout 30m >/dev/null
 }
 
 function setup_istio() {
