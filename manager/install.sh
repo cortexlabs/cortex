@@ -369,11 +369,21 @@ function remove_nodegroups() {
   echo
 }
 
-func setup_ipvs() {
+function setup_ipvs() {
+  # get a random kube-proxy pod
+  until [ "$(kubectl get pod -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[*].metadata.name}' | wc -w)" -ne "0" ]; do sleep 1; done
   kube_proxy_pod=$(kubectl get pod -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[*].metadata.name}' | cut -d " " -f1)
+
+  # export kube-proxy's current config
   kubectl exec -it -n kube-system ${kube_proxy_pod} -- cat /var/lib/kube-proxy-config/config > proxy_config.yaml
-  python upgrade_kube_proxy_mode.py proxy_config.yaml > proxy_config.yaml
-  kubectl get configmap -n kube-system kube-proxy -o yaml | yq --arg replace "`cat proxy_config.yaml`" '.data.config=$replace'
+
+  # upgrade proxy mode from the exported kube-proxy config
+  python upgrade_kube_proxy_mode.py proxy_config.yaml > upgraded_proxy_config.yaml
+
+  # update kube-proxy's configmap to include the updated configuration
+  kubectl get configmap -n kube-system kube-proxy -o yaml | yq --arg replace "`cat upgraded_proxy_config.yaml`" '.data.config=$replace' | kubectl apply -f - >/dev/null
+
+  # patch the kube-proxy daemonset
   kubectl patch ds -n kube-system kube-proxy --patch "$(cat manifests/kube-proxy.yaml)" >/dev/null
   kubectl rollout status daemonset kube-proxy -n kube-system --timeout 30m >/dev/null
 }

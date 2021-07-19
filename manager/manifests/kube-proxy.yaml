@@ -29,7 +29,7 @@ spec:
       - name: kube-proxy
         command:
         - kube-proxy
-        - --v=22
+        - --v=2
         - --proxy-mode=ipvs
         - --ipvs-scheduler=rr
         - --config=/var/lib/kube-proxy/config
