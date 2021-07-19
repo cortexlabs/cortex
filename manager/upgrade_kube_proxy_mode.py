@@ -24,7 +24,7 @@ def main():
         kube_proxy_config = yaml.safe_load(f)
 
     kube_proxy_config["mode"] = "ipvs"  # IP Virtual Server
-    kube_proxy_config["ipvs"]["scheduler"] = "lc"  # least connected
+    kube_proxy_config["ipvs"]["scheduler"] = "rr"  # round robin
 
     print(yaml.dump(kube_proxy_config, indent=2))
 

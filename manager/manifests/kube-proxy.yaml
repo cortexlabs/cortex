@@ -31,7 +31,7 @@ spec:
         - kube-proxy
         - --v=22
         - --proxy-mode=ipvs
-        - --ipvs-scheduler=lc
+        - --ipvs-scheduler=rr
         - --config=/var/lib/kube-proxy/config
         env:
         - name: KUBE_PROXY_MODE
