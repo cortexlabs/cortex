@@ -75,6 +75,7 @@ func GetAPISpec(apiConfig *userconfig.API, initialDeploymentTime int64, deployme
 	buf.WriteString(s.Obj(apiConfig.Networking))
 	buf.WriteString(s.Obj(apiConfig.Autoscaling))
 	buf.WriteString(s.Obj(apiConfig.UpdateStrategy))
+	buf.WriteString(s.Obj(apiConfig.NodeGroups))
 	specID := hash.Bytes(buf.Bytes())[:32]
 
 	apiID := fmt.Sprintf("%s-%s-%s", MonotonicallyDecreasingID(), deploymentID, specID) // should be up to 60 characters long

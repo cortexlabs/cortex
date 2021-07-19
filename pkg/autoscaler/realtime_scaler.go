@@ -104,10 +104,10 @@ func (s *RealtimeScaler) GetInFlightRequests(apiName string, window time.Duratio
 
 	// PromQL query:
 	// 	sum(sum_over_time(cortex_in_flight_requests{api_name="<apiName>"}[60s])) /
-	//	sum(count_over_time(cortex_in_flight_requests{api_name="<apiName>"}[60s]))
+	//	sum(count_over_time(cortex_in_flight_requests{api_name="<apiName>", container!="activator"}[60s]))
 	query := fmt.Sprintf(
 		"sum(sum_over_time(cortex_in_flight_requests{api_name=\"%s\"}[%ds])) / "+
-			"max(count_over_time(cortex_in_flight_requests{api_name=\"%s\"}[%ds]))",
+			"max(count_over_time(cortex_in_flight_requests{api_name=\"%s\", container!=\"activator\"}[%ds]))",
 		apiName, windowSeconds,
 		apiName, windowSeconds,
 	)

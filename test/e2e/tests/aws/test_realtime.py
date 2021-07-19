@@ -64,10 +64,8 @@ def test_realtime_api(printer: Callable, config: Dict, client: cx.Client, api: D
 
 
 @pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS_ARM)
+@pytest.mark.parametrize("api", TEST_APIS_ARM, ids=[api["name"] for api in TEST_APIS_ARM])
 def test_realtime_api_arm(printer: Callable, config: Dict, client: cx.Client, api: Dict[str, str]):
-
-    printer(f"testing {api['name']}")
     e2e.tests.test_realtime_api(
         printer=printer,
         client=client,
