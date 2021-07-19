@@ -72,6 +72,11 @@ jobs:
     steps:
       - checkout
       - install-go
+      - restore_cache:
+          keys:
+            - go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
       - run:
           name: Install Linting Tools
           command: |
@@ -81,6 +86,10 @@ jobs:
       - run:
           name: Lint
           command: make lint
+      - save_cache:
+          key: go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
 
   test:
     machine:
@@ -89,6 +98,11 @@ jobs:
     steps:
       - checkout
       - install-go
+      - restore_cache:
+          keys:
+            - go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
       - run:
           name: Initialize Credentials
           command: |
@@ -110,6 +124,10 @@ jobs:
       - run:
           name: Go Tests
           command: make test
+      - save_cache:
+          key: go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
 
   build-and-upload-cli:
     docker:
