@@ -15,6 +15,8 @@ commands:
             rm -rf go*.tar.gz
             echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV
             echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV
+            mkdir ~/go
+            echo 'export GOPATH=~/go' >> $BASH_ENV
 
   quay-login:
     description: Log Docker agent into Quay.io
@@ -72,6 +74,10 @@ jobs:
     steps:
       - checkout
       - install-go
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+            - go-mod-v1-
       - run:
           name: Install Linting Tools
           command: |
@@ -81,6 +87,10 @@ jobs:
       - run:
           name: Lint
           command: make lint
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "~/go/pkg/mod"
 
   test:
     machine:
@@ -89,6 +99,10 @@ jobs:
     steps:
       - checkout
       - install-go
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+            - go-mod-v1-
       - run:
           name: Initialize Credentials
           command: |
@@ -110,6 +124,10 @@ jobs:
       - run:
           name: Go Tests
           command: make test
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "~/go/pkg/mod"
 
   build-and-upload-cli:
     docker:
