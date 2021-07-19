@@ -75,8 +75,7 @@ jobs:
       - restore_cache:
           keys:
             - go-mod-v4-{{ checksum "go.sum" }}
-          paths:
-            - "/go/pkg/mod"
+            - go-mod-v4-
       - run:
           name: Install Linting Tools
           command: |
