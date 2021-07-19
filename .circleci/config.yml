@@ -15,6 +15,8 @@ commands:
             rm -rf go*.tar.gz
             echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV
             echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV
+            mkdir ~/go
+            echo 'export GOPATH=~/go' >> $BASH_ENV
 
   quay-login:
     description: Log Docker agent into Quay.io
@@ -88,7 +90,7 @@ jobs:
       - save_cache:
           key: go-mod-v4-{{ checksum "go.sum" }}
           paths:
-            - "/go/pkg/mod"
+            - "~/go/pkg/mod"
 
   test:
     machine:
@@ -125,7 +127,7 @@ jobs:
       - save_cache:
           key: go-mod-v4-{{ checksum "go.sum" }}
           paths:
-            - "/go/pkg/mod"
+            - "~/go/pkg/mod"
 
   build-and-upload-cli:
     docker:
