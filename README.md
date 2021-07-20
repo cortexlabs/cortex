@@ -6,36 +6,46 @@
 
 <br>
 
-# Cost-effective serverless computing
+# Containers as a service on AWS
 
-Cortex is a highly-scalable serverless computing platform that is up to 90% less expensive than AWS Lambda. It is designed for scaling compute-intensive realtime, async, and batch workloads on your AWS account. Organizations worldwide use Cortex to scale microservices, data processing, machine learning, and other applications in production.
-
-<br>
-
-## Maximize compute utilization
-
-**Workload autoscaling** - set autoscaling policies per workload based on its traffic.
-
-**Resource requests** - configure CPU, GPU, and memory requests per workload, without limits.
-
-**Container deployments** - customize the runtime and request concurrency for each container.
+Deploy, manage, and scale containers without worrying about Kubernetes.
 
 <br>
 
-## Minimize compute costs
+## Serverless workloads
 
-**Cluster autoscaling** - elastically scale your cluster to meet demand.
+**Realtime** - respond to requests in real-time and autoscale based on in-flight request volumes.
 
-**Spot instances** - run workloads on spot instances without sacrificing reliability.
+**Async** - process requests asynchronously and autoscale based on request queue length.
 
-**Multi-instance** - use multiple instance types to optimize price-performance ratio per workload.
+**Batch** - run distributed and fault-tolerant batch processing jobs on-demand.
 
 <br>
 
-## Visualize and control spend
+## Automated cluster management
 
-**Metrics dashboard** - monitor latency and resource utilization with pre-built dashboards.
+**Autoscaling** - elastically scale clusters with CPU and GPU instances.
 
-**Spend visibility** - visualize your spend using the latest AWS pricing information.
+**Spot instances** - run workloads on spot instances with automated on-demand backups.
 
-**Resource limits** - set limits on resource consumption globally and per workload.
+**Environments** - create multiple clusters with different configurations.
+
+<br>
+
+## CI/CD and observability integrations
+
+**Provisioning** - provision clusters with declarative configuration or a Terraform provider.
+
+**Metrics** - send metrics to any monitoring tool or use pre-built Grafana dashboards.
+
+**Logs** - stream logs to any log management tool or use the pre-built CloudWatch integration.
+
+<br>
+
+## Built for AWS
+
+**EKS** - Cortex runs on top of EKS to scale workloads reliably and cost-effectively.
+
+**VPC** - deploy clusters into a VPC on your AWS account to keep your data private.
+
+**IAM** - integrate with IAM for authentication and authorization workflows.

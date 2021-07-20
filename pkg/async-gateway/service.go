@@ -17,18 +17,21 @@ limitations under the License.
 package gateway
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/types/async"
 	"go.uber.org/zap"
 )
 
 // Service provides an interface to the async-gateway business logic
 type Service interface {
-	CreateWorkload(id string, payload io.Reader, contentType string) (string, error)
+	CreateWorkload(id string, payload io.Reader, headers http.Header) (string, error)
 	GetWorkload(id string) (GetWorkloadResponse, error)
 }
 
@@ -52,25 +55,37 @@ func NewService(clusterUID, apiName string, queue Queue, storage Storage, logger
 }
 
 // CreateWorkload enqueues an async workload request and uploads the request payload to S3
-func (s *service) CreateWorkload(id string, payload io.Reader, contentType string) (string, error) {
+func (s *service) CreateWorkload(id string, payload io.Reader, headers http.Header) (string, error) {
 	prefix := async.StoragePath(s.clusterUID, s.apiName)
-	log := s.logger.With(zap.String("id", id), zap.String("contentType", contentType))
+	log := s.logger.With(zap.String("id", id))
 
+	buf := &bytes.Buffer{}
+	if err := json.NewEncoder(buf).Encode(headers); err != nil {
+		return "", errors.Wrap(err, "failed to dump headers")
+	}
+
+	headersPath := async.HeadersPath(prefix, id)
+	log.Debugw("uploading headers", zap.String("path", headersPath))
+	if err := s.storage.Upload(headersPath, buf, "application/json"); err != nil {
+		return "", errors.Wrap(err, "failed to upload headers")
+	}
+
+	contentType := headers.Get("Content-Type")
 	payloadPath := async.PayloadPath(prefix, id)
-	log.Debug("uploading payload", zap.String("path", payloadPath))
+	log.Debugw("uploading payload", zap.String("path", payloadPath))
 	if err := s.storage.Upload(payloadPath, payload, contentType); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to upload payload")
 	}
 
 	log.Debug("sending message to queue")
 	if err := s.queue.SendMessage(id, id); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to send message to queue")
 	}
 
 	statusPath := fmt.Sprintf("%s/%s/status/%s", prefix, id, async.StatusInQueue)
 	log.Debug(fmt.Sprintf("setting status to %s", async.StatusInQueue))
 	if err := s.storage.Upload(statusPath, strings.NewReader(""), "text/plain"); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to upload workload status")
 	}
 
 	return id, nil

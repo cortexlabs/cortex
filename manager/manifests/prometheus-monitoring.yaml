@@ -139,6 +139,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: istio-stats
+  namespace: prometheus
   labels:
     monitoring.cortex.dev: "istio"
 spec:
@@ -190,6 +191,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: proxy-stats
+  namespace: prometheus
   labels:
     monitoring.cortex.dev: "proxy"
 spec:
@@ -243,6 +245,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: async-stats
+  namespace: prometheus
   labels:
     monitoring.cortex.dev: "dequeuer-async"
 spec:
@@ -297,6 +300,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: prometheus-statsd-exporter
+  namespace: prometheus
   labels:
     name: prometheus-statsd-exporter
     monitoring.cortex.dev: "statsd-exporter"
@@ -323,6 +327,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: operator
+  namespace: prometheus
   labels:
     name: operator
     monitoring.cortex.dev: "operator"
@@ -342,3 +347,47 @@ spec:
   selector:
     matchLabels:
       cortex.dev/name: operator
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: activator-stats
+  labels:
+    monitoring.cortex.dev: "activator"
+spec:
+  selector:
+    matchLabels:
+      app: activator
+    matchExpressions:
+      - { key: prometheus-ignore, operator: DoesNotExist }
+  namespaceSelector:
+    any: true
+  jobLabel: activator-stats
+  podMetricsEndpoints:
+    - path: /metrics
+      scheme: http
+      interval: 10s
+      port: admin
+      relabelings:
+        - action: keep
+          sourceLabels: [ __meta_kubernetes_pod_container_name ]
+          regex: "activator"
+        - sourceLabels: [ __address__, __meta_kubernetes_pod_annotation_prometheus_io_port ]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          targetLabel: __address__
+        - action: labeldrop
+          regex: "__meta_kubernetes_pod_label_(.+)"
+        - sourceLabels: [ __meta_kubernetes_namespace ]
+          action: replace
+          targetLabel: namespace
+        - sourceLabels: [ __meta_kubernetes_pod_name ]
+          action: replace
+          targetLabel: pod_name
+      metricRelabelings:
+        - action: keep
+          sourceLabels: [__name__]
+          regex: "cortex_(.+)"

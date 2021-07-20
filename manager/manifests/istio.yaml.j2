@@ -33,7 +33,7 @@ spec:
             memory: 700Mi  # default is 2048Mi == 2Gi
         hpaSpec:
           minReplicas: 1
-          maxReplicas: 5  # edit autoscaleEnabled in values if increasing this
+          maxReplicas: 5
           metrics:
             - type: Resource
               resource:
@@ -91,7 +91,7 @@ spec:
           replicaCount: 1
           hpaSpec:
             minReplicas: 1
-            maxReplicas: 1  # edit autoscaleEnabled in values if increasing this
+            maxReplicas: 1
             metrics:
               - type: Resource
                 resource:
@@ -144,7 +144,7 @@ spec:
           replicaCount: 1
           hpaSpec:
             minReplicas: 1
-            maxReplicas: 100  # edit autoscaleEnabled in values if increasing this
+            maxReplicas: 100
             metrics:
               - type: Resource
                 resource:

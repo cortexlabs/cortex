@@ -44,6 +44,7 @@ import (
 func main() {
 	var (
 		port              int
+		adminPort         int
 		inCluster         bool
 		autoscalerURL     string
 		namespace         string
@@ -51,6 +52,7 @@ func main() {
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the activator server will be exposed")
+	flag.IntVar(&adminPort, "admin-port", 15000, "port where the admin server will be exposed")
 	flag.BoolVar(&inCluster, "in-cluster", false, "use when autoscaler runs in-cluster")
 	flag.StringVar(&autoscalerURL, "autoscaler-url", "", "the URL for the cortex autoscaler endpoint")
 	flag.StringVar(&namespace, "namespace", os.Getenv("CORTEX_NAMESPACE"),
@@ -114,6 +116,8 @@ func main() {
 	kubeClient := k8sClient.ClientSet()
 	autoscalerClient := autoscaler.NewClient(autoscalerURL)
 
+	prometheusStatsReporter := activator.NewPrometheusStatsReporter()
+
 	istioInformerFactory := istioinformers.NewSharedInformerFactoryWithOptions(
 		istioClient, 10*time.Second, // TODO: check how much makes sense
 		istioinformers.WithNamespace(namespace),
@@ -129,12 +133,29 @@ func main() {
 	)
 	deploymentInformer := kubeInformerFactory.Apps().V1().Deployments().Informer()
 
-	act := activator.New(virtualServiceClient, deploymentInformer, virtualServiceInformer, autoscalerClient, log)
+	act := activator.New(
+		virtualServiceClient,
+		deploymentInformer,
+		virtualServiceInformer,
+		autoscalerClient,
+		prometheusStatsReporter,
+		log,
+	)
 
 	handler := activator.NewHandler(act, log)
-	server := &http.Server{
-		Addr:    ":" + strconv.Itoa(port),
-		Handler: handler,
+
+	adminHandler := http.NewServeMux()
+	adminHandler.Handle("/metrics", prometheusStatsReporter)
+
+	servers := map[string]*http.Server{
+		"activator": {
+			Addr:    ":" + strconv.Itoa(port),
+			Handler: handler,
+		},
+		"admin": {
+			Addr:    ":" + strconv.Itoa(adminPort),
+			Handler: adminHandler,
+		},
 	}
 
 	stopCh := make(chan struct{})
@@ -145,10 +166,12 @@ func main() {
 	}()
 
 	errCh := make(chan error)
-	go func() {
-		log.Infof("Starting activator server on %s", server.Addr)
-		errCh <- server.ListenAndServe()
-	}()
+	for name, server := range servers {
+		go func(name string, server *http.Server) {
+			log.Infof("Starting %s server on %s", name, server.Addr)
+			errCh <- server.ListenAndServe()
+		}(name, server)
+	}
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
@@ -159,10 +182,14 @@ func main() {
 	case <-sigint:
 		// We received an interrupt signal, shut down.
 		log.Info("Received TERM signal, handling a graceful shutdown...")
-		log.Info("Shutting down server")
-		if err = server.Shutdown(context.Background()); err != nil {
-			// Error from closing listeners, or context timeout:
-			log.Warnw("HTTP server Shutdown Error", zap.Error(err))
+
+		for name, server := range servers {
+			log.Infof("Shutting down %s server", name)
+			if err = server.Shutdown(context.Background()); err != nil {
+				// Error from closing listeners, or context timeout:
+				log.Warnw("HTTP server Shutdown Error", zap.Error(err))
+				telemetry.Error(errors.Wrap(err, "HTTP server Shutdown Error"))
+			}
 		}
 		log.Info("Shutdown complete, exiting...")
 	}

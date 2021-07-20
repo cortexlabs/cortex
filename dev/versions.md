@@ -18,6 +18,13 @@
 1. Update `ami.json` (see release checklist for instructions)
 1. See instructions for upgrading the Kubernetes client below
 
+## kube-proxy (IPVS mode)
+
+1. Before spinning up a Cortex cluster with the new eksctl/kubernetes/eks updates, make sure to have the `setup_ipvs` functional call commented out in the manager.
+1. Once the cluster is up, run the `cat /var/lib/kube-proxy-config/config` command on any of the kube-proxy pods of the cluster. Compare the output of that with what the `upgrade_kube_proxy_mode.py` script is applying and make sure it's still applicable, if not, check out the spec of the [KubeProxyConfiguration](https://kubernetes.io/docs/reference/config-api/kube-proxy-config.v1alpha1/) and upgrade `upgrade_kube_proxy_mode.py`.
+1. Compare the spec of the `kube-proxy.patch.yaml` patch with the current spec of the kube-proxy daemoset and make sure it's still applicable. You can either inspect the `kube-proxy` command helper by exec-ing into the pod or by looking at the [kube-proxy](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/) documentation for the respective version of Kubernetes.
+1. Once both config map and the daemonset are updated and the kube-proxy pod(s) has/have started, make sure you notice the `Using ipvs Proxier` log.
+
 ## aws-iam-authenticator
 
 1. Find the latest release [here](https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html)

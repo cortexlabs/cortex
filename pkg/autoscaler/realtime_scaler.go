@@ -63,8 +63,11 @@ func (s *RealtimeScaler) Scale(apiName string, request int32) error {
 		return errors.Wrap(err, "failed to get deployment")
 	}
 
-	current := deployment.Status.Replicas
+	if deployment.Spec.Replicas == nil {
+		return errors.Wrap(err, "k8s deployment doesn't have the replicas field set")
+	}
 
+	current := *deployment.Spec.Replicas
 	if current == request {
 		return nil
 	}
@@ -101,10 +104,10 @@ func (s *RealtimeScaler) GetInFlightRequests(apiName string, window time.Duratio
 
 	// PromQL query:
 	// 	sum(sum_over_time(cortex_in_flight_requests{api_name="<apiName>"}[60s])) /
-	//	sum(count_over_time(cortex_in_flight_requests{api_name="<apiName>"}[60s]))
+	//	sum(count_over_time(cortex_in_flight_requests{api_name="<apiName>", container!="activator"}[60s]))
 	query := fmt.Sprintf(
 		"sum(sum_over_time(cortex_in_flight_requests{api_name=\"%s\"}[%ds])) / "+
-			"max(count_over_time(cortex_in_flight_requests{api_name=\"%s\"}[%ds]))",
+			"max(count_over_time(cortex_in_flight_requests{api_name=\"%s\", container!=\"activator\"}[%ds]))",
 		apiName, windowSeconds,
 		apiName, windowSeconds,
 	)
@@ -150,7 +153,7 @@ func (s *RealtimeScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autosca
 	return autoscalingSpec, nil
 }
 
-func (s *RealtimeScaler) CurrentReplicas(apiName string) (int32, error) {
+func (s *RealtimeScaler) CurrentRequestedReplicas(apiName string) (int32, error) {
 	ctx := context.Background()
 
 	// we use the controller-runtime client to make use of the cache mechanism
@@ -163,7 +166,11 @@ func (s *RealtimeScaler) CurrentReplicas(apiName string) (int32, error) {
 		return 0, errors.Wrap(err, "failed to get deployment")
 	}
 
-	return deployment.Status.Replicas, nil
+	if deployment.Spec.Replicas == nil {
+		return 0, errors.Wrap(err, "k8s deployment doesn't have the replicas field set")
+	}
+
+	return *deployment.Spec.Replicas, nil
 }
 
 func (s *RealtimeScaler) routeToService(deployment *kapps.Deployment) error {

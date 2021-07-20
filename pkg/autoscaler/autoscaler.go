@@ -19,12 +19,12 @@ package autoscaler
 import (
 	"fmt"
 	"math"
-	"sync"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -40,23 +40,22 @@ type Scaler interface {
 	Scale(apiName string, request int32) error
 	GetInFlightRequests(apiName string, window time.Duration) (*float64, error)
 	GetAutoscalingSpec(apiName string) (*userconfig.Autoscaling, error)
-	CurrentReplicas(apiName string) (int32, error)
+	CurrentRequestedReplicas(apiName string) (int32, error)
 }
 
 type Autoscaler struct {
-	sync.Mutex
-	logger              *zap.SugaredLogger
-	crons               map[string]cron.Cron
-	scalers             map[userconfig.Kind]Scaler
-	lastAwakenTimestamp map[string]time.Time
+	logger  *zap.SugaredLogger
+	crons   map[string]cron.Cron
+	scalers map[userconfig.Kind]Scaler
+	recs    map[string]*recommendations
 }
 
 func New(logger *zap.SugaredLogger) *Autoscaler {
 	return &Autoscaler{
-		logger:              logger,
-		crons:               make(map[string]cron.Cron),
-		scalers:             make(map[userconfig.Kind]Scaler),
-		lastAwakenTimestamp: make(map[string]time.Time),
+		logger:  logger,
+		crons:   make(map[string]cron.Cron),
+		scalers: make(map[userconfig.Kind]Scaler),
+		recs:    make(map[string]*recommendations),
 	}
 }
 
@@ -65,9 +64,6 @@ func (a *Autoscaler) AddScaler(scaler Scaler, kind userconfig.Kind) {
 }
 
 func (a *Autoscaler) Awaken(api userconfig.Resource) error {
-	a.Lock()
-	defer a.Unlock()
-
 	scaler, ok := a.scalers[api.Kind]
 	if !ok {
 		return errors.ErrorUnexpected(
@@ -80,12 +76,12 @@ func (a *Autoscaler) Awaken(api userconfig.Resource) error {
 		zap.String("apiKind", api.Kind.String()),
 	)
 
-	currentReplicas, err := scaler.CurrentReplicas(api.Name)
+	currentRequestedReplicas, err := scaler.CurrentRequestedReplicas(api.Name)
 	if err != nil {
 		return errors.Wrap(err, "failed to get current replicas")
 	}
 
-	if currentReplicas > 0 {
+	if currentRequestedReplicas > 0 {
 		return nil
 	}
 
@@ -94,7 +90,7 @@ func (a *Autoscaler) Awaken(api userconfig.Resource) error {
 		return errors.Wrap(err, "failed to scale api to one")
 	}
 
-	a.lastAwakenTimestamp[api.Name] = time.Now()
+	a.recs[api.Name].add(1)
 
 	return nil
 }
@@ -102,11 +98,6 @@ func (a *Autoscaler) Awaken(api userconfig.Resource) error {
 func (a *Autoscaler) AddAPI(api userconfig.Resource) error {
 	if _, ok := a.crons[api.Name]; ok {
 		return nil
-	}
-
-	autoscaleFn, err := a.autoscaleFn(api)
-	if err != nil {
-		return err
 	}
 
 	errorHandler := func(err error) {
@@ -119,12 +110,12 @@ func (a *Autoscaler) AddAPI(api userconfig.Resource) error {
 		telemetry.Error(err)
 	}
 
-	a.crons[api.Name] = cron.Run(autoscaleFn, errorHandler, spec.AutoscalingTickInterval)
+	autoscaleFn, err := a.autoscaleFn(api)
+	if err != nil {
+		return err
+	}
 
-	// make sure there is no awaken call registered to an older API with the same name
-	a.Lock()
-	delete(a.lastAwakenTimestamp, api.Name)
-	a.Unlock()
+	a.crons[api.Name] = cron.Run(autoscaleFn, errorHandler, spec.AutoscalingTickInterval)
 
 	return nil
 }
@@ -140,10 +131,7 @@ func (a *Autoscaler) RemoveAPI(api userconfig.Resource) {
 		delete(a.crons, api.Name)
 	}
 
-	a.Lock()
-	delete(a.lastAwakenTimestamp, api.Name)
-	a.Unlock()
-
+	delete(a.recs, api.Name)
 	log.Info("autoscaler stop")
 }
 
@@ -167,18 +155,18 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 		)
 	}
 
-	autoscalingSpec, err := scaler.GetAutoscalingSpec(api.Name)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get autoscaling spec")
-	}
-
 	log.Info("autoscaler init")
 
 	var startTime time.Time
-	recs := make(recommendations)
+	a.recs[api.Name] = newRecommendations()
 
 	return func() error {
-		currentReplicas, err := scaler.CurrentReplicas(api.Name)
+		autoscalingSpec, err := scaler.GetAutoscalingSpec(api.Name)
+		if err != nil {
+			return errors.Wrap(err, "failed to get autoscaling spec")
+		}
+
+		currentRequestedReplicas, err := scaler.CurrentRequestedReplicas(api.Name)
 		if err != nil {
 			return errors.Wrap(err, "failed to get current replicas")
 		}
@@ -199,22 +187,22 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 		rawRecommendation := *avgInFlight / *autoscalingSpec.TargetInFlight
 		recommendation := int32(math.Ceil(rawRecommendation))
 
-		if rawRecommendation < float64(currentReplicas) && rawRecommendation > float64(currentReplicas)*(1-autoscalingSpec.DownscaleTolerance) {
-			recommendation = currentReplicas
+		if rawRecommendation < float64(currentRequestedReplicas) && rawRecommendation > float64(currentRequestedReplicas)*(1-autoscalingSpec.DownscaleTolerance) {
+			recommendation = currentRequestedReplicas
 		}
 
-		if rawRecommendation > float64(currentReplicas) && rawRecommendation < float64(currentReplicas)*(1+autoscalingSpec.UpscaleTolerance) {
-			recommendation = currentReplicas
+		if rawRecommendation > float64(currentRequestedReplicas) && rawRecommendation < float64(currentRequestedReplicas)*(1+autoscalingSpec.UpscaleTolerance) {
+			recommendation = currentRequestedReplicas
 		}
 
 		// always allow subtraction of 1
-		downscaleFactorFloor := libmath.MinInt32(currentReplicas-1, int32(math.Ceil(float64(currentReplicas)*autoscalingSpec.MaxDownscaleFactor)))
+		downscaleFactorFloor := libmath.MinInt32(currentRequestedReplicas-1, int32(math.Ceil(float64(currentRequestedReplicas)*autoscalingSpec.MaxDownscaleFactor)))
 		if recommendation < downscaleFactorFloor {
 			recommendation = downscaleFactorFloor
 		}
 
 		// always allow addition of 1
-		upscaleFactorCeil := libmath.MaxInt32(currentReplicas+1, int32(math.Ceil(float64(currentReplicas)*autoscalingSpec.MaxUpscaleFactor)))
+		upscaleFactorCeil := libmath.MaxInt32(currentRequestedReplicas+1, int32(math.Ceil(float64(currentRequestedReplicas)*autoscalingSpec.MaxUpscaleFactor)))
 		if recommendation > upscaleFactorCeil {
 			recommendation = upscaleFactorCeil
 		}
@@ -227,6 +215,8 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 			recommendation = autoscalingSpec.MaxReplicas
 		}
 
+		recs := a.recs[api.Name]
+
 		// Rule of thumb: any modifications that don't consider historical recommendations should be performed before
 		// recording the recommendation, any modifications that use historical recommendations should be performed after
 		recs.add(recommendation)
@@ -238,29 +228,24 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 		var downscaleStabilizationFloor *int32
 		var upscaleStabilizationCeil *int32
 
-		if request < currentReplicas {
+		if request < currentRequestedReplicas {
 			downscaleStabilizationFloor = recs.maxSince(autoscalingSpec.DownscaleStabilizationPeriod)
+			if downscaleStabilizationFloor != nil {
+				downscaleStabilizationFloor = pointer.Int32(libmath.MinInt32(*downscaleStabilizationFloor, currentRequestedReplicas))
+			}
 			if time.Since(startTime) < autoscalingSpec.DownscaleStabilizationPeriod {
-				request = currentReplicas
+				request = currentRequestedReplicas
 			} else if downscaleStabilizationFloor != nil && request < *downscaleStabilizationFloor {
 				request = *downscaleStabilizationFloor
 			}
-
-			// awaken state: was scaled from zero
-			// This needs to be protected by a Mutex because an Awaken call will also modify it
-			a.Lock()
-			lastAwakenTimestamp := a.lastAwakenTimestamp[api.Name]
-
-			// Make sure we don't scale below zero if API was recently awaken
-			if time.Since(lastAwakenTimestamp) < autoscalingSpec.DownscaleStabilizationPeriod {
-				request = libmath.MaxInt32(request, 1)
-			}
-			a.Unlock()
 		}
-		if request > currentReplicas {
+		if request > currentRequestedReplicas {
 			upscaleStabilizationCeil = recs.minSince(autoscalingSpec.UpscaleStabilizationPeriod)
+			if upscaleStabilizationCeil != nil {
+				upscaleStabilizationCeil = pointer.Int32(libmath.MaxInt32(*upscaleStabilizationCeil, currentRequestedReplicas))
+			}
 			if time.Since(startTime) < autoscalingSpec.UpscaleStabilizationPeriod {
-				request = currentReplicas
+				request = currentRequestedReplicas
 			} else if upscaleStabilizationCeil != nil && request > *upscaleStabilizationCeil {
 				request = *upscaleStabilizationCeil
 			}
@@ -271,7 +256,7 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 				"avg_in_flight":                  *avgInFlight,
 				"target_in_flight":               *autoscalingSpec.TargetInFlight,
 				"raw_recommendation":             rawRecommendation,
-				"current_replicas":               currentReplicas,
+				"current_replicas":               currentRequestedReplicas,
 				"downscale_tolerance":            autoscalingSpec.DownscaleTolerance,
 				"upscale_tolerance":              autoscalingSpec.UpscaleTolerance,
 				"max_downscale_factor":           autoscalingSpec.MaxDownscaleFactor,
@@ -289,8 +274,8 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 			},
 		)
 
-		if currentReplicas != request {
-			log.Infof("autoscaling event: %d -> %d", currentReplicas, request)
+		if currentRequestedReplicas != request {
+			log.Infof("autoscaling event: %d -> %d", currentRequestedReplicas, request)
 			if err = scaler.Scale(api.Name, request); err != nil {
 				return err
 			}
