@@ -20,30 +20,28 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
+	apiv1alpha1 "github.com/cortexlabs/cortex/pkg/crds/apis/api/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/crds/controllers"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/types/status"
-	"github.com/cortexlabs/cortex/pkg/workloads"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/go-logr/logr"
-	istionetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
+
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	apiv1alpha1 "github.com/cortexlabs/cortex/pkg/crds/apis/api/v1alpha1"
 )
+
+const _terminationGracePeriodSeconds int64 = 60 // seconds
 
 // RealtimeAPIReconciler reconciles a RealtimeAPI object
 type RealtimeAPIReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	ClusterConfig *clusterconfig.Config
+	Log           logr.Logger
+	Scheme        *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=api.cortex.dev,resources=realtimeapis,verbs=get;list;watch;create;update;patch;delete
@@ -115,120 +113,6 @@ func (r *RealtimeAPIReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&apiv1alpha1.RealtimeAPI{}).
 		Owns(&kapps.Deployment{}).
 		Owns(&kcore.Service{}).
-		Owns(&istionetworking.VirtualService{}).
+		Owns(&istioclientnetworking.VirtualService{}).
 		Complete(r)
-}
-
-func (r *RealtimeAPIReconciler) getDeployment(ctx context.Context, api apiv1alpha1.RealtimeAPI) (*kapps.Deployment, error) {
-	req := client.ObjectKey{Namespace: api.Namespace, Name: workloads.K8sName(api.Name)}
-	deployment := kapps.Deployment{}
-	if err := r.Get(ctx, req, &deployment); err != nil {
-		if kerrors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &deployment, nil
-}
-
-func (r *RealtimeAPIReconciler) updateStatus(ctx context.Context, api *apiv1alpha1.RealtimeAPI, deployment *kapps.Deployment) error {
-	apiStatus := status.Pending
-	api.Status.Status = apiStatus // FIXME: handle other status
-
-	endpoint, err := r.getEndpoint(ctx, api)
-	if err != nil {
-		return errors.Wrap(err, "failed to get api endpoint")
-	}
-
-	api.Status.Endpoint = endpoint
-	if deployment != nil {
-		api.Status.DesiredReplicas = *deployment.Spec.Replicas
-		api.Status.CurrentReplicas = deployment.Status.Replicas
-		api.Status.ReadyReplicas = deployment.Status.ReadyReplicas
-	}
-
-	if err = r.Status().Update(ctx, api); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, api apiv1alpha1.RealtimeAPI) (controllerutil.OperationResult, error) {
-	deployment := kapps.Deployment{
-		ObjectMeta: kmeta.ObjectMeta{
-			Name:      workloads.K8sName(api.Name),
-			Namespace: api.Namespace},
-	}
-	op, err := controllerutil.CreateOrUpdate(ctx, r, &deployment, func() error {
-		deployment.Spec = r.desiredDeployment(api).Spec
-		return nil
-	})
-	if err != nil {
-		return op, err
-	}
-	return op, nil
-}
-
-func (r *RealtimeAPIReconciler) createOrUpdateService(ctx context.Context, api apiv1alpha1.RealtimeAPI) (controllerutil.OperationResult, error) {
-	service := kcore.Service{
-		ObjectMeta: kmeta.ObjectMeta{
-			Name:      workloads.K8sName(api.Name),
-			Namespace: api.Namespace},
-	}
-	op, err := controllerutil.CreateOrUpdate(ctx, r, &service, func() error {
-		service.Spec = r.desiredService(api).Spec
-		return nil
-	})
-	if err != nil {
-		return op, err
-	}
-	return op, nil
-}
-
-func (r *RealtimeAPIReconciler) createOrUpdateVirtualService(ctx context.Context, api apiv1alpha1.RealtimeAPI) (controllerutil.OperationResult, error) {
-	vs := istionetworking.VirtualService{
-		ObjectMeta: kmeta.ObjectMeta{
-			Name:      workloads.K8sName(api.Name),
-			Namespace: api.Namespace},
-	}
-	op, err := controllerutil.CreateOrUpdate(ctx, r, &vs, func() error {
-		vs.Spec = r.desiredVirtualService(api).Spec
-		return nil
-	})
-	if err != nil {
-		return op, err
-	}
-	return op, nil
-}
-
-func (r *RealtimeAPIReconciler) getEndpoint(ctx context.Context, api *apiv1alpha1.RealtimeAPI) (string, error) {
-	req := client.ObjectKey{Namespace: consts.IstioNamespace, Name: "ingressgateway-apis"}
-	svc := kcore.Service{}
-	if err := r.Get(ctx, req, &svc); err != nil {
-		return "", err
-	}
-
-	ingress := svc.Status.LoadBalancer.Ingress
-	if ingress == nil || len(ingress) == 0 {
-		return "", nil
-	}
-
-	endpoint := fmt.Sprintf("http://%s/%s",
-		svc.Status.LoadBalancer.Ingress[0].Hostname, api.Spec.Networking.Endpoint,
-	)
-
-	return endpoint, nil
-}
-
-func (r *RealtimeAPIReconciler) desiredDeployment(api apiv1alpha1.RealtimeAPI) kapps.Deployment {
-	panic("implement me!")
-}
-
-func (r *RealtimeAPIReconciler) desiredService(api apiv1alpha1.RealtimeAPI) kcore.Service {
-	panic("implement me!")
-}
-
-func (r *RealtimeAPIReconciler) desiredVirtualService(api apiv1alpha1.RealtimeAPI) istionetworking.VirtualService {
-	panic("implement me!")
 }

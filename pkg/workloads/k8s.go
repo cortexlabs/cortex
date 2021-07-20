@@ -41,7 +41,7 @@ const (
 const (
 	_cortexDirVolumeName = "cortex"
 	_cortexDirMountPath  = "/cortex"
-	_clientConfigDir     = "/cortex/client"
+	clientConfigDir      = "/cortex/client"
 
 	_emptyDirVolumeName = "mnt"
 	_emptyDirMountPath  = "/mnt"
@@ -70,7 +70,7 @@ var (
 	_statsdAddress = fmt.Sprintf("prometheus-statsd-exporter.%s:9125", consts.PrometheusNamespace)
 
 	// each Inferentia chip requires 128 HugePages with each HugePage having a size of 2Mi
-	_hugePagesMemPerInf = int64(128 * 2 * 1024 * 1024) // bytes
+	HugePagesMemPerInf = int64(128 * 2 * 1024 * 1024) // bytes
 )
 
 func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.VolumeMount) kcore.Container {
@@ -393,7 +393,7 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		}
 
 		if container.Compute.Inf > 0 {
-			totalHugePages := container.Compute.Inf * _hugePagesMemPerInf
+			totalHugePages := container.Compute.Inf * HugePagesMemPerInf
 			containerResourceList["aws.amazon.com/neuron"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
 			containerResourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.BinarySI)
 			containerResourceLimitsList["aws.amazon.com/neuron"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
@@ -413,12 +413,7 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		}
 
 		containerEnvVars := BaseEnvVars
-
-		containerEnvVars = append(containerEnvVars, kcore.EnvVar{
-			Name:  "CORTEX_CLI_CONFIG_DIR",
-			Value: _clientConfigDir,
-		})
-
+		containerEnvVars = append(containerEnvVars, ClientConfigEnvVar())
 		if api.Kind != userconfig.TaskAPIKind {
 			containerEnvVars = append(containerEnvVars, kcore.EnvVar{
 				Name:  "CORTEX_PORT",

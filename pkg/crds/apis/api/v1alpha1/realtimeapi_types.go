@@ -53,18 +53,18 @@ type PodSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default=8080
 	// Port to which requests will be sent to
-	Port int `json:"port"`
+	Port int32 `json:"port"`
 
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default=1
 	// Maximum number of requests that will be concurrently sent into the container
-	MaxConcurrency int `json:"max_concurrency"`
+	MaxConcurrency int32 `json:"max_concurrency"`
 
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default=100
 	// Maximum number of requests per replica which will be queued
 	// (beyond max_concurrency) before requests are rejected with error code 503
-	MaxQueueLength int `json:"max_queue_length"`
+	MaxQueueLength int32 `json:"max_queue_length"`
 
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default=1
@@ -119,7 +119,11 @@ type ComputeSpec struct {
 
 	// +kubebuilder:validation:Optional
 	// GPU request for the container; one unit of GPU corresponds to one virtual GPU
-	GPU int `json:"gpu,omitempty"`
+	GPU int64 `json:"gpu,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// Inferentia request for the container; one unit of Inf corresponds to one virtual Inf chip
+	Inf int64 `json:"inf,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// Memory request for the container;
