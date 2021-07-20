@@ -56,9 +56,11 @@ This will create a CLI environment named `cortex2` for accessing the new cluster
 
 If you are spinning a up a new cluster with a different Cortex version, first install the cortex CLI matching the desired cluster version:
 
+<!-- CORTEX_VERSION_README x2 -->
+
 ```bash
-# download the desired CLI version, replace 0.38.0 with the desired version (Note the "v"):
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.38.0/get-cli.sh)"
+# download the desired CLI version, replace 0.39.0 with the desired version (Note the "v"):
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.39.0/get-cli.sh)"
 
 # confirm Cortex CLI version
 cortex version

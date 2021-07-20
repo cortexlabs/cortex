@@ -16,7 +16,7 @@
 
 set -e
 
-CORTEX_VERSION=master
+CORTEX_VERSION=0.39.0
 
 if [ "$CORTEX_VERSION" != "$CORTEX_CLI_VERSION" ]; then
   echo "error: your CLI version ($CORTEX_CLI_VERSION) doesn't match your Cortex manager image version ($CORTEX_VERSION); please update your CLI (pip install cortex==$CORTEX_VERSION) to match the version of your Cortex manager image"
