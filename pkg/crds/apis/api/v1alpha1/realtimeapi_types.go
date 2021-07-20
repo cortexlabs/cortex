@@ -17,11 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"time"
-
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kcore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -155,17 +154,17 @@ type AutoscalingSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="60s"
 	// Duration over which to average the API's in-flight requests per replica
-	Window time.Duration `json:"window,omitempty"`
+	Window kmeta.Duration `json:"window,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="5m"
 	// The API will not scale below the highest recommendation made during this period
-	DownscaleStabilizationPeriod time.Duration `json:"downscale_stabilization_period,omitempty"`
+	DownscaleStabilizationPeriod kmeta.Duration `json:"downscale_stabilization_period,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="1m"
 	// The API will not scale above the lowest recommendation made during this period
-	UpscaleStabilizationPeriod time.Duration `json:"upscale_stabilization_period,omitempty"`
+	UpscaleStabilizationPeriod kmeta.Duration `json:"upscale_stabilization_period,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="750m"

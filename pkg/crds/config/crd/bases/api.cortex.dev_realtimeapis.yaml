@@ -43,8 +43,7 @@ spec:
                     default: 5m
                     description: The API will not scale below the highest recommendation
                       made during this period
-                    format: int64
-                    type: integer
+                    type: string
                   downscale_tolerance:
                     anyOf:
                     - type: integer
@@ -55,10 +54,6 @@ spec:
                       event
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
-                  init_replicas:
-                    default: 1
-                    description: Initial number of replicas
-                    type: integer
                   max_downscale_factor:
                     anyOf:
                     - type: integer
@@ -71,6 +66,7 @@ spec:
                   max_replicas:
                     default: 100
                     description: Maximum number of replicas
+                    format: int32
                     type: integer
                   max_upscale_factor:
                     anyOf:
@@ -84,18 +80,19 @@ spec:
                   min_replicas:
                     default: 1
                     description: Minimum number of replicas
+                    format: int32
                     type: integer
                   target_in_flight:
                     description: Desired number of in-flight requests per replica
                       (including requests actively being processed as well as queued),
                       which the autoscaler tries to maintain
+                    format: int32
                     type: integer
                   upscale_stabilization_period:
                     default: 1m
                     description: The API will not scale above the lowest recommendation
                       made during this period
-                    format: int64
-                    type: integer
+                    type: string
                   upscale_tolerance:
                     anyOf:
                     - type: integer
@@ -109,8 +106,7 @@ spec:
                     default: 60s
                     description: Duration over which to average the API's in-flight
                       requests per replica
-                    format: int64
-                    type: integer
+                    type: string
                 type: object
               networking:
                 description: Networking configuration
@@ -158,6 +154,12 @@ spec:
                             gpu:
                               description: GPU request for the container; one unit
                                 of GPU corresponds to one virtual GPU
+                              format: int64
+                              type: integer
+                            inf:
+                              description: Inferentia request for the container; one
+                                unit of Inf corresponds to one virtual Inf chip
+                              format: int64
                               type: integer
                             mem:
                               anyOf:
@@ -542,19 +544,31 @@ spec:
                     default: 1
                     description: Maximum number of requests that will be concurrently
                       sent into the container
+                    format: int32
                     type: integer
                   max_queue_length:
                     default: 100
                     description: Maximum number of requests per replica which will
                       be queued (beyond max_concurrency) before requests are rejected
                       with error code 503
+                    format: int32
                     type: integer
                   port:
                     default: 8080
                     description: Port to which requests will be sent to
+                    format: int32
+                    type: integer
+                  replicas:
+                    default: 1
+                    description: Number of desired replicas
+                    format: int32
                     type: integer
                 required:
                 - containers
+                - max_concurrency
+                - max_queue_length
+                - port
+                - replicas
                 type: object
               update_strategy:
                 description: Deployment strategy to use when replacing existing replicas
@@ -587,12 +601,15 @@ spec:
             description: RealtimeAPIStatus defines the observed state of RealtimeAPI
             properties:
               current_replicas:
+                format: int32
                 type: integer
               desired_replicas:
+                format: int32
                 type: integer
               endpoint:
                 type: string
               ready_replicas:
+                format: int32
                 type: integer
               status:
                 type: integer
