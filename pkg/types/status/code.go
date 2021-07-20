@@ -16,6 +16,7 @@ limitations under the License.
 
 package status
 
+// +kubebuilder:validation:Type=string
 type Code int
 
 const (
