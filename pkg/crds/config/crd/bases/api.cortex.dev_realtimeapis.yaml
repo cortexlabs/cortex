@@ -37,6 +37,8 @@ spec:
             description: RealtimeAPISpec defines the desired state of RealtimeAPI
             properties:
               autoscaling:
+                default:
+                  min_replicas: 1
                 description: Autoscaling configuration
                 properties:
                   downscale_stabilization_period:
@@ -571,6 +573,9 @@ spec:
                 - replicas
                 type: object
               update_strategy:
+                default:
+                  max_surge: 25%
+                  max_unavailable: 25%
                 description: Deployment strategy to use when replacing existing replicas
                   with new ones
                 properties:
@@ -595,6 +600,7 @@ spec:
                     x-kubernetes-int-or-string: true
                 type: object
             required:
+            - networking
             - pod
             type: object
           status:
@@ -612,7 +618,7 @@ spec:
                 format: int32
                 type: integer
               status:
-                type: integer
+                type: string
             required:
             - current_replicas
             - desired_replicas

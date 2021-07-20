@@ -295,37 +295,39 @@ func (r *RealtimeAPIReconciler) userContainers(api apiv1alpha1.RealtimeAPI) ([]k
 			Privileged: pointer.Bool(true),
 		}
 
-		if container.Compute.CPU != nil {
-			containerResourceList[kcore.ResourceCPU] = *k8s.QuantityPtr(container.Compute.CPU.DeepCopy())
-		}
-
-		if container.Compute.Mem != nil {
-			containerResourceList[kcore.ResourceMemory] = *k8s.QuantityPtr(container.Compute.Mem.DeepCopy())
-		}
-
-		if container.Compute.GPU > 0 {
-			containerResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
-			containerResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
-		}
-
-		if container.Compute.Inf > 0 {
-			totalHugePages := container.Compute.Inf * workloads.HugePagesMemPerInf
-			containerResourceList["aws.amazon.com/neuron"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
-			containerResourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.BinarySI)
-			containerResourceLimitsList["aws.amazon.com/neuron"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
-			containerResourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.BinarySI)
-
-			securityContext.Capabilities = &kcore.Capabilities{
-				Add: []kcore.Capability{
-					"SYS_ADMIN",
-					"IPC_LOCK",
-				},
+		if container.Compute != nil {
+			if container.Compute.CPU != nil {
+				containerResourceList[kcore.ResourceCPU] = *k8s.QuantityPtr(container.Compute.CPU.DeepCopy())
 			}
-		}
 
-		if container.Compute.Shm != nil {
-			volumes = append(volumes, workloads.ShmVolume(*container.Compute.Shm, "dshm-"+container.Name))
-			containerMounts = append(containerMounts, workloads.ShmMount("dshm-"+container.Name))
+			if container.Compute.Mem != nil {
+				containerResourceList[kcore.ResourceMemory] = *k8s.QuantityPtr(container.Compute.Mem.DeepCopy())
+			}
+
+			if container.Compute.GPU > 0 {
+				containerResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
+				containerResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
+			}
+
+			if container.Compute.Inf > 0 {
+				totalHugePages := container.Compute.Inf * workloads.HugePagesMemPerInf
+				containerResourceList["aws.amazon.com/neuron"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
+				containerResourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.BinarySI)
+				containerResourceLimitsList["aws.amazon.com/neuron"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
+				containerResourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.BinarySI)
+
+				securityContext.Capabilities = &kcore.Capabilities{
+					Add: []kcore.Capability{
+						"SYS_ADMIN",
+						"IPC_LOCK",
+					},
+				}
+			}
+
+			if container.Compute.Shm != nil {
+				volumes = append(volumes, workloads.ShmVolume(*container.Compute.Shm, "dshm-"+container.Name))
+				containerMounts = append(containerMounts, workloads.ShmMount("dshm-"+container.Name))
+			}
 		}
 
 		containerEnvVars := workloads.BaseEnvVars

@@ -1,7 +1,15 @@
 apiVersion: api.cortex.dev/v1alpha1
 kind: RealtimeAPI
 metadata:
-  name: realtimeapi-sample
+  name: hello-world
 spec:
-  # Add fields here
-  foo: bar
+  pod:
+    containers:
+      - name: api
+        image: quay.io/cortexlabs-test/realtime-hello-world-cpu:latest
+    max_concurrency: 1
+    max_queue_length: 100
+    port: 8080
+    replicas: 1
+  networking:
+    endpoint: "/hello-world"

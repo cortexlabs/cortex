@@ -156,7 +156,7 @@ func main() {
 	if err = (&batchcontrollers.BatchJobReconciler{
 		Client:        mgr.GetClient(),
 		Config:        batchcontrollers.BatchJobReconcilerConfig{}.ApplyDefaults(),
-		Log:           ctrl.Log.WithName("controllers").WithName("BatchJob"),
+		Log:           ctrl.Log.WithName("controllers").WithName("batch").WithName("BatchJob"),
 		ClusterConfig: clusterConfig,
 		AWS:           awsClient,
 		Prometheus:    promv1.NewAPI(promClient),
@@ -166,9 +166,10 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&apicontrollers.RealtimeAPIReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("api").WithName("RealtimeAPI"),
-		Scheme: mgr.GetScheme(),
+		Client:        mgr.GetClient(),
+		ClusterConfig: clusterConfig,
+		Log:           ctrl.Log.WithName("controllers").WithName("api").WithName("RealtimeAPI"),
+		Scheme:        mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RealtimeAPI")
 		os.Exit(1)

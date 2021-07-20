@@ -32,18 +32,20 @@ type RealtimeAPISpec struct {
 	Pod PodSpec `json:"pod"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={"min_replicas": 1}
 	// Autoscaling configuration
 	Autoscaling AutoscalingSpec `json:"autoscaling"`
 
 	// +kubebuilder:validation:Optional
 	// List of node groups on which this API can run (default: all node groups are eligible)
-	NodeGroups []string `json:"node_groups,omitempty"`
+	NodeGroups []string `json:"node_groups"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={"max_surge": "25%", "max_unavailable": "25%"}
 	// Deployment strategy to use when replacing existing replicas with new ones
 	UpdateStrategy UpdateStratagySpec `json:"update_strategy"`
 
-	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Required
 	// Networking configuration
 	Networking NetworkingSpec `json:"networking"`
 }
@@ -96,7 +98,6 @@ type ContainerSpec struct {
 	// Environment variables to set in the container
 	Env []kcore.EnvVar `json:"env,omitempty"`
 
-	// +kubebuilder:validation:Optional
 	// Compute resource requests
 	Compute *ComputeSpec `json:"compute,omitempty"`
 
@@ -136,12 +137,10 @@ type ComputeSpec struct {
 }
 
 type AutoscalingSpec struct {
-	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=1
 	// Minimum number of replicas
 	MinReplicas int32 `json:"min_replicas,omitempty"`
 
-	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=100
 	// Maximum number of replicas
 	MaxReplicas int32 `json:"max_replicas,omitempty"`
@@ -211,6 +210,7 @@ type NetworkingSpec struct {
 
 // RealtimeAPIStatus defines the observed state of RealtimeAPI
 type RealtimeAPIStatus struct {
+	// +kubebuilder:validation:Type=string
 	Status          status.Code `json:"status"`
 	DesiredReplicas int32       `json:"desired_replicas"`
 	CurrentReplicas int32       `json:"current_replicas"`
