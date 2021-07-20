@@ -796,12 +796,14 @@ def test_load_batch(
         printer("checking the jobs' responses")
         for job_spec in job_specs:
             job_id: str = job_spec["job_id"]
-            job_status = requests.get(f"{api_endpoint}?jobID={job_id}").json()["job_status"]
+            job = requests.get(f"{api_endpoint}?jobID={job_id}").json()
+            job_status = job["job_status"]
+            job_metrics = job["metrics"]
 
             assert (
                 job_status["batches_in_queue"] == 0
             ), f"there are still batches in queue ({job_status['batches_in_queue']}) for job ID {job_id}"
-            assert job_spec["metrics"]["succeeded"] == math.ceil(items_per_job / batch_size)
+            assert job_metrics["succeeded"] == math.ceil(items_per_job / batch_size)
 
             num_objects = 0
             for page in paginator.paginate(Bucket=bucket, Prefix=os.path.join(key, job_id)):
