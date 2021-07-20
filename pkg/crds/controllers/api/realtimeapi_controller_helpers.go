@@ -82,7 +82,7 @@ func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, ap
 			Name:      workloads.K8sName(api.Name),
 			Namespace: api.Namespace},
 	}
-	op, err := controllerutil.CreateOrUpdate(ctx, r, &deployment, func() error {
+	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &deployment, func() error {
 		deployment.Spec = r.desiredDeployment(api).Spec
 		return nil
 	})
@@ -98,7 +98,7 @@ func (r *RealtimeAPIReconciler) createOrUpdateService(ctx context.Context, api a
 			Name:      workloads.K8sName(api.Name),
 			Namespace: api.Namespace},
 	}
-	op, err := controllerutil.CreateOrUpdate(ctx, r, &service, func() error {
+	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &service, func() error {
 		service.Spec = r.desiredService(api).Spec
 		return nil
 	})
@@ -114,7 +114,7 @@ func (r *RealtimeAPIReconciler) createOrUpdateVirtualService(ctx context.Context
 			Name:      workloads.K8sName(api.Name),
 			Namespace: api.Namespace},
 	}
-	op, err := controllerutil.CreateOrUpdate(ctx, r, &vs, func() error {
+	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &vs, func() error {
 		vs.Spec = r.desiredVirtualService(api).Spec
 		return nil
 	})
