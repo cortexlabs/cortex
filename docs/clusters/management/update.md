@@ -71,12 +71,14 @@ cortex cluster up cluster.yaml --configure-env cortex2
 
 You can use different Cortex CLIs to interact with the different versioned clusters; here is an example:
 
+<!-- CORTEX_VERSION_README x4 -->
+
 ```bash
-# download the desired CLI version, replace 0.38.0 with the desired version (Note the "v"):
-CORTEX_INSTALL_PATH=$(pwd)/cortex0.38.0 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.38.0/get-cli.sh)"
+# download the desired CLI version, replace 0.39.0 with the desired version (Note the "v"):
+CORTEX_INSTALL_PATH=$(pwd)/cortex0.39.0 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.39.0/get-cli.sh)"
 
 # confirm cortex CLI version
-./cortex0.38.0 version
+./cortex0.39.0 version
 ```
 
 ### Deploy the APIs to your new cluster
