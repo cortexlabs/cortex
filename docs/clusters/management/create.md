@@ -93,7 +93,7 @@ iam_policy_arns: ["arn:aws:iam::aws:policy/AmazonS3FullAccess"]
 # primary CIDR block for the cluster's VPC
 vpc_cidr: 192.168.0.0/16
 
-# instance type for prometheus (use a larger instance for clusters exceeding 500 nodes)
+# instance type for prometheus (use an instance with more memory for clusters exceeding 300 nodes or 300 pods)
 prometheus_instance_type: "t3.medium"
 ```
 
