@@ -142,8 +142,9 @@ func (r *RealtimeAPIReconciler) getEndpoint(ctx context.Context, api *serverless
 		return "", nil
 	}
 
-	endpoint := fmt.Sprintf("http://%s/%s",
-		svc.Status.LoadBalancer.Ingress[0].Hostname, api.Spec.Networking.Endpoint,
+	endpoint := urls.Join(
+		fmt.Sprintf("http://%s", svc.Status.LoadBalancer.Ingress[0].Hostname),
+		api.Spec.Networking.Endpoint,
 	)
 
 	return endpoint, nil
