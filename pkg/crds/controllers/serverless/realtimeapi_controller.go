@@ -84,7 +84,20 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	// Step 3: Create or Update Resources
+	// Step 3: Get or create deployment and API ids
+	deploymentID, apiID := r.getOrCreateAPIIDs(api)
+	if api.Annotations["cortex.dev/deployment-id"] == "" ||
+		api.Annotations["cortex.dev/api-id"] == "" {
+
+		log.V(1).Info("creating api and deployment id annotations")
+		api.Annotations["cortex.dev/deployment-id"] = deploymentID
+		api.Annotations["cortex.dev/api-id"] = apiID
+		if err = r.Update(ctx, &api); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Step 4: Create or Update Resources
 	deployOp, err := r.createOrUpdateDeployment(ctx, api)
 	if err != nil {
 		return ctrl.Result{}, err
