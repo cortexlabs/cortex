@@ -99,7 +99,13 @@ func (r *RealtimeAPIReconciler) createOrUpdateService(ctx context.Context, api a
 			Namespace: api.Namespace},
 	}
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &service, func() error {
-		service.Spec = r.desiredService(api).Spec
+		desiredSvc := r.desiredService(api)
+		// We need to set fields individually because some are immutable
+		service.Labels = desiredSvc.Labels
+		service.Annotations = desiredSvc.Annotations
+		service.Spec.Type = desiredSvc.Spec.Type
+		service.Spec.Ports = desiredSvc.Spec.Ports
+		service.Spec.Selector = desiredSvc.Spec.Selector
 		return nil
 	})
 	if err != nil {
