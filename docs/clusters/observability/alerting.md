@@ -155,7 +155,7 @@ containers:
   envFrom:
     - secretRef:
         name: grafana-smtp
-  image: quay.io/cortexlabs/grafana:0.39.0
+  image: quay.io/cortexlabs/grafana:0.39.1
   imagePullPolicy: IfNotPresent
   name: grafana
 # ...
