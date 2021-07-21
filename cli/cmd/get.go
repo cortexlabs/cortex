@@ -219,10 +219,6 @@ func getAPIsInAllEnvironments() (string, error) {
 
 		if err == nil {
 			for _, api := range apisRes {
-				if api.Metadata == nil {
-					// TODO remove this once the status is present for all
-					continue
-				}
 				switch api.Metadata.Kind {
 				case userconfig.BatchAPIKind:
 					allBatchAPIEnvs = append(allBatchAPIEnvs, env.Name)

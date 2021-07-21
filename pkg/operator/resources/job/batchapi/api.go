@@ -142,23 +142,16 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJob
 
 	for _, virtualService := range virtualServices {
 		apiName := virtualService.Labels["apiName"]
-		apiID := virtualService.Labels["apiID"]
-
-		api, err := operator.DownloadAPISpec(apiName, apiID)
+		metadata, err := spec.MetadataFromVirtualService(&virtualService)
 		if err != nil {
-			return nil, err
-		}
-
-		endpoint, err := operator.APIEndpoint(api)
-		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
 
 		var jobStatuses []status.BatchJobStatus
-		batchJobs := apiNameToBatchJobsMap[apiName]
+		batchJobs := apiNameToBatchJobsMap[metadata.Name]
 
 		if len(batchJobs) == 0 {
-			jobStates, err := job.GetMostRecentlySubmittedJobStates(apiName, 1, userconfig.BatchAPIKind)
+			jobStates, err := job.GetMostRecentlySubmittedJobStates(metadata.Name, 1, userconfig.BatchAPIKind)
 			if err != nil {
 				return nil, err
 			}
@@ -183,9 +176,8 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJob
 			}
 		}
 
-		batchAPIsMap[apiName] = &schema.APIResponse{
-			Spec:             api,
-			Endpoint:         &endpoint,
+		batchAPIsMap[metadata.Name] = &schema.APIResponse{
+			Metadata:         metadata,
 			BatchJobStatuses: jobStatuses,
 		}
 	}
@@ -200,10 +192,12 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJob
 }
 
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
-	virtualService := deployedResource.VirtualService
+	metadata, err := spec.MetadataFromVirtualService(deployedResource.VirtualService)
+	if err != nil {
+		return nil, err
+	}
 
-	apiID := virtualService.Labels["apiID"]
-	api, err := operator.DownloadAPISpec(deployedResource.Name, apiID)
+	api, err := operator.DownloadAPISpec(deployedResource.Name, metadata.APIID)
 	if err != nil {
 		return nil, err
 	}
@@ -264,6 +258,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	return []schema.APIResponse{
 		{
 			Spec:             api,
+			Metadata:         metadata,
 			BatchJobStatuses: jobStatuses,
 			Endpoint:         &endpoint,
 			DashboardURL:     dashboardURL,

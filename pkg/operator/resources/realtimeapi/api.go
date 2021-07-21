@@ -176,14 +176,14 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func GetAllAPIs(deployments []kapps.Deployment, virtualServices []istioclientnetworking.VirtualService) ([]schema.APIResponse, error) {
+func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
 	realtimeAPIs := make([]schema.APIResponse, len(deployments))
 	mappedRealtimeAPIs := make(map[string]schema.APIResponse, len(deployments))
-	keys := make([]string, len(deployments))
+	apiNames := make([]string, len(deployments))
 
 	for i := range deployments {
 		apiName := deployments[i].Labels["apiName"]
-		keys = append(keys, apiName)
+		apiNames[i] = apiName
 
 		metadata, err := spec.MetadataFromDeployment(&deployments[i])
 		if err != nil {
@@ -195,9 +195,9 @@ func GetAllAPIs(deployments []kapps.Deployment, virtualServices []istioclientnet
 		}
 	}
 
-	sort.Strings(keys)
-	for _, apiName := range keys {
-		realtimeAPIs = append(realtimeAPIs, mappedRealtimeAPIs[apiName])
+	sort.Strings(apiNames)
+	for i := range apiNames {
+		realtimeAPIs[i] = mappedRealtimeAPIs[apiNames[i]]
 	}
 
 	return realtimeAPIs, nil

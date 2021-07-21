@@ -147,9 +147,11 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	}
 
 	for _, virtualService := range virtualServices {
+		apiName := virtualService.Labels["apiName"]
+
 		metadata, err := spec.MetadataFromVirtualService(&virtualService)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("api %s", metadata.Name))
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
 
 		jobStates, err := job.GetMostRecentlySubmittedJobStates(metadata.Name, 1, userconfig.TaskAPIKind)
@@ -209,10 +211,12 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 // GetAPIByName returns a single task API and its most recently submitted job along with all running task jobs
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
-	virtualService := deployedResource.VirtualService
+	metadata, err := spec.MetadataFromVirtualService(deployedResource.VirtualService)
+	if err != nil {
+		return nil, err
+	}
 
-	apiID := virtualService.Labels["apiID"]
-	api, err := operator.DownloadAPISpec(deployedResource.Name, apiID)
+	api, err := operator.DownloadAPISpec(deployedResource.Name, metadata.APIID)
 	if err != nil {
 		return nil, err
 	}
@@ -287,6 +291,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	return []schema.APIResponse{
 		{
 			Spec:            api,
+			Metadata:        metadata,
 			TaskJobStatuses: jobStatuses,
 			Endpoint:        &endpoint,
 			DashboardURL:    dashboardURL,

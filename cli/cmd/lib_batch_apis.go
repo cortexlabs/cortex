@@ -43,7 +43,10 @@ func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Tab
 	rows := make([][]interface{}, 0, len(batchAPIs))
 
 	for i, batchAPI := range batchAPIs {
-		lastAPIUpdated := time.Unix(batchAPI.Spec.LastUpdated, 0)
+		if batchAPI.Metadata == nil {
+			continue
+		}
+		lastAPIUpdated := time.Unix(batchAPI.Metadata.LastUpdated, 0)
 		latestStartTime := time.Time{}
 		latestJobID := "-"
 		runningJobs := 0
@@ -61,7 +64,7 @@ func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Tab
 
 		rows = append(rows, []interface{}{
 			envNames[i],
-			batchAPI.Spec.Name,
+			batchAPI.Metadata.Name,
 			runningJobs,
 			latestJobID,
 			libtime.SinceStr(&lastAPIUpdated),

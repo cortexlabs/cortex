@@ -51,7 +51,7 @@ type API struct {
 type Metadata struct {
 	*userconfig.Resource
 	APIID        string `json:"id"`
-	DeploymentID string `json:"deployment_id"`
+	DeploymentID string `json:"deployment_id,omitempty"`
 	LastUpdated  int64  `json:"last_updated"`
 }
 

@@ -132,35 +132,20 @@ func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination
 
 // GetAllAPIs returns a list of metadata, in the form of schema.APIResponse, about all the created traffic splitter APIs
 func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schema.APIResponse, error) {
-	var (
-		apiNames         []string
-		apiIDs           []string
-		trafficSplitters []schema.APIResponse
-	)
-
+	var trafficSplitters []schema.APIResponse
 	for _, virtualService := range virtualServices {
-		if virtualService.Labels["apiKind"] == userconfig.TrafficSplitterKind.String() {
-			apiNames = append(apiNames, virtualService.Labels["apiName"])
-			apiIDs = append(apiIDs, virtualService.Labels["apiID"])
-		}
-	}
+		apiName := virtualService.Labels["apiName"]
 
-	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range apis {
-		trafficSplitter := apis[i]
-		endpoint, err := operator.APIEndpoint(&trafficSplitter)
+		metadata, err := spec.MetadataFromVirtualService(&virtualService)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
 
-		trafficSplitters = append(trafficSplitters, schema.APIResponse{
-			Spec:     &trafficSplitter,
-			Endpoint: &endpoint,
-		})
+		if metadata.Kind == userconfig.TrafficSplitterKind {
+			trafficSplitters = append(trafficSplitters, schema.APIResponse{
+				Metadata: metadata,
+			})
+		}
 	}
 
 	return trafficSplitters, nil
@@ -168,7 +153,12 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 
 // GetAPIByName retrieves the metadata, in the form of schema.APIResponse, of a single traffic splitter API
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
-	api, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.VirtualService.Labels["apiID"])
+	metadata, err := spec.MetadataFromVirtualService(deployedResource.VirtualService)
+	if err != nil {
+		return nil, err
+	}
+
+	api, err := operator.DownloadAPISpec(deployedResource.Name, metadata.APIID)
 	if err != nil {
 		return nil, err
 	}
@@ -181,6 +171,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	return []schema.APIResponse{
 		{
 			Spec:     api,
+			Metadata: metadata,
 			Endpoint: &endpoint,
 		},
 	}, nil

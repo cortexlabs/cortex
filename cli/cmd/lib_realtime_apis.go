@@ -32,10 +32,6 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 	var out string
 
 	t := realtimeAPIsTable([]schema.APIResponse{realtimeAPI}, []string{env.Name})
-	// TODO decide on whether we want to keep this consistent with `cortex get` command
-	// t.FindHeaderByTitle(_titleEnvironment).Hidden = true
-	// t.FindHeaderByTitle(_titleRealtimeAPI).Hidden = true
-
 	out += t.MustFormat()
 
 	if realtimeAPI.DashboardURL != nil && *realtimeAPI.DashboardURL != "" {

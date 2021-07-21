@@ -251,17 +251,17 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func GetAllAPIs(deployments []kapps.Deployment, virtualServices []istioclientnetworking.VirtualService) ([]schema.APIResponse, error) {
-	asyncAPIs := make([]schema.APIResponse, len(deployments))
-	mappedAsyncAPIs := make(map[string]schema.APIResponse, len(deployments))
-	keys := make([]string, len(deployments))
+func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
+	asyncAPIs := make([]schema.APIResponse, 0)
+	mappedAsyncAPIs := make(map[string]schema.APIResponse, 0)
+	apiNames := make([]string, 0)
 
 	for i := range deployments {
 		if deployments[i].Labels["cortex.dev/async"] != "api" {
 			continue
 		}
 		apiName := deployments[i].Labels["apiName"]
-		keys = append(keys, apiName)
+		apiNames = append(apiNames, apiName)
 
 		metadata, err := spec.MetadataFromDeployment(&deployments[i])
 		if err != nil {
@@ -273,8 +273,8 @@ func GetAllAPIs(deployments []kapps.Deployment, virtualServices []istioclientnet
 		}
 	}
 
-	sort.Strings(keys)
-	for _, apiName := range keys {
+	sort.Strings(apiNames)
+	for _, apiName := range apiNames {
 		asyncAPIs = append(asyncAPIs, mappedAsyncAPIs[apiName])
 	}
 

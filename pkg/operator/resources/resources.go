@@ -308,18 +308,15 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	var realtimeAPIVirtualServices []istioclientnetworking.VirtualService
-	var asyncAPIVirtualServices []istioclientnetworking.VirtualService
+	fmt.Println("realtimeAPIDeployments", len(realtimeAPIDeployments))
+	fmt.Println("asyncAPIDeployments", len(asyncAPIDeployments))
+
 	var batchAPIVirtualServices []istioclientnetworking.VirtualService
 	var taskAPIVirtualServices []istioclientnetworking.VirtualService
 	var trafficSplitterVirtualServices []istioclientnetworking.VirtualService
 
 	for _, vs := range virtualServices {
 		switch vs.Labels["apiKind"] {
-		case userconfig.RealtimeAPIKind.String():
-			realtimeAPIVirtualServices = append(realtimeAPIVirtualServices, vs)
-		case userconfig.AsyncAPIKind.String():
-			asyncAPIVirtualServices = append(asyncAPIVirtualServices, vs)
 		case userconfig.BatchAPIKind.String():
 			batchAPIVirtualServices = append(batchAPIVirtualServices, vs)
 		case userconfig.TrafficSplitterKind.String():
@@ -329,7 +326,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIDeployments, realtimeAPIVirtualServices)
+	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIDeployments)
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +342,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	asyncAPIList, err := asyncapi.GetAllAPIs(asyncAPIDeployments, asyncAPIVirtualServices)
+	asyncAPIList, err := asyncapi.GetAllAPIs(asyncAPIDeployments)
 	if err != nil {
 		return nil, err
 	}

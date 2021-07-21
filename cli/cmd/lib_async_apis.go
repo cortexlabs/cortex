@@ -32,8 +32,6 @@ func asyncAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (stri
 	var out string
 
 	t := asyncAPIsTable([]schema.APIResponse{asyncAPI}, []string{env.Name})
-	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
-	t.FindHeaderByTitle(_titleAsyncAPI).Hidden = true
 
 	out += t.MustFormat()
 

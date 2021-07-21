@@ -76,7 +76,10 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 		}
 
 		apiRes := apisRes[0]
-		lastUpdated := time.Unix(apiRes.Spec.LastUpdated, 0)
+		if apiRes.Metadata == nil || apiRes.Status == nil {
+			continue
+		}
+		lastUpdated := time.Unix(apiRes.Metadata.LastUpdated, 0)
 
 		apiName := apiRes.Spec.Name
 		if api.Shadow {
@@ -108,7 +111,10 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 func trafficSplitterListTable(trafficSplitter []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(trafficSplitter))
 	for i, splitAPI := range trafficSplitter {
-		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
+		if splitAPI.Metadata == nil || splitAPI.Spec == nil {
+			continue
+		}
+		lastUpdated := time.Unix(splitAPI.Metadata.LastUpdated, 0)
 		var apis []string
 		for _, api := range splitAPI.Spec.APIs {
 			apiName := api.Name
@@ -120,7 +126,7 @@ func trafficSplitterListTable(trafficSplitter []schema.APIResponse, envNames []s
 		apisStr := s.TruncateEllipses(strings.Join(apis, " "), 50)
 		rows = append(rows, []interface{}{
 			envNames[i],
-			splitAPI.Spec.Name,
+			splitAPI.Metadata.Name,
 			apisStr,
 			libtime.SinceStr(&lastUpdated),
 		})
