@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package api
+package serverlesscontroller
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	apiv1alpha1 "github.com/cortexlabs/cortex/pkg/crds/apis/api/v1alpha1"
+	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *RealtimeAPIReconciler) getDeployment(ctx context.Context, api apiv1alpha1.RealtimeAPI) (*kapps.Deployment, error) {
+func (r *RealtimeAPIReconciler) getDeployment(ctx context.Context, api serverless.RealtimeAPI) (*kapps.Deployment, error) {
 	req := client.ObjectKey{Namespace: api.Namespace, Name: workloads.K8sName(api.Name)}
 	deployment := kapps.Deployment{}
 	if err := r.Get(ctx, req, &deployment); err != nil {
@@ -53,7 +53,7 @@ func (r *RealtimeAPIReconciler) getDeployment(ctx context.Context, api apiv1alph
 	return &deployment, nil
 }
 
-func (r *RealtimeAPIReconciler) updateStatus(ctx context.Context, api *apiv1alpha1.RealtimeAPI, deployment *kapps.Deployment) error {
+func (r *RealtimeAPIReconciler) updateStatus(ctx context.Context, api *serverless.RealtimeAPI, deployment *kapps.Deployment) error {
 	apiStatus := status.Pending
 	api.Status.Status = apiStatus // FIXME: handle other status
 
@@ -76,7 +76,7 @@ func (r *RealtimeAPIReconciler) updateStatus(ctx context.Context, api *apiv1alph
 	return nil
 }
 
-func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, api apiv1alpha1.RealtimeAPI) (controllerutil.OperationResult, error) {
+func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, api serverless.RealtimeAPI) (controllerutil.OperationResult, error) {
 	deployment := kapps.Deployment{
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:      workloads.K8sName(api.Name),
@@ -92,7 +92,7 @@ func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, ap
 	return op, nil
 }
 
-func (r *RealtimeAPIReconciler) createOrUpdateService(ctx context.Context, api apiv1alpha1.RealtimeAPI) (controllerutil.OperationResult, error) {
+func (r *RealtimeAPIReconciler) createOrUpdateService(ctx context.Context, api serverless.RealtimeAPI) (controllerutil.OperationResult, error) {
 	service := kcore.Service{
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:      workloads.K8sName(api.Name),
@@ -114,7 +114,7 @@ func (r *RealtimeAPIReconciler) createOrUpdateService(ctx context.Context, api a
 	return op, nil
 }
 
-func (r *RealtimeAPIReconciler) createOrUpdateVirtualService(ctx context.Context, api apiv1alpha1.RealtimeAPI) (controllerutil.OperationResult, error) {
+func (r *RealtimeAPIReconciler) createOrUpdateVirtualService(ctx context.Context, api serverless.RealtimeAPI) (controllerutil.OperationResult, error) {
 	vs := istioclientnetworking.VirtualService{
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:      workloads.K8sName(api.Name),
@@ -130,7 +130,7 @@ func (r *RealtimeAPIReconciler) createOrUpdateVirtualService(ctx context.Context
 	return op, nil
 }
 
-func (r *RealtimeAPIReconciler) getEndpoint(ctx context.Context, api *apiv1alpha1.RealtimeAPI) (string, error) {
+func (r *RealtimeAPIReconciler) getEndpoint(ctx context.Context, api *serverless.RealtimeAPI) (string, error) {
 	req := client.ObjectKey{Namespace: consts.IstioNamespace, Name: "ingressgateway-apis"}
 	svc := kcore.Service{}
 	if err := r.Get(ctx, req, &svc); err != nil {
@@ -149,7 +149,7 @@ func (r *RealtimeAPIReconciler) getEndpoint(ctx context.Context, api *apiv1alpha
 	return endpoint, nil
 }
 
-func (r *RealtimeAPIReconciler) desiredDeployment(api apiv1alpha1.RealtimeAPI) kapps.Deployment {
+func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) kapps.Deployment {
 	containers, volumes := r.desiredContainers(api)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
@@ -164,7 +164,7 @@ func (r *RealtimeAPIReconciler) desiredDeployment(api apiv1alpha1.RealtimeAPI) k
 			"deploymentID":   api.Annotations["cortex.dev/deployment-id"], // FIXME: needs to be created beforehand
 			"cortex.dev/api": "true",
 		},
-		Annotations: getAPIAnnotations(api),
+		Annotations: r.getAPIAnnotations(api),
 		Selector: map[string]string{
 			"apiName": api.Name,
 			"apiKind": userconfig.RealtimeAPIKind.String(),
@@ -193,7 +193,7 @@ func (r *RealtimeAPIReconciler) desiredDeployment(api apiv1alpha1.RealtimeAPI) k
 	})
 }
 
-func (r *RealtimeAPIReconciler) desiredContainers(api apiv1alpha1.RealtimeAPI) ([]kcore.Container, []kcore.Volume) {
+func (r *RealtimeAPIReconciler) desiredContainers(api serverless.RealtimeAPI) ([]kcore.Container, []kcore.Volume) {
 	containers, volumes := r.userContainers(api)
 	proxyContainer, proxyVolume := r.proxyContainer(api)
 
@@ -203,13 +203,13 @@ func (r *RealtimeAPIReconciler) desiredContainers(api apiv1alpha1.RealtimeAPI) (
 	return containers, volumes
 }
 
-func (r *RealtimeAPIReconciler) desiredService(api apiv1alpha1.RealtimeAPI) kcore.Service {
+func (r *RealtimeAPIReconciler) desiredService(api serverless.RealtimeAPI) kcore.Service {
 	return *k8s.Service(&k8s.ServiceSpec{
 		Name:        workloads.K8sName(api.Name),
 		PortName:    "http",
 		Port:        consts.ProxyPortInt32,
 		TargetPort:  consts.ProxyPortInt32,
-		Annotations: getAPIAnnotations(api),
+		Annotations: r.getAPIAnnotations(api),
 		Labels: map[string]string{
 			"apiName":        api.Name,
 			"apiKind":        userconfig.RealtimeAPIKind.String(),
@@ -222,7 +222,7 @@ func (r *RealtimeAPIReconciler) desiredService(api apiv1alpha1.RealtimeAPI) kcor
 	})
 }
 
-func (r *RealtimeAPIReconciler) desiredVirtualService(api apiv1alpha1.RealtimeAPI) istioclientnetworking.VirtualService {
+func (r *RealtimeAPIReconciler) desiredVirtualService(api serverless.RealtimeAPI) istioclientnetworking.VirtualService {
 	var activatorWeight int32
 	if api.Spec.Pod.Replicas == 0 {
 		activatorWeight = 100
@@ -270,7 +270,7 @@ func (r *RealtimeAPIReconciler) desiredVirtualService(api apiv1alpha1.RealtimeAP
 		},
 		PrefixPath:  pointer.String(api.Spec.Networking.Endpoint),
 		Rewrite:     pointer.String("/"),
-		Annotations: getAPIAnnotations(api),
+		Annotations: r.getAPIAnnotations(api),
 		Labels: map[string]string{
 			"apiName":        api.Name,
 			"apiKind":        userconfig.RealtimeAPIKind.String(),
@@ -281,7 +281,7 @@ func (r *RealtimeAPIReconciler) desiredVirtualService(api apiv1alpha1.RealtimeAP
 	})
 }
 
-func (r *RealtimeAPIReconciler) userContainers(api apiv1alpha1.RealtimeAPI) ([]kcore.Container, []kcore.Volume) {
+func (r *RealtimeAPIReconciler) userContainers(api serverless.RealtimeAPI) ([]kcore.Container, []kcore.Volume) {
 	volumes := []kcore.Volume{
 		workloads.MntVolume(),
 		workloads.CortexVolume(),
@@ -361,7 +361,7 @@ func (r *RealtimeAPIReconciler) userContainers(api apiv1alpha1.RealtimeAPI) ([]k
 	return containers, volumes
 }
 
-func (r *RealtimeAPIReconciler) proxyContainer(api apiv1alpha1.RealtimeAPI) (kcore.Container, kcore.Volume) {
+func (r *RealtimeAPIReconciler) proxyContainer(api serverless.RealtimeAPI) (kcore.Container, kcore.Volume) {
 	return kcore.Container{
 		Name:            workloads.ProxyContainerName,
 		Image:           r.ClusterConfig.ImageProxy,
@@ -411,7 +411,7 @@ func (r *RealtimeAPIReconciler) proxyContainer(api apiv1alpha1.RealtimeAPI) (kco
 	}, workloads.ClusterConfigVolume()
 }
 
-func getAPIAnnotations(api apiv1alpha1.RealtimeAPI) map[string]string {
+func (r *RealtimeAPIReconciler) getAPIAnnotations(api serverless.RealtimeAPI) map[string]string {
 	return map[string]string{
 		userconfig.MinReplicasAnnotationKey:                  strings.Int32(api.Spec.Autoscaling.MinReplicas),
 		userconfig.MaxReplicasAnnotationKey:                  strings.Int32(api.Spec.Autoscaling.MaxReplicas),
