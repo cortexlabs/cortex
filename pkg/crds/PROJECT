@@ -19,8 +19,8 @@ resources:
     namespaced: true
   controller: true
   domain: cortex.dev
-  group: api
+  group: serverless
   kind: RealtimeAPI
-  path: github.com/cortexlabs/cortex/pkg/crds/apis/api/v1alpha1
+  path: github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1
   version: v1alpha1
 version: "3"

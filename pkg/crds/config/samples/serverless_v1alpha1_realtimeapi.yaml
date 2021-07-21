@@ -1,4 +1,4 @@
-apiVersion: api.cortex.dev/v1alpha1
+apiVersion: serverless.cortex.dev/v1alpha1
 kind: RealtimeAPI
 metadata:
   name: hello-world

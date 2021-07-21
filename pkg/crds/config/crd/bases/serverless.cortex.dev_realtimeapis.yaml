@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: realtimeapis.api.cortex.dev
+  name: realtimeapis.serverless.cortex.dev
 spec:
-  group: api.cortex.dev
+  group: serverless.cortex.dev
   names:
     kind: RealtimeAPI
     listKind: RealtimeAPIList

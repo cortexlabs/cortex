@@ -3,10 +3,10 @@
 # It should be run by config/default
 resources:
 - bases/batch.cortex.dev_batchjobs.yaml
-- bases/api.cortex.dev_realtimeapis.yaml
+- bases/serverless.cortex.dev_realtimeapis.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
-patchesStrategicMerge:
+#patchesStrategicMerge:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
 #- patches/webhook_in_batchjobs.yaml

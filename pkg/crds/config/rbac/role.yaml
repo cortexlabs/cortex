@@ -35,32 +35,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - api.cortex.dev
-  resources:
-  - realtimeapis
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - api.cortex.dev
-  resources:
-  - realtimeapis/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - api.cortex.dev
-  resources:
-  - realtimeapis/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - apps
   resources:
   - deployments
@@ -119,3 +93,29 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - serverless.cortex.dev
+  resources:
+  - realtimeapis
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - serverless.cortex.dev
+  resources:
+  - realtimeapis/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - serverless.cortex.dev
+  resources:
+  - realtimeapis/status
+  verbs:
+  - get
+  - patch
+  - update

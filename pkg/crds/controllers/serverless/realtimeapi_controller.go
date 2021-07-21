@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package api
+package serverlesscontroller
 
 import (
 	"context"
 	"fmt"
 
-	apiv1alpha1 "github.com/cortexlabs/cortex/pkg/crds/apis/api/v1alpha1"
+	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/crds/controllers"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/go-logr/logr"
@@ -43,9 +43,9 @@ type RealtimeAPIReconciler struct {
 	Scheme        *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=api.cortex.dev,resources=realtimeapis,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=api.cortex.dev,resources=realtimeapis/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=api.cortex.dev,resources=realtimeapis/finalizers,verbs=update
+// +kubebuilder:rbac:groups=serverless.cortex.dev,resources=realtimeapis,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=serverless.cortex.dev,resources=realtimeapis/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=serverless.cortex.dev,resources=realtimeapis/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch
@@ -57,7 +57,7 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	log := r.Log.WithValues("realtimeapi", req.NamespacedName)
 
 	// Step 1: get resource from request
-	api := apiv1alpha1.RealtimeAPI{}
+	api := serverless.RealtimeAPI{}
 	log.V(1).Info("retrieving resource")
 	if err := r.Get(ctx, req.NamespacedName, &api); err != nil {
 		if !kerrors.IsNotFound(err) {
@@ -109,7 +109,7 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // SetupWithManager sets up the controller with the Manager.
 func (r *RealtimeAPIReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&apiv1alpha1.RealtimeAPI{}).
+		For(&serverless.RealtimeAPI{}).
 		Owns(&kapps.Deployment{}).
 		Owns(&kcore.Service{}).
 		Owns(&istioclientnetworking.VirtualService{}).
