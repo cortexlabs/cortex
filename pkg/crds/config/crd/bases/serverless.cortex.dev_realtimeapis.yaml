@@ -16,7 +16,20 @@ spec:
     singular: realtimeapi
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.current_replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .status.ready_replicas
+      name: Ready
+      type: integer
+    - jsonPath: .status.status
+      name: Status
+      type: string
+    - jsonPath: .status.endpoint
+      name: Endpoint
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: RealtimeAPI is the Schema for the realtimeapis API

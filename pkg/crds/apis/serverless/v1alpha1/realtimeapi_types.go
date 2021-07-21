@@ -220,6 +220,10 @@ type RealtimeAPIStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:JSONPath=".status.current_replicas",name="Replicas",type="integer"
+//+kubebuilder:printcolumn:JSONPath=".status.ready_replicas",name="Ready",type="integer"
+//+kubebuilder:printcolumn:JSONPath=".status.status",name="Status",type="string"
+//+kubebuilder:printcolumn:JSONPath=".status.endpoint",name="Endpoint",type="string"
 
 // RealtimeAPI is the Schema for the realtimeapis API
 type RealtimeAPI struct {
