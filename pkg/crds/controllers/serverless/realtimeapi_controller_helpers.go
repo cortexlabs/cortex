@@ -17,17 +17,20 @@ limitations under the License.
 package serverlesscontroller
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
@@ -39,6 +42,7 @@ import (
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -160,6 +164,7 @@ func (r *RealtimeAPIReconciler) getEndpoint(ctx context.Context, api *serverless
 
 func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) kapps.Deployment {
 	containers, volumes := r.desiredContainers(api)
+	deploymentID, apiID := r.getOrCreateAPIIDs(api)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),
@@ -169,11 +174,11 @@ func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) ka
 		Labels: map[string]string{
 			"apiName":        api.Name,
 			"apiKind":        userconfig.RealtimeAPIKind.String(),
-			"apiID":          api.Annotations["cortex.dev/api-id"],        // TODO: check if can be replaced with resource version
-			"deploymentID":   api.Annotations["cortex.dev/deployment-id"], // FIXME: needs to be created beforehand
+			"apiID":          apiID,
+			"deploymentID":   deploymentID,
 			"cortex.dev/api": "true",
 		},
-		Annotations: r.getAPIAnnotations(api),
+		Annotations: r.generateAPIAnnotations(api),
 		Selector: map[string]string{
 			"apiName": api.Name,
 			"apiKind": userconfig.RealtimeAPIKind.String(),
@@ -182,7 +187,7 @@ func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) ka
 			Labels: map[string]string{
 				"apiName":        api.Name,
 				"apiKind":        userconfig.RealtimeAPIKind.String(),
-				"deploymentID":   api.Annotations["cortex.dev/deployment-id"],
+				"deploymentID":   deploymentID,
 				"cortex.dev/api": "true",
 			},
 			Annotations: map[string]string{
@@ -218,7 +223,7 @@ func (r *RealtimeAPIReconciler) desiredService(api serverless.RealtimeAPI) kcore
 		PortName:    "http",
 		Port:        consts.ProxyPortInt32,
 		TargetPort:  consts.ProxyPortInt32,
-		Annotations: r.getAPIAnnotations(api),
+		Annotations: r.generateAPIAnnotations(api),
 		Labels: map[string]string{
 			"apiName":        api.Name,
 			"apiKind":        userconfig.RealtimeAPIKind.String(),
@@ -236,6 +241,8 @@ func (r *RealtimeAPIReconciler) desiredVirtualService(api serverless.RealtimeAPI
 	if api.Spec.Pod.Replicas == 0 {
 		activatorWeight = 100
 	}
+
+	deploymentID, apiID := r.getOrCreateAPIIDs(api)
 
 	return *k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:     workloads.K8sName(api.Name),
@@ -279,12 +286,12 @@ func (r *RealtimeAPIReconciler) desiredVirtualService(api serverless.RealtimeAPI
 		},
 		PrefixPath:  pointer.String(api.Spec.Networking.Endpoint),
 		Rewrite:     pointer.String("/"),
-		Annotations: r.getAPIAnnotations(api),
+		Annotations: r.generateAPIAnnotations(api),
 		Labels: map[string]string{
 			"apiName":        api.Name,
 			"apiKind":        userconfig.RealtimeAPIKind.String(),
-			"apiID":          api.Annotations["cortex.dev/api-id"],
-			"deploymentID":   api.Annotations["cortex.dev/deployment-id"],
+			"apiID":          apiID,
+			"deploymentID":   deploymentID,
 			"cortex.dev/api": "true",
 		},
 	})
@@ -383,11 +390,11 @@ func (r *RealtimeAPIReconciler) proxyContainer(api serverless.RealtimeAPI) (kcor
 			"--admin-port",
 			consts.AdminPortStr,
 			"--user-port",
-			strings.Int32(api.Spec.Pod.Port),
+			s.Int32(api.Spec.Pod.Port),
 			"--max-concurrency",
-			strings.Int32(api.Spec.Pod.MaxConcurrency),
+			s.Int32(api.Spec.Pod.MaxConcurrency),
 			"--max-queue-length",
-			strings.Int32(api.Spec.Pod.MaxQueueLength),
+			s.Int32(api.Spec.Pod.MaxQueueLength),
 		},
 		Ports: []kcore.ContainerPort{
 			{Name: consts.AdminPortName, ContainerPort: consts.AdminPortInt32},
@@ -420,17 +427,42 @@ func (r *RealtimeAPIReconciler) proxyContainer(api serverless.RealtimeAPI) (kcor
 	}, workloads.ClusterConfigVolume()
 }
 
-func (r *RealtimeAPIReconciler) getAPIAnnotations(api serverless.RealtimeAPI) map[string]string {
+func (r *RealtimeAPIReconciler) getOrCreateAPIIDs(api serverless.RealtimeAPI) (deploymentID string, apiID string) {
+	deploymentID = api.Annotations["cortex.dev/deployment-id"]
+	if deploymentID == "" {
+		deploymentID = k8s.RandomName()[:10]
+	}
+
+	apiID = api.Annotations["cortex.dev/api-id"]
+	if apiID == "" {
+		var buf bytes.Buffer
+
+		buf.WriteString(api.Name)
+		buf.WriteString(s.Obj(api.TypeMeta))
+		buf.WriteString(s.Obj(api.Spec.Pod))
+		buf.WriteString(s.Obj(api.Spec.Networking))
+		buf.WriteString(s.Obj(api.Spec.Autoscaling))
+		buf.WriteString(s.Obj(api.Spec.NodeGroups))
+		buf.WriteString(s.Obj(api.Spec.UpdateStrategy))
+		specID := hash.Bytes(buf.Bytes())[:32]
+
+		apiID = fmt.Sprintf("%s-%s-%s", spec.MonotonicallyDecreasingID(), deploymentID, specID)
+	}
+
+	return deploymentID, apiID
+}
+
+func (r *RealtimeAPIReconciler) generateAPIAnnotations(api serverless.RealtimeAPI) map[string]string {
 	return map[string]string{
-		userconfig.MinReplicasAnnotationKey:                  strings.Int32(api.Spec.Autoscaling.MinReplicas),
-		userconfig.MaxReplicasAnnotationKey:                  strings.Int32(api.Spec.Autoscaling.MaxReplicas),
-		userconfig.TargetInFlightAnnotationKey:               strings.Int32(api.Spec.Autoscaling.TargetInFlight),
+		userconfig.MinReplicasAnnotationKey:                  s.Int32(api.Spec.Autoscaling.MinReplicas),
+		userconfig.MaxReplicasAnnotationKey:                  s.Int32(api.Spec.Autoscaling.MaxReplicas),
+		userconfig.TargetInFlightAnnotationKey:               s.Int32(api.Spec.Autoscaling.TargetInFlight),
 		userconfig.WindowAnnotationKey:                       api.Spec.Autoscaling.Window.Duration.String(),
 		userconfig.DownscaleStabilizationPeriodAnnotationKey: api.Spec.Autoscaling.DownscaleStabilizationPeriod.Duration.String(),
 		userconfig.UpscaleStabilizationPeriodAnnotationKey:   api.Spec.Autoscaling.UpscaleStabilizationPeriod.Duration.String(),
-		userconfig.MaxDownscaleFactorAnnotationKey:           strings.Float64(api.Spec.Autoscaling.MaxDownscaleFactor.AsApproximateFloat64()),
-		userconfig.MaxUpscaleFactorAnnotationKey:             strings.Float64(api.Spec.Autoscaling.MaxUpscaleFactor.AsApproximateFloat64()),
-		userconfig.DownscaleToleranceAnnotationKey:           strings.Float64(api.Spec.Autoscaling.DownscaleTolerance.AsApproximateFloat64()),
-		userconfig.UpscaleToleranceAnnotationKey:             strings.Float64(api.Spec.Autoscaling.UpscaleTolerance.AsApproximateFloat64()),
+		userconfig.MaxDownscaleFactorAnnotationKey:           s.Float64(api.Spec.Autoscaling.MaxDownscaleFactor.AsApproximateFloat64()),
+		userconfig.MaxUpscaleFactorAnnotationKey:             s.Float64(api.Spec.Autoscaling.MaxUpscaleFactor.AsApproximateFloat64()),
+		userconfig.DownscaleToleranceAnnotationKey:           s.Float64(api.Spec.Autoscaling.DownscaleTolerance.AsApproximateFloat64()),
+		userconfig.UpscaleToleranceAnnotationKey:             s.Float64(api.Spec.Autoscaling.UpscaleTolerance.AsApproximateFloat64()),
 	}
 }
