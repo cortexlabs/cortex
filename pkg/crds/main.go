@@ -168,7 +168,7 @@ func main() {
 	if err = (&serverlesscontrollers.RealtimeAPIReconciler{
 		Client:        mgr.GetClient(),
 		ClusterConfig: clusterConfig,
-		Log:           ctrl.Log.WithName("controllers").WithName("api").WithName("RealtimeAPI"),
+		Log:           ctrl.Log.WithName("controllers").WithName("serverless").WithName("RealtimeAPI"),
 		Scheme:        mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RealtimeAPI")
