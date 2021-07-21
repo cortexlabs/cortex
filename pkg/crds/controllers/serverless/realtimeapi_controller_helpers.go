@@ -93,6 +93,11 @@ func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, ap
 		deployment.Labels = desiredDeployment.Labels
 		deployment.Annotations = maps.MergeStrMapsString(deployment.Annotations, desiredDeployment.Annotations)
 		deployment.Spec = desiredDeployment.Spec
+
+		if err := ctrl.SetControllerReference(&api, &deployment, r.Scheme); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -115,6 +120,11 @@ func (r *RealtimeAPIReconciler) createOrUpdateService(ctx context.Context, api s
 		service.Spec.Type = desiredSvc.Spec.Type
 		service.Spec.Ports = desiredSvc.Spec.Ports
 		service.Spec.Selector = desiredSvc.Spec.Selector
+
+		if err := ctrl.SetControllerReference(&api, &service, r.Scheme); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -134,6 +144,11 @@ func (r *RealtimeAPIReconciler) createOrUpdateVirtualService(ctx context.Context
 		vs.Labels = desiredVirtualService.Labels
 		vs.Annotations = maps.MergeStrMapsString(vs.Annotations, desiredVirtualService.Annotations)
 		vs.Spec = desiredVirtualService.Spec
+
+		if err := ctrl.SetControllerReference(&api, &vs, r.Scheme); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
