@@ -24,8 +24,10 @@ import (
 	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
@@ -83,7 +85,10 @@ func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, ap
 			Namespace: api.Namespace},
 	}
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &deployment, func() error {
-		deployment.Spec = r.desiredDeployment(api).Spec
+		desiredDeployment := r.desiredDeployment(api)
+		deployment.Labels = desiredDeployment.Labels
+		deployment.Annotations = maps.MergeStrMapsString(deployment.Annotations, desiredDeployment.Annotations)
+		deployment.Spec = desiredDeployment.Spec
 		return nil
 	})
 	if err != nil {
@@ -102,7 +107,7 @@ func (r *RealtimeAPIReconciler) createOrUpdateService(ctx context.Context, api s
 		desiredSvc := r.desiredService(api)
 		// We need to set fields individually because some are immutable
 		service.Labels = desiredSvc.Labels
-		service.Annotations = desiredSvc.Annotations
+		service.Annotations = maps.MergeStrMapsString(service.Annotations, desiredSvc.Annotations)
 		service.Spec.Type = desiredSvc.Spec.Type
 		service.Spec.Ports = desiredSvc.Spec.Ports
 		service.Spec.Selector = desiredSvc.Spec.Selector
@@ -121,7 +126,10 @@ func (r *RealtimeAPIReconciler) createOrUpdateVirtualService(ctx context.Context
 			Namespace: api.Namespace},
 	}
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &vs, func() error {
-		vs.Spec = r.desiredVirtualService(api).Spec
+		desiredVirtualService := r.desiredVirtualService(api)
+		vs.Labels = desiredVirtualService.Labels
+		vs.Annotations = maps.MergeStrMapsString(vs.Annotations, desiredVirtualService.Annotations)
+		vs.Spec = desiredVirtualService.Spec
 		return nil
 	})
 	if err != nil {
