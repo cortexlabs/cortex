@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	kapps "k8s.io/api/apps/v1"
 )
 
 type API struct {
@@ -44,6 +45,29 @@ type API struct {
 	InitialDeploymentTime int64  `json:"initial_deployment_time"`
 	LastUpdated           int64  `json:"last_updated"`
 	MetadataRoot          string `json:"metadata_root"`
+}
+
+type Metadata struct {
+	*userconfig.Resource
+	APIID        string `json:"id"`
+	DeploymentID string `json:"deployment_id"`
+	LastUpdated  int64  `json:"last_updated"`
+}
+
+func MetadataFromDeployment(deployment *kapps.Deployment) (*Metadata, error) {
+	lastUpdated, err := TimeFromAPIID(deployment.Labels["apiID"])
+	if err != nil {
+		return nil, err
+	}
+	return &Metadata{
+		Resource: &userconfig.Resource{
+			Name: deployment.Labels["apiName"],
+			Kind: userconfig.KindFromString(deployment.Labels["apiKind"]),
+		},
+		APIID:        deployment.Labels["apiID"],
+		DeploymentID: deployment.Labels["deploymentID"],
+		LastUpdated:  lastUpdated.Unix(),
+	}, nil
 }
 
 /*

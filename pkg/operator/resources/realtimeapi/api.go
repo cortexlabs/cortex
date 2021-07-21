@@ -19,6 +19,7 @@ package realtimeapi
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -175,54 +176,50 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
-	statuses, err := GetAllStatuses(deployments)
-	if err != nil {
-		return nil, err
+func GetAllAPIs(deployments []kapps.Deployment, virtualServices []istioclientnetworking.VirtualService) ([]schema.APIResponse, error) {
+	realtimeAPIs := make([]schema.APIResponse, len(deployments))
+	mappedRealtimeAPIs := make(map[string]schema.APIResponse, len(deployments))
+	keys := make([]string, len(deployments))
+
+	for i := range deployments {
+		apiName := deployments[i].Labels["apiName"]
+		keys = append(keys, apiName)
+
+		metadata, err := spec.MetadataFromDeployment(&deployments[i])
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
+		}
+		mappedRealtimeAPIs[apiName] = schema.APIResponse{
+			Status:   status.StatusFromDeployment(&deployments[i]),
+			Metadata: metadata,
+		}
 	}
 
-	realtimeAPIs := make([]schema.APIResponse, len(statuses))
-
-	for i := range statuses {
-		var endpoint string
-		for _, deployment := range deployments {
-			if deployment.Labels["apiName"] == statuses[i].APIName {
-				endpoint, err = operator.APIEndpointFromPath(deployment.Annotations[userconfig.EndpointAnnotationKey])
-				if err != nil {
-					return nil, err
-				}
-				break
-			}
-		}
-
-		realtimeAPIs[i] = schema.APIResponse{
-			Status:   &statuses[i],
-			Endpoint: endpoint,
-		}
+	sort.Strings(keys)
+	for _, apiName := range keys {
+		realtimeAPIs = append(realtimeAPIs, mappedRealtimeAPIs[apiName])
 	}
 
 	return realtimeAPIs, nil
 }
 
-func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
-	apiNames := make([]string, len(statuses))
-	apiIDs := make([]string, len(statuses))
-
-	for i, st := range statuses {
-		apiNames[i] = st.APIName
-		apiIDs[i] = st.APIID
-	}
-
-	return apiNames, apiIDs
-}
-
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
-	st, err := GetStatus(deployedResource.Name)
+	deployment, err := config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
 	if err != nil {
 		return nil, err
 	}
 
-	api, err := operator.DownloadAPISpec(st.APIName, st.APIID)
+	if deployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find deployment", deployedResource.Name)
+	}
+
+	apiStatus := status.StatusFromDeployment(deployment)
+	apiMetadata, err := spec.MetadataFromDeployment(deployment)
+	if err != nil {
+		return nil, errors.ErrorUnexpected("unable to obtain metadata", deployedResource.Name)
+	}
+
+	api, err := operator.DownloadAPISpec(apiMetadata.Name, apiMetadata.APIID)
 	if err != nil {
 		return nil, err
 	}
@@ -237,8 +234,9 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	return []schema.APIResponse{
 		{
 			Spec:         api,
-			Status:       st,
-			Endpoint:     apiEndpoint,
+			Metadata:     apiMetadata,
+			Status:       apiStatus,
+			Endpoint:     &apiEndpoint,
 			DashboardURL: dashboardURL,
 		},
 	}, nil

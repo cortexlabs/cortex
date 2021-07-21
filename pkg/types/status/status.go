@@ -17,17 +17,13 @@ limitations under the License.
 package status
 
 import (
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
 )
 
 type Status struct {
-	APIName   string          `json:"api_name"`
-	APIKind   userconfig.Kind `json:"api_kind"`
-	APIID     string          `json:"api_id"`
-	Ready     int32           `json:"ready"`
-	Requested int32           `json:"requested"`
-	UpToDate  int32           `json:"up_to_date"`
+	Ready     int32 `json:"ready"`
+	Requested int32 `json:"requested"`
+	UpToDate  int32 `json:"up_to_date"`
 }
 
 type ReplicaCounts struct {
@@ -62,9 +58,6 @@ type WorkerCounts struct {
 
 func StatusFromDeployment(deployment *kapps.Deployment) *Status {
 	return &Status{
-		APIName:   deployment.Labels["apiName"],
-		APIKind:   userconfig.KindFromString(deployment.Labels["apiKind"]),
-		APIID:     deployment.Labels["apiID"],
 		Ready:     deployment.Status.ReadyReplicas,
 		Requested: deployment.Status.Replicas,
 		UpToDate:  deployment.Status.UpdatedReplicas,

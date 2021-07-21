@@ -17,17 +17,13 @@ limitations under the License.
 package asyncapi
 
 import (
-	"sort"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"github.com/cortexlabs/cortex/pkg/workloads"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 )
@@ -35,62 +31,6 @@ import (
 type asyncDeployments struct {
 	APIDeployment     *kapps.Deployment
 	GatewayDeployment *kapps.Deployment
-}
-
-func GetStatus(apiName string) (*status.Status, error) {
-	var apiDeployment *kapps.Deployment
-	var gatewayDeployment *kapps.Deployment
-
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			apiDeployment, err = config.K8s.GetDeployment(workloads.K8sName(apiName))
-			return err
-		},
-		func() error {
-			var err error
-			gatewayDeployment, err = config.K8s.GetDeployment(getGatewayK8sName(apiName))
-			return err
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if apiDeployment == nil {
-		return nil, errors.ErrorUnexpected("unable to find api deployment", apiName)
-	}
-
-	if gatewayDeployment == nil {
-		return nil, errors.ErrorUnexpected("unable to find gateway deployment", apiName)
-	}
-
-	return status.StatusFromDeployment(apiDeployment), nil
-}
-
-func GetAllStatuses(deployments []kapps.Deployment) ([]status.Status, error) {
-	deploymentsByAPI := groupDeploymentsByAPI(deployments)
-	statuses := make([]status.Status, len(deploymentsByAPI))
-
-	var i int
-	for apiName, k8sResources := range deploymentsByAPI {
-		if k8sResources.APIDeployment == nil {
-			return nil, errors.ErrorUnexpected("unable to find api deployment", apiName)
-		}
-
-		if k8sResources.GatewayDeployment == nil {
-			return nil, errors.ErrorUnexpected("unable to find gateway deployment", apiName)
-		}
-
-		statuses[i] = *status.StatusFromDeployment(k8sResources.APIDeployment)
-		i++
-	}
-
-	sort.Slice(statuses, func(i, j int) bool {
-		return statuses[i].APIName < statuses[j].APIName
-	})
-
-	return statuses, nil
 }
 
 // let's do CRDs instead, to avoid this

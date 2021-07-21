@@ -41,7 +41,9 @@ func asyncAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (stri
 		out += "\n" + console.Bold("metrics dashboard: ") + *asyncAPI.DashboardURL + "\n"
 	}
 
-	out += "\n" + console.Bold("endpoint: ") + asyncAPI.Endpoint + "\n"
+	if asyncAPI.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *asyncAPI.Endpoint + "\n"
+	}
 
 	out += "\n" + apiHistoryTable(asyncAPI.APIVersions)
 

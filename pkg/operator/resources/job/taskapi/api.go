@@ -174,7 +174,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 		taskAPIsMap[apiName] = &schema.APIResponse{
 			Spec:            api,
-			Endpoint:        endpoint,
+			Endpoint:        &endpoint,
 			TaskJobStatuses: jobStatuses,
 		}
 	}
@@ -297,7 +297,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		{
 			Spec:            api,
 			TaskJobStatuses: jobStatuses,
-			Endpoint:        endpoint,
+			Endpoint:        &endpoint,
 			DashboardURL:    dashboardURL,
 		},
 	}, nil

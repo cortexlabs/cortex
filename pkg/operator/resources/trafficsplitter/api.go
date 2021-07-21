@@ -159,7 +159,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 
 		trafficSplitters = append(trafficSplitters, schema.APIResponse{
 			Spec:     &trafficSplitter,
-			Endpoint: endpoint,
+			Endpoint: &endpoint,
 		})
 	}
 
@@ -181,7 +181,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	return []schema.APIResponse{
 		{
 			Spec:     api,
-			Endpoint: endpoint,
+			Endpoint: &endpoint,
 		},
 	}, nil
 }

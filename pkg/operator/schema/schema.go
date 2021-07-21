@@ -57,8 +57,9 @@ type DeployResult struct {
 
 type APIResponse struct {
 	Spec             *spec.API               `json:"spec,omitempty"`
+	Metadata         *spec.Metadata          `json:"metadata,omitempty"`
 	Status           *status.Status          `json:"status,omitempty"`
-	Endpoint         string                  `json:"endpoint"`
+	Endpoint         *string                 `json:"endpoint,omitempty"`
 	DashboardURL     *string                 `json:"dashboard_url,omitempty"`
 	BatchJobStatuses []status.BatchJobStatus `json:"batch_job_statuses,omitempty"`
 	TaskJobStatuses  []status.TaskJobStatus  `json:"task_job_statuses,omitempty"`

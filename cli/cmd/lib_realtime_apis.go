@@ -32,8 +32,9 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 	var out string
 
 	t := realtimeAPIsTable([]schema.APIResponse{realtimeAPI}, []string{env.Name})
-	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
-	t.FindHeaderByTitle(_titleRealtimeAPI).Hidden = true
+	// TODO decide on whether we want to keep this consistent with `cortex get` command
+	// t.FindHeaderByTitle(_titleEnvironment).Hidden = true
+	// t.FindHeaderByTitle(_titleRealtimeAPI).Hidden = true
 
 	out += t.MustFormat()
 
@@ -41,7 +42,9 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
 	}
 
-	out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint + "\n"
+	if realtimeAPI.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *realtimeAPI.Endpoint + "\n"
+	}
 
 	out += "\n" + apiHistoryTable(realtimeAPI.APIVersions)
 
@@ -58,10 +61,13 @@ func realtimeAPIsTable(realtimeAPIs []schema.APIResponse, envNames []string) tab
 	rows := make([][]interface{}, 0, len(realtimeAPIs))
 
 	for i, realtimeAPI := range realtimeAPIs {
-		lastUpdated := time.Unix(realtimeAPI.Spec.LastUpdated, 0)
+		if realtimeAPI.Metadata == nil || realtimeAPI.Status == nil {
+			continue
+		}
+		lastUpdated := time.Unix(realtimeAPI.Metadata.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
-			realtimeAPI.Status.APIName,
+			realtimeAPI.Metadata.Name,
 			fmt.Sprintf("%d/%d", realtimeAPI.Status.Ready, realtimeAPI.Status.Requested),
 			realtimeAPI.Status.UpToDate,
 			libtime.SinceStr(&lastUpdated),

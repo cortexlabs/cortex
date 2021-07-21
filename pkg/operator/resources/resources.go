@@ -159,7 +159,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*schema.APIResponse, stri
 
 		return &schema.APIResponse{
 			Spec:     api,
-			Endpoint: apiEndpoint,
+			Endpoint: &apiEndpoint,
 		}, msg, nil
 	}
 
@@ -256,7 +256,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 func GetAPIs() ([]schema.APIResponse, error) {
 	var deployments []kapps.Deployment
 	var k8sTaskJobs []kbatch.Job
-	var pods []kcore.Pod
+	var taskAPIPods []kcore.Pod
 	var virtualServices []istioclientnetworking.VirtualService
 	var batchJobList batch.BatchJobList
 
@@ -268,7 +268,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		},
 		func() error {
 			var err error
-			pods, err = config.K8s.ListPodsWithLabelKeys("apiName")
+			taskAPIPods, err = config.K8s.ListPodsByLabel("apiKind", userconfig.TaskAPIKind.String())
 			return err
 		},
 		func() error {
@@ -308,23 +308,18 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	var batchAPIPods []kcore.Pod
-	var taskAPIPods []kcore.Pod
-	for _, pod := range pods {
-		switch pod.Labels["apiKind"] {
-		case userconfig.BatchAPIKind.String():
-			batchAPIPods = append(batchAPIPods, pod)
-		case userconfig.TaskAPIKind.String():
-			taskAPIPods = append(taskAPIPods, pod)
-		}
-	}
-
+	var realtimeAPIVirtualServices []istioclientnetworking.VirtualService
+	var asyncAPIVirtualServices []istioclientnetworking.VirtualService
 	var batchAPIVirtualServices []istioclientnetworking.VirtualService
 	var taskAPIVirtualServices []istioclientnetworking.VirtualService
 	var trafficSplitterVirtualServices []istioclientnetworking.VirtualService
 
 	for _, vs := range virtualServices {
 		switch vs.Labels["apiKind"] {
+		case userconfig.RealtimeAPIKind.String():
+			realtimeAPIVirtualServices = append(realtimeAPIVirtualServices, vs)
+		case userconfig.AsyncAPIKind.String():
+			asyncAPIVirtualServices = append(asyncAPIVirtualServices, vs)
 		case userconfig.BatchAPIKind.String():
 			batchAPIVirtualServices = append(batchAPIVirtualServices, vs)
 		case userconfig.TrafficSplitterKind.String():
@@ -334,7 +329,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIDeployments)
+	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIDeployments, realtimeAPIVirtualServices)
 	if err != nil {
 		return nil, err
 	}
@@ -350,7 +345,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	asyncAPIList, err := asyncapi.GetAllAPIs(asyncAPIDeployments)
+	asyncAPIList, err := asyncapi.GetAllAPIs(asyncAPIDeployments, asyncAPIVirtualServices)
 	if err != nil {
 		return nil, err
 	}

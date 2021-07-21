@@ -17,45 +17,14 @@ limitations under the License.
 package realtimeapi
 
 import (
-	"sort"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/types/status"
-	"github.com/cortexlabs/cortex/pkg/workloads"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 )
-
-func GetStatus(apiName string) (*status.Status, error) {
-	var err error
-	deployment, err := config.K8s.GetDeployment(workloads.K8sName(apiName))
-	if err != nil {
-		return nil, err
-	}
-
-	if deployment == nil {
-		return nil, errors.ErrorUnexpected("unable to find deployment", apiName)
-	}
-
-	return status.StatusFromDeployment(deployment), nil
-}
-
-func GetAllStatuses(deployments []kapps.Deployment) ([]status.Status, error) {
-	statuses := make([]status.Status, len(deployments))
-	for i := range deployments {
-		statuses[i] = *status.StatusFromDeployment(&deployments[i])
-	}
-
-	sort.Slice(statuses, func(i, j int) bool {
-		return statuses[i].APIName < statuses[j].APIName
-	})
-
-	return statuses, nil
-}
 
 func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) status.ReplicaCounts {
 	counts := status.ReplicaCounts{}

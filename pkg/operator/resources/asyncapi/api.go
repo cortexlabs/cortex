@@ -19,6 +19,7 @@ package asyncapi
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -31,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -249,13 +251,77 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
+func GetAllAPIs(deployments []kapps.Deployment, virtualServices []istioclientnetworking.VirtualService) ([]schema.APIResponse, error) {
+	asyncAPIs := make([]schema.APIResponse, len(deployments))
+	mappedAsyncAPIs := make(map[string]schema.APIResponse, len(deployments))
+	keys := make([]string, len(deployments))
+
+	for i := range deployments {
+		apiName := deployments[i].Labels["apiName"]
+		keys = append(keys, apiName)
+
+		metadata, err := spec.MetadataFromDeployment(&deployments[i])
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
+		}
+		mappedAsyncAPIs[apiName] = schema.APIResponse{
+			Status:   status.StatusFromDeployment(&deployments[i]),
+			Metadata: metadata,
+		}
+	}
+
+	sort.Strings(keys)
+	for _, apiName := range keys {
+		asyncAPIs = append(asyncAPIs, mappedAsyncAPIs[apiName])
+	}
+
+	return asyncAPIs, nil
+}
+
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
-	status, err := GetStatus(deployedResource.Name)
+	var apiDeployment *kapps.Deployment
+	var gatewayDeployment *kapps.Deployment
+
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			apiDeployment, err = config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
+			return err
+		},
+		func() error {
+			var err error
+			gatewayDeployment, err = config.K8s.GetDeployment(getGatewayK8sName(deployedResource.Name))
+			return err
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
+	if apiDeployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find api deployment", deployedResource.Name)
+	}
+
+	if gatewayDeployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find gateway deployment", deployedResource.Name)
+	}
+
+	deployment, err := config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
+	if err != nil {
+		return nil, err
+	}
+
+	if deployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find deployment", deployedResource.Name)
+	}
+
+	apiStatus := status.StatusFromDeployment(deployment)
+	apiMetadata, err := spec.MetadataFromDeployment(deployment)
+	if err != nil {
+		return nil, errors.ErrorUnexpected("unable to obtain metadata", deployedResource.Name)
+	}
+
+	api, err := operator.DownloadAPISpec(apiMetadata.Name, apiMetadata.APIID)
 	if err != nil {
 		return nil, err
 	}
@@ -270,40 +336,12 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	return []schema.APIResponse{
 		{
 			Spec:         api,
-			Status:       status,
-			Endpoint:     apiEndpoint,
+			Metadata:     apiMetadata,
+			Status:       apiStatus,
+			Endpoint:     &apiEndpoint,
 			DashboardURL: dashboardURL,
 		},
 	}, nil
-}
-
-func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
-	statuses, err := GetAllStatuses(deployments)
-	if err != nil {
-		return nil, err
-	}
-
-	asyncAPIs := make([]schema.APIResponse, len(statuses))
-
-	for i := range statuses {
-		var endpoint string
-		for _, deployment := range deployments {
-			if deployment.Labels["apiName"] == statuses[i].APIName {
-				endpoint, err = operator.APIEndpointFromPath(deployment.Annotations[userconfig.EndpointAnnotationKey])
-				if err != nil {
-					return nil, err
-				}
-				break
-			}
-		}
-
-		asyncAPIs[i] = schema.APIResponse{
-			Status:   &statuses[i],
-			Endpoint: endpoint,
-		}
-	}
-
-	return asyncAPIs, nil
 }
 
 func UpdateAPIMetricsCron(apiDeployment *kapps.Deployment) error {

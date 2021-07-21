@@ -50,7 +50,10 @@ func trafficSplitterTable(trafficSplitter schema.APIResponse, env cliconfig.Envi
 	out += t.MustFormat()
 
 	out += "\n" + console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated)
-	out += "\n" + console.Bold("endpoint: ") + trafficSplitter.Endpoint + "\n"
+
+	if trafficSplitter.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *trafficSplitter.Endpoint + "\n"
+	}
 
 	out += "\n" + apiHistoryTable(trafficSplitter.APIVersions)
 
