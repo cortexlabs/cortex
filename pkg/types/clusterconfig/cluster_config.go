@@ -663,7 +663,7 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "VPCCIDR",
 		StringPtrValidation: &cr.StringPtrValidation{
-			Validator: validateCIDR,
+			Validator: validateVPCCIDR,
 		},
 	},
 }
@@ -1470,6 +1470,15 @@ func (ng *NodeGroup) FillEmptySpotFields(region string) {
 }
 
 func validateCIDR(cidr string) (string, error) {
+	_, _, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	return cidr, nil
+}
+
+func validateVPCCIDR(cidr string) (string, error) {
 	_, network, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return "", errors.WithStack(err)
