@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
 )
 
@@ -66,6 +67,22 @@ func MetadataFromDeployment(deployment *kapps.Deployment) (*Metadata, error) {
 		},
 		APIID:        deployment.Labels["apiID"],
 		DeploymentID: deployment.Labels["deploymentID"],
+		LastUpdated:  lastUpdated.Unix(),
+	}, nil
+}
+
+func MetadataFromVirtualService(vs *istioclientnetworking.VirtualService) (*Metadata, error) {
+	lastUpdated, err := TimeFromAPIID(vs.Labels["apiID"])
+	if err != nil {
+		return nil, err
+	}
+	return &Metadata{
+		Resource: &userconfig.Resource{
+			Name: vs.Labels["apiName"],
+			Kind: userconfig.KindFromString(vs.Labels["apiKind"]),
+		},
+		APIID:        vs.Labels["apiID"],
+		DeploymentID: vs.Labels["deploymentID"],
 		LastUpdated:  lastUpdated.Unix(),
 	}, nil
 }

@@ -147,20 +147,12 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	}
 
 	for _, virtualService := range virtualServices {
-		apiName := virtualService.Labels["apiName"]
-		apiID := virtualService.Labels["apiID"]
-
-		api, err := operator.DownloadAPISpec(apiName, apiID)
+		metadata, err := spec.MetadataFromVirtualService(&virtualService)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", metadata.Name))
 		}
 
-		endpoint, err := operator.APIEndpoint(api)
-		if err != nil {
-			return nil, err
-		}
-
-		jobStates, err := job.GetMostRecentlySubmittedJobStates(apiName, 1, userconfig.TaskAPIKind)
+		jobStates, err := job.GetMostRecentlySubmittedJobStates(metadata.Name, 1, userconfig.TaskAPIKind)
 
 		jobStatuses := []status.TaskJobStatus{}
 		if len(jobStates) > 0 {
@@ -172,9 +164,8 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 			jobStatuses = append(jobStatuses, *jobStatus)
 		}
 
-		taskAPIsMap[apiName] = &schema.APIResponse{
-			Spec:            api,
-			Endpoint:        &endpoint,
+		taskAPIsMap[metadata.Name] = &schema.APIResponse{
+			Metadata:        metadata,
 			TaskJobStatuses: jobStatuses,
 		}
 	}
@@ -209,8 +200,8 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 	taskAPIList := make([]schema.APIResponse, 0, len(taskAPIsMap))
 
-	for _, batchAPI := range taskAPIsMap {
-		taskAPIList = append(taskAPIList, *batchAPI)
+	for _, taskAPI := range taskAPIsMap {
+		taskAPIList = append(taskAPIList, *taskAPI)
 	}
 
 	return taskAPIList, nil

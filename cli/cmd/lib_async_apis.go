@@ -60,10 +60,13 @@ func asyncAPIsTable(asyncAPIs []schema.APIResponse, envNames []string) table.Tab
 	rows := make([][]interface{}, 0, len(asyncAPIs))
 
 	for i, asyncAPI := range asyncAPIs {
-		lastUpdated := time.Unix(asyncAPI.Spec.LastUpdated, 0)
+		if asyncAPI.Metadata == nil || asyncAPI.Status == nil {
+			continue
+		}
+		lastUpdated := time.Unix(asyncAPI.Metadata.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
-			asyncAPI.Spec.Name,
+			asyncAPI.Metadata.Name,
 			fmt.Sprintf("%d/%d", asyncAPI.Status.Ready, asyncAPI.Status.Requested),
 			asyncAPI.Status.UpToDate,
 			libtime.SinceStr(&lastUpdated),

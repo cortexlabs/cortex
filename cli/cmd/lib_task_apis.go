@@ -41,7 +41,10 @@ func taskAPIsTable(taskAPIs []schema.APIResponse, envNames []string) table.Table
 	rows := make([][]interface{}, 0, len(taskAPIs))
 
 	for i, taskAPI := range taskAPIs {
-		lastAPIUpdated := time.Unix(taskAPI.Spec.LastUpdated, 0)
+		if taskAPI.Metadata == nil {
+			continue
+		}
+		lastAPIUpdated := time.Unix(taskAPI.Metadata.LastUpdated, 0)
 		latestStartTime := time.Time{}
 		latestJobID := "-"
 		runningJobs := 0
@@ -59,7 +62,7 @@ func taskAPIsTable(taskAPIs []schema.APIResponse, envNames []string) table.Table
 
 		rows = append(rows, []interface{}{
 			envNames[i],
-			taskAPI.Spec.Name,
+			taskAPI.Metadata.Name,
 			runningJobs,
 			latestJobID,
 			libtime.SinceStr(&lastAPIUpdated),

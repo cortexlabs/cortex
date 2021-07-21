@@ -257,6 +257,9 @@ func GetAllAPIs(deployments []kapps.Deployment, virtualServices []istioclientnet
 	keys := make([]string, len(deployments))
 
 	for i := range deployments {
+		if deployments[i].Labels["cortex.dev/async"] != "api" {
+			continue
+		}
 		apiName := deployments[i].Labels["apiName"]
 		keys = append(keys, apiName)
 
