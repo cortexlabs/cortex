@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
@@ -60,26 +61,107 @@ func (r *RealtimeAPIReconciler) getDeployment(ctx context.Context, api serverles
 }
 
 func (r *RealtimeAPIReconciler) updateStatus(ctx context.Context, api *serverless.RealtimeAPI, deployment *kapps.Deployment) error {
-	apiStatus := status.Pending
-	api.Status.Status = apiStatus // FIXME: handle other status
-
-	endpoint, err := r.getEndpoint(ctx, api)
+	var err error
+	api.Status.Endpoint, err = r.getEndpoint(ctx, api)
 	if err != nil {
 		return errors.Wrap(err, "failed to get api endpoint")
 	}
 
-	api.Status.Endpoint = endpoint
+	apiStatus := status.Pending
+	api.Status.ReplicaCounts = status.ReplicaCounts{}
 	if deployment != nil {
-		api.Status.DesiredReplicas = *deployment.Spec.Replicas
-		api.Status.CurrentReplicas = deployment.Status.Replicas
-		api.Status.ReadyReplicas = deployment.Status.ReadyReplicas
+		if deployment.Status.ReadyReplicas == api.Spec.Pod.Replicas {
+			apiStatus = status.Live
+			api.Status.ReplicaCounts.Updated.Ready = deployment.Status.ReadyReplicas
+			// TODO: handle out of date (?)
+		} else {
+			if err = r.getReplicaCounts(ctx, api); err != nil {
+				return err
+			}
+			apiStatus = r.getStatusCode(api)
+		}
 	}
 
+	api.Status.Status = apiStatus
 	if err = r.Status().Update(ctx, api); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (r *RealtimeAPIReconciler) getReplicaCounts(ctx context.Context, api *serverless.RealtimeAPI) error {
+	var podList kcore.PodList
+	if err := r.List(ctx, &podList, client.MatchingLabels{
+		"apiName":      api.Name,
+		"apiKind":      userconfig.RealtimeAPIKind.String(),
+		"deploymentID": api.Annotations["cortex.dev/deployment-id"],
+	}); err != nil {
+		return err
+	}
+	for i := range podList.Items {
+		pod := &podList.Items[i]
+		if k8s.IsPodReady(pod) {
+			api.Status.ReplicaCounts.Updated.Ready++
+			continue
+		}
+
+		switch k8s.GetPodStatus(pod) {
+		case k8s.PodStatusPending:
+			if time.Since(pod.CreationTimestamp.Time) > consts.WaitForInitializingReplicasTimeout {
+				api.Status.ReplicaCounts.Updated.Stalled++
+			} else {
+				api.Status.ReplicaCounts.Updated.Pending++
+			}
+		case k8s.PodStatusInitializing:
+			api.Status.ReplicaCounts.Updated.Initializing++
+		case k8s.PodStatusRunning:
+			api.Status.ReplicaCounts.Updated.Initializing++
+		case k8s.PodStatusErrImagePull:
+			api.Status.ReplicaCounts.Updated.ErrImagePull++
+		case k8s.PodStatusTerminating:
+			api.Status.ReplicaCounts.Updated.Terminating++
+		case k8s.PodStatusFailed:
+			api.Status.ReplicaCounts.Updated.Failed++
+		case k8s.PodStatusKilled:
+			api.Status.ReplicaCounts.Updated.Killed++
+		case k8s.PodStatusKilledOOM:
+			api.Status.ReplicaCounts.Updated.KilledOOM++
+		default:
+			api.Status.ReplicaCounts.Updated.Unknown++
+		}
+	}
+
+	return nil
+}
+
+func (r *RealtimeAPIReconciler) getStatusCode(api *serverless.RealtimeAPI) status.Code {
+	counts := api.Status.ReplicaCounts
+	if counts.Updated.Ready >= api.Spec.Pod.Replicas {
+		return status.Live
+	}
+
+	if counts.Updated.ErrImagePull > 0 {
+		return status.ErrorImagePull
+	}
+
+	if counts.Updated.Failed > 0 || counts.Updated.Killed > 0 {
+		return status.Error
+	}
+
+	if counts.Updated.KilledOOM > 0 {
+		return status.OOM
+	}
+
+	if counts.Updated.Stalled > 0 {
+		return status.Stalled
+	}
+
+	if counts.Updated.Ready >= api.Spec.Autoscaling.MinReplicas {
+		return status.Live
+	}
+
+	return status.Updating
 }
 
 func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, api serverless.RealtimeAPI) (controllerutil.OperationResult, error) {
