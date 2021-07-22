@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -141,9 +142,19 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
 
+		targets, err := userconfig.TrafficSplitterTargetsFromAnnotations(&virtualService)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
+		}
+
 		if metadata.Kind == userconfig.TrafficSplitterKind {
 			trafficSplitters = append(trafficSplitters, schema.APIResponse{
 				Metadata: metadata,
+				Status: &status.Status{
+					Ready:     targets,
+					Requested: targets,
+					UpToDate:  targets,
+				},
 			})
 		}
 	}

@@ -155,6 +155,10 @@ func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 func (api *API) ToK8sAnnotations() map[string]string {
 	annotations := map[string]string{}
 
+	if len(api.APIs) > 0 {
+		annotations[NumberOfTrafficSplitterTargets] = s.Int32(int32(len(api.APIs)))
+	}
+
 	if api.Pod != nil && api.Kind == RealtimeAPIKind {
 		annotations[MaxConcurrencyAnnotationKey] = s.Int64(api.Pod.MaxConcurrency)
 		annotations[MaxQueueLengthAnnotationKey] = s.Int64(api.Pod.MaxQueueLength)
@@ -243,6 +247,14 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 	a.UpscaleTolerance = upscaleTolerance
 
 	return &a, nil
+}
+
+func TrafficSplitterTargetsFromAnnotations(k8sObj kmeta.Object) (int32, error) {
+	targets, err := k8s.ParseInt32Annotation(k8sObj, NumberOfTrafficSplitterTargets)
+	if err != nil {
+		return 0, err
+	}
+	return targets, nil
 }
 
 func (api *API) UserStr() string {

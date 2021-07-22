@@ -45,7 +45,6 @@ func trafficSplitterTable(trafficSplitter schema.APIResponse, env cliconfig.Envi
 	if err != nil {
 		return "", err
 	}
-	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
 	out += t.MustFormat()
 
@@ -111,23 +110,14 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 func trafficSplitterListTable(trafficSplitter []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(trafficSplitter))
 	for i, splitAPI := range trafficSplitter {
-		if splitAPI.Metadata == nil || splitAPI.Spec == nil {
+		if splitAPI.Metadata == nil || splitAPI.Status == nil {
 			continue
 		}
 		lastUpdated := time.Unix(splitAPI.Metadata.LastUpdated, 0)
-		var apis []string
-		for _, api := range splitAPI.Spec.APIs {
-			apiName := api.Name
-			if api.Shadow {
-				apiName += " (shadow)"
-			}
-			apis = append(apis, apiName+":"+s.Int32(api.Weight))
-		}
-		apisStr := s.TruncateEllipses(strings.Join(apis, " "), 50)
 		rows = append(rows, []interface{}{
 			envNames[i],
 			splitAPI.Metadata.Name,
-			apisStr,
+			s.Int32(splitAPI.Status.Ready),
 			libtime.SinceStr(&lastUpdated),
 		})
 	}

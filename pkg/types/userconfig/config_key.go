@@ -91,6 +91,7 @@ const (
 	EndpointAnnotationKey                     = "networking.cortex.dev/endpoint"
 	MaxConcurrencyAnnotationKey               = "pod.cortex.dev/max-concurrency"
 	MaxQueueLengthAnnotationKey               = "pod.cortex.dev/max-queue-length"
+	NumberOfTrafficSplitterTargets            = "apis.cortex.dev/traffic-splitter-targets"
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"
 	MaxReplicasAnnotationKey                  = "autoscaling.cortex.dev/max-replicas"
 	TargetInFlightAnnotationKey               = "autoscaling.cortex.dev/target-in-flight"

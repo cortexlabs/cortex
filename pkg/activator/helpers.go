@@ -66,6 +66,7 @@ func getAPIMeta(obj interface{}) (apiMeta, error) {
 	}, nil
 }
 
+// TODO move this out of here
 func concurrencyFromAnnotations(annotations map[string]string) (int, int, error) {
 	maxQueueLength, err := strconv.Atoi(annotations[userconfig.MaxQueueLengthAnnotationKey])
 	if err != nil {
