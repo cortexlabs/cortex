@@ -17,10 +17,10 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.replicas
+    - jsonPath: .spec.pod.replicas
       name: Replicas
       type: integer
-    - jsonPath: .status.ready_replicas
+    - jsonPath: .status.replica_counts.updated.ready
       name: Ready
       type: integer
     - jsonPath: .status.status
@@ -619,23 +619,90 @@ spec:
           status:
             description: RealtimeAPIStatus defines the observed state of RealtimeAPI
             properties:
-              current_replicas:
-                format: int32
-                type: integer
-              desired_replicas:
-                format: int32
-                type: integer
               endpoint:
                 type: string
-              ready_replicas:
-                format: int32
-                type: integer
+              replica_counts:
+                properties:
+                  requested:
+                    format: int32
+                    type: integer
+                  stale:
+                    properties:
+                      err_image_pull:
+                        format: int32
+                        type: integer
+                      failed:
+                        format: int32
+                        type: integer
+                      initializing:
+                        format: int32
+                        type: integer
+                      killed:
+                        format: int32
+                        type: integer
+                      killed_oom:
+                        format: int32
+                        type: integer
+                      not_ready:
+                        format: int32
+                        type: integer
+                      pending:
+                        format: int32
+                        type: integer
+                      ready:
+                        format: int32
+                        type: integer
+                      stalled:
+                        format: int32
+                        type: integer
+                      terminating:
+                        format: int32
+                        type: integer
+                      unknown:
+                        format: int32
+                        type: integer
+                    type: object
+                  updated:
+                    properties:
+                      err_image_pull:
+                        format: int32
+                        type: integer
+                      failed:
+                        format: int32
+                        type: integer
+                      initializing:
+                        format: int32
+                        type: integer
+                      killed:
+                        format: int32
+                        type: integer
+                      killed_oom:
+                        format: int32
+                        type: integer
+                      not_ready:
+                        format: int32
+                        type: integer
+                      pending:
+                        format: int32
+                        type: integer
+                      ready:
+                        format: int32
+                        type: integer
+                      stalled:
+                        format: int32
+                        type: integer
+                      terminating:
+                        format: int32
+                        type: integer
+                      unknown:
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
               status:
                 type: string
             required:
-            - current_replicas
-            - desired_replicas
-            - ready_replicas
+            - replica_counts
             - status
             type: object
         type: object

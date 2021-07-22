@@ -211,17 +211,15 @@ type NetworkingSpec struct {
 // RealtimeAPIStatus defines the observed state of RealtimeAPI
 type RealtimeAPIStatus struct {
 	// +kubebuilder:validation:Type=string
-	Status          status.Code `json:"status"`
-	DesiredReplicas int32       `json:"desired_replicas"`
-	CurrentReplicas int32       `json:"current_replicas"`
-	ReadyReplicas   int32       `json:"ready_replicas"`
-	Endpoint        string      `json:"endpoint,omitempty"`
+	Status        status.Code          `json:"status"`
+	ReplicaCounts status.ReplicaCounts `json:"replica_counts"`
+	Endpoint      string               `json:"endpoint,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:JSONPath=".spec.replicas",name="Replicas",type="integer"
-//+kubebuilder:printcolumn:JSONPath=".status.ready_replicas",name="Ready",type="integer"
+//+kubebuilder:printcolumn:JSONPath=".spec.pod.replicas",name="Replicas",type="integer"
+//+kubebuilder:printcolumn:JSONPath=".status.replica_counts.updated.ready",name="Ready",type="integer"
 //+kubebuilder:printcolumn:JSONPath=".status.status",name="Status",type="string"
 //+kubebuilder:printcolumn:JSONPath=".status.endpoint",name="Endpoint",type="string"
 

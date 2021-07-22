@@ -24,22 +24,23 @@ type Status struct {
 }
 
 type ReplicaCounts struct {
-	Updated   SubReplicaCounts `json:"updated"`
-	Stale     SubReplicaCounts `json:"stale"`
-	Requested int32            `json:"requested"`
+	Updated   SubReplicaCounts `json:"updated,omitempty"`
+	Stale     SubReplicaCounts `json:"stale,omitempty"`
+	Requested int32            `json:"requested,omitempty"`
 }
 
 type SubReplicaCounts struct {
-	Pending      int32 `json:"pending"`
-	Initializing int32 `json:"initializing"`
+	Pending      int32 `json:"pending,omitempty"`
+	Initializing int32 `json:"initializing,omitempty"`
 	Ready        int32 `json:"ready"`
-	ErrImagePull int32 `json:"err_image_pull"`
-	Terminating  int32 `json:"terminating"`
-	Failed       int32 `json:"failed"`
-	Killed       int32 `json:"killed"`
-	KilledOOM    int32 `json:"killed_oom"`
-	Stalled      int32 `json:"stalled"` // pending for a long time
-	Unknown      int32 `json:"unknown"`
+	NotReady     int32 `json:"not_ready,omitempty"`
+	ErrImagePull int32 `json:"err_image_pull,omitempty"`
+	Terminating  int32 `json:"terminating,omitempty"`
+	Failed       int32 `json:"failed,omitempty"`
+	Killed       int32 `json:"killed,omitempty"`
+	KilledOOM    int32 `json:"killed_oom,omitempty"`
+	Stalled      int32 `json:"stalled,omitempty"` // pending for a long time
+	Unknown      int32 `json:"unknown,omitempty"`
 }
 
 // Worker counts don't have as many failure variations because Jobs clean up dead pods, so counting different failure scenarios isn't interesting

@@ -31,14 +31,14 @@ const (
 )
 
 var _codes = []string{
-	"status_unknown",
-	"status_pending",
-	"status_stalled",
-	"status_error",
-	"status_error_image_pull",
-	"status_oom",
-	"status_live",
-	"status_updating",
+	"unknown",
+	"pending",
+	"stalled",
+	"error",
+	"error_image_pull",
+	"oom",
+	"live",
+	"updating",
 }
 
 var _ = [1]int{}[int(Updating)-(len(_codes)-1)] // Ensure list length matches
