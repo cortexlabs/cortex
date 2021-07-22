@@ -85,13 +85,27 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Step 3: Get or create deployment and API ids
-	deploymentID, apiID := r.getOrCreateAPIIDs(api)
-	if api.Annotations["cortex.dev/deployment-id"] == "" ||
-		api.Annotations["cortex.dev/api-id"] == "" {
+	deploymentID, specID, apiID := r.getOrCreateAPIIDs(api)
+	idsOutdated := api.Annotations["cortex.dev/deployment-id"] != deploymentID ||
+		api.Annotations["cortex.dev/spec-id"] != specID ||
+		api.Annotations["cortex.dev/api-id"] != apiID
 
-		log.V(1).Info("creating api and deployment id annotations")
+	if api.Annotations["cortex.dev/deployment-id"] != deploymentID {
+		log.V(1).Info("updating deployment id annotation")
 		api.Annotations["cortex.dev/deployment-id"] = deploymentID
+	}
+
+	if api.Annotations["cortex.dev/spec-id"] != specID {
+		log.V(1).Info("updating spec id annotation")
+		api.Annotations["cortex.dev/spec-id"] = specID
+	}
+
+	if api.Annotations["cortex.dev/api-id"] != apiID {
+		log.V(1).Info("updating api id annotation")
 		api.Annotations["cortex.dev/api-id"] = apiID
+	}
+
+	if idsOutdated {
 		if err = r.Update(ctx, &api); err != nil {
 			return ctrl.Result{}, err
 		}

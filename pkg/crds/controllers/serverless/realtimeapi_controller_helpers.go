@@ -261,7 +261,7 @@ func (r *RealtimeAPIReconciler) getEndpoint(ctx context.Context, api *serverless
 
 func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) kapps.Deployment {
 	containers, volumes := r.desiredContainers(api)
-	deploymentID, apiID := r.getOrCreateAPIIDs(api)
+	deploymentID, _, apiID := r.getOrCreateAPIIDs(api)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),
@@ -339,7 +339,7 @@ func (r *RealtimeAPIReconciler) desiredVirtualService(api serverless.RealtimeAPI
 		activatorWeight = 100
 	}
 
-	deploymentID, apiID := r.getOrCreateAPIIDs(api)
+	deploymentID, _, apiID := r.getOrCreateAPIIDs(api)
 
 	return *k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:     workloads.K8sName(api.Name),
@@ -524,29 +524,35 @@ func (r *RealtimeAPIReconciler) proxyContainer(api serverless.RealtimeAPI) (kcor
 	}, workloads.ClusterConfigVolume()
 }
 
-func (r *RealtimeAPIReconciler) getOrCreateAPIIDs(api serverless.RealtimeAPI) (deploymentID string, apiID string) {
+func (r *RealtimeAPIReconciler) getOrCreateAPIIDs(api serverless.RealtimeAPI) (deploymentID string, specID string, apiID string) {
 	deploymentID = api.Annotations["cortex.dev/deployment-id"]
 	if deploymentID == "" {
 		deploymentID = k8s.RandomName()[:10]
 	}
 
-	apiID = api.Annotations["cortex.dev/api-id"]
-	if apiID == "" {
-		var buf bytes.Buffer
+	specID = r.getSpecHash(api)
 
-		buf.WriteString(api.Name)
-		buf.WriteString(s.Obj(api.TypeMeta))
-		buf.WriteString(s.Obj(api.Spec.Pod))
-		buf.WriteString(s.Obj(api.Spec.Networking))
-		buf.WriteString(s.Obj(api.Spec.Autoscaling))
-		buf.WriteString(s.Obj(api.Spec.NodeGroups))
-		buf.WriteString(s.Obj(api.Spec.UpdateStrategy))
-		specID := hash.Bytes(buf.Bytes())[:32]
+	apiID = api.Annotations["cortex.dev/api-id"]
+	if apiID == "" ||
+		api.Annotations["cortex.dev/deployment-id"] != deploymentID ||
+		api.Annotations["cortex.dev/spec-id"] != specID {
 
 		apiID = fmt.Sprintf("%s-%s-%s", spec.MonotonicallyDecreasingID(), deploymentID, specID)
 	}
 
-	return deploymentID, apiID
+	return deploymentID, specID, apiID
+}
+
+func (r *RealtimeAPIReconciler) getSpecHash(api serverless.RealtimeAPI) string {
+	var buf bytes.Buffer
+	buf.WriteString(api.Name)
+	buf.WriteString(s.Obj(api.TypeMeta))
+	buf.WriteString(s.Obj(api.Spec.Pod))
+	buf.WriteString(s.Obj(api.Spec.Networking))
+	buf.WriteString(s.Obj(api.Spec.Autoscaling))
+	buf.WriteString(s.Obj(api.Spec.NodeGroups))
+	buf.WriteString(s.Obj(api.Spec.UpdateStrategy))
+	return hash.Bytes(buf.Bytes())[:32]
 }
 
 func (r *RealtimeAPIReconciler) generateAPIAnnotations(api serverless.RealtimeAPI) map[string]string {
