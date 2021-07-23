@@ -66,7 +66,7 @@ node_groups:
 
 ### Considerations for large clusters
 
-If you plan on scaling your Cortex cluster past 400 nodes or 800 pods, it is recommended to set `prometheus_instance_type` to a larger instance type. A good guideline is that a t3.medium instance can reliably handle 400 nodes and 800 pods.
+If you plan on scaling your Cortex cluster past 300 nodes or 300 pods, it is recommended to set `prometheus_instance_type` to an instance type with more memory (the default is `t3.medium`, which has 4gb).
 
 ## API Spec
 
