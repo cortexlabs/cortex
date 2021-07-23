@@ -222,8 +222,8 @@ func getBatchJob(env cliconfig.Environment, apiName string, jobID string) (strin
 			t := table.Table{
 				Headers: []table.Header{
 					{Title: "Requested"},
-					{Title: "Pending", Hidden: job.WorkerCounts.Pending == 0},
-					{Title: "Creating", Hidden: job.WorkerCounts.Creating == 0},
+					{Title: "Pending"},
+					{Title: "Creating"},
 					{Title: "Ready"},
 					{Title: "NotReady"},
 					{Title: "ErrImagePull", Hidden: job.WorkerCounts.ErrImagePull == 0},

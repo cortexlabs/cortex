@@ -190,7 +190,7 @@ func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
 			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
 		mappedRealtimeAPIs[apiName] = schema.APIResponse{
-			Status:   status.StatusFromDeployment(&deployments[i]),
+			Status:   status.FromDeployment(&deployments[i]),
 			Metadata: metadata,
 		}
 	}
@@ -213,7 +213,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, errors.ErrorUnexpected("unable to find deployment", deployedResource.Name)
 	}
 
-	apiStatus := status.StatusFromDeployment(deployment)
+	apiStatus := status.FromDeployment(deployment)
 	apiMetadata, err := spec.MetadataFromDeployment(deployment)
 	if err != nil {
 		return nil, errors.ErrorUnexpected("unable to obtain metadata", deployedResource.Name)
@@ -252,7 +252,7 @@ func DescribeAPIByName(deployedResource *operator.DeployedResource) ([]schema.AP
 		return nil, errors.ErrorUnexpected("unable to find deployment", deployedResource.Name)
 	}
 
-	apiStatus := status.StatusFromDeployment(deployment)
+	apiStatus := status.FromDeployment(deployment)
 	apiMetadata, err := spec.MetadataFromDeployment(deployment)
 	if err != nil {
 		return nil, errors.ErrorUnexpected("unable to obtain metadata", deployedResource.Name)

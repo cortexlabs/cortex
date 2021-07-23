@@ -146,10 +146,10 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		}
 	}
 
-	for _, virtualService := range virtualServices {
-		apiName := virtualService.Labels["apiName"]
+	for i := range virtualServices {
+		apiName := virtualServices[i].Labels["apiName"]
 
-		metadata, err := spec.MetadataFromVirtualService(&virtualService)
+		metadata, err := spec.MetadataFromVirtualService(&virtualServices[i])
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}

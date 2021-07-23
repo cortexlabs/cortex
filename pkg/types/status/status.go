@@ -85,7 +85,7 @@ type WorkerCounts struct {
 	Unknown      int32 `json:"unknown,omitempty"`
 }
 
-func StatusFromDeployment(deployment *kapps.Deployment) *Status {
+func FromDeployment(deployment *kapps.Deployment) *Status {
 	return &Status{
 		Ready:     deployment.Status.ReadyReplicas,
 		Requested: deployment.Status.Replicas,

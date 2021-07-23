@@ -59,12 +59,6 @@ type resources struct {
 	gatewayVirtualService *istioclientnetworking.VirtualService
 }
 
-// TODO remove this
-type asyncDeployments struct {
-	APIDeployment     *kapps.Deployment
-	GatewayDeployment *kapps.Deployment
-}
-
 func getGatewayK8sName(apiName string) string {
 	return "gateway-" + apiName
 }
@@ -274,7 +268,7 @@ func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
 			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
 		mappedAsyncAPIs[apiName] = schema.APIResponse{
-			Status:   status.StatusFromDeployment(&deployments[i]),
+			Status:   status.FromDeployment(&deployments[i]),
 			Metadata: metadata,
 		}
 	}
@@ -315,7 +309,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, errors.ErrorUnexpected("unable to find gateway deployment", deployedResource.Name)
 	}
 
-	apiStatus := status.StatusFromDeployment(apiDeployment)
+	apiStatus := status.FromDeployment(apiDeployment)
 	apiMetadata, err := spec.MetadataFromDeployment(apiDeployment)
 	if err != nil {
 		return nil, errors.ErrorUnexpected("unable to obtain metadata", deployedResource.Name)
@@ -372,7 +366,7 @@ func DescribeAPIByName(deployedResource *operator.DeployedResource) ([]schema.AP
 		return nil, errors.ErrorUnexpected("unable to find gateway deployment", deployedResource.Name)
 	}
 
-	apiStatus := status.StatusFromDeployment(apiDeployment)
+	apiStatus := status.FromDeployment(apiDeployment)
 	apiMetadata, err := spec.MetadataFromDeployment(apiDeployment)
 	if err != nil {
 		return nil, errors.ErrorUnexpected("unable to obtain metadata", deployedResource.Name)
@@ -639,31 +633,6 @@ func deleteK8sResources(apiName string) error {
 	)
 
 	return err
-}
-
-// let's do CRDs instead, to avoid this
-func groupDeploymentsByAPI(deployments []kapps.Deployment) map[string]*asyncDeployments {
-	deploymentsByAPI := map[string]*asyncDeployments{}
-	for i := range deployments {
-		deployment := deployments[i]
-		apiName := deployment.Labels["apiName"]
-		asyncType := deployment.Labels["cortex.dev/async"]
-		apiResources, exists := deploymentsByAPI[apiName]
-		if exists {
-			if asyncType == "api" {
-				apiResources.APIDeployment = &deployment
-			} else {
-				apiResources.GatewayDeployment = &deployment
-			}
-		} else {
-			if asyncType == "api" {
-				deploymentsByAPI[apiName] = &asyncDeployments{APIDeployment: &deployment}
-			} else {
-				deploymentsByAPI[apiName] = &asyncDeployments{GatewayDeployment: &deployment}
-			}
-		}
-	}
-	return deploymentsByAPI
 }
 
 // returns true if min_replicas are not ready and no updated replicas have errored

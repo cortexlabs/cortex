@@ -53,6 +53,10 @@ func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts 
 		return
 	}
 
+	if !latest {
+		return
+	}
+
 	switch k8s.GetPodStatus(pod) {
 	case k8s.PodStatusPending:
 		counts.Pending++
@@ -62,6 +66,8 @@ func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts 
 		counts.Creating++
 	case k8s.PodStatusReady:
 		counts.Creating++
+	case k8s.PodStatusNotReady:
+		counts.NotReady++
 	case k8s.PodStatusErrImagePull:
 		counts.ErrImagePull++
 	case k8s.PodStatusTerminating:
@@ -72,7 +78,7 @@ func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts 
 		counts.Killed++
 	case k8s.PodStatusKilledOOM:
 		counts.KilledOOM++
-	default:
+	case k8s.PodStatusUnknown:
 		counts.Unknown++
 	}
 }

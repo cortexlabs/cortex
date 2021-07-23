@@ -134,15 +134,15 @@ func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination
 // GetAllAPIs returns a list of metadata, in the form of schema.APIResponse, about all the created traffic splitter APIs
 func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schema.APIResponse, error) {
 	var trafficSplitters []schema.APIResponse
-	for _, virtualService := range virtualServices {
-		apiName := virtualService.Labels["apiName"]
+	for i := range virtualServices {
+		apiName := virtualServices[i].Labels["apiName"]
 
-		metadata, err := spec.MetadataFromVirtualService(&virtualService)
+		metadata, err := spec.MetadataFromVirtualService(&virtualServices[i])
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
 
-		targets, err := userconfig.TrafficSplitterTargetsFromAnnotations(&virtualService)
+		targets, err := userconfig.TrafficSplitterTargetsFromAnnotations(&virtualServices[i])
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}

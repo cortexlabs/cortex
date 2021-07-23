@@ -140,9 +140,9 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJob
 		apiNameToBatchJobsMap[batchJob.Spec.APIName] = append(apiNameToBatchJobsMap[batchJob.Spec.APIName], &batchJobList[i])
 	}
 
-	for _, virtualService := range virtualServices {
-		apiName := virtualService.Labels["apiName"]
-		metadata, err := spec.MetadataFromVirtualService(&virtualService)
+	for i := range virtualServices {
+		apiName := virtualServices[i].Labels["apiName"]
+		metadata, err := spec.MetadataFromVirtualService(&virtualServices[i])
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}

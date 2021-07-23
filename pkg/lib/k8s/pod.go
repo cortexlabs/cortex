@@ -19,6 +19,7 @@ package k8s
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"regexp"
 	"time"
 
@@ -104,24 +105,26 @@ func Pod(spec *PodSpec) *kcore.Pod {
 	return pod
 }
 
-func GetPodConditionOf(pod *kcore.Pod, podType kcore.PodConditionType) *bool {
+func GetPodConditionOf(pod *kcore.Pod, podType kcore.PodConditionType) (*bool, *kcore.PodCondition) {
 	if pod == nil {
-		return nil
+		return nil, nil
 	}
 
-	var condition *bool
-	for _, podCondition := range pod.Status.Conditions {
-		if podCondition.Type == podType {
-			if podCondition.Status == kcore.ConditionTrue {
-				condition = pointer.Bool(true)
+	var conditionState *bool
+	var condition *kcore.PodCondition
+	for i := range pod.Status.Conditions {
+		if pod.Status.Conditions[i].Type == podType {
+			if pod.Status.Conditions[i].Status == kcore.ConditionTrue {
+				conditionState = pointer.Bool(true)
 			}
-			if podCondition.Status == kcore.ConditionFalse {
-				condition = pointer.Bool(false)
+			if pod.Status.Conditions[i].Status == kcore.ConditionFalse {
+				conditionState = pointer.Bool(false)
 			}
+			condition = &pod.Status.Conditions[i]
 			break
 		}
 	}
-	return condition
+	return conditionState, condition
 }
 
 func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
@@ -176,6 +179,7 @@ func IsPodStalled(pod *kcore.Pod) bool {
 	// TODO use the GetPodConditionOf func here
 	for _, condition := range pod.Status.Conditions {
 		if condition.Type == kcore.PodScheduled && condition.Status == kcore.ConditionFalse && !condition.LastTransitionTime.Time.IsZero() && time.Since(condition.LastTransitionTime.Time) >= _waitForCreatingPodTimeout {
+			fmt.Println(time.Since(condition.LastTransitionTime.Time), _waitForCreatingPodTimeout)
 			return true
 		}
 	}
@@ -224,8 +228,8 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 
 	switch pod.Status.Phase {
 	case kcore.PodPending:
-		podCondition := GetPodConditionOf(pod, kcore.PodScheduled)
-		if podCondition != nil && !*podCondition {
+		podConditionState, podCondition := GetPodConditionOf(pod, kcore.PodScheduled)
+		if podConditionState != nil && !*podConditionState && !podCondition.LastTransitionTime.Time.IsZero() && time.Since(podCondition.LastTransitionTime.Time) >= _waitForCreatingPodTimeout {
 			return PodStatusStalled
 		}
 		return PodStatusFromContainerStatuses(append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...))
@@ -259,8 +263,8 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 			return PodStatusTerminating
 		}
 
-		podCondition := GetPodConditionOf(pod, kcore.PodReady)
-		if podCondition != nil && *podCondition {
+		podConditionState, _ := GetPodConditionOf(pod, kcore.PodReady)
+		if podConditionState != nil && *podConditionState {
 			return PodStatusReady
 		}
 

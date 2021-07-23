@@ -97,7 +97,7 @@ func describeAPI(env cliconfig.Environment, apiName string) (string, error) {
 	}
 
 	if len(apisRes) == 0 {
-		exit.Error(errors.ErrorUnexpected(fmt.Sprintf("unable to find API %s", apiName)))
+		exit.Error(errors.ErrorUnexpected(fmt.Sprintf("unable to find api %s", apiName)))
 	}
 
 	apiRes := apisRes[0]
