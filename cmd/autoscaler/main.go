@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/autoscaler"
@@ -87,7 +88,7 @@ func main() {
 		exit(log, err)
 	}
 
-	telemetryEnabled := os.Getenv("CORTEX_TELEMETRY_DISABLE") != "false"
+	telemetryEnabled := strings.ToLower(os.Getenv("CORTEX_TELEMETRY_DISABLE")) != "true"
 
 	err = telemetry.Init(telemetry.Config{
 		Enabled: telemetryEnabled,
