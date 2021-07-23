@@ -17,16 +17,13 @@ limitations under the License.
 package realtimeapi
 
 import (
-	"time"
-
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 )
 
-func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) status.ReplicaCounts {
+func GetReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) *status.ReplicaCounts {
 	counts := status.ReplicaCounts{}
 	counts.Requested = *deployment.Spec.Replicas
 
@@ -38,72 +35,44 @@ func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) status.Rep
 		addPodToReplicaCounts(&pods[i], deployment, &counts)
 	}
 
-	return counts
+	return &counts
 }
 
 func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts *status.ReplicaCounts) {
-	var subCounts *status.SubReplicaCounts
+	latest := false
 	if isPodSpecLatest(deployment, pod) {
-		subCounts = &counts.Updated
-	} else {
-		subCounts = &counts.Stale
+		latest = true
 	}
 
-	if k8s.IsPodReady(pod) {
-		subCounts.Ready++
+	isPodReady := k8s.IsPodReady(pod)
+	if latest && isPodReady {
+		counts.Ready++
+		return
+	} else if !latest && isPodReady {
+		counts.ReadyOutOfDate++
 		return
 	}
 
 	switch k8s.GetPodStatus(pod) {
 	case k8s.PodStatusPending:
-		if time.Since(pod.CreationTimestamp.Time) > consts.WaitForInitializingReplicasTimeout {
-			subCounts.Stalled++
-		} else {
-			subCounts.Pending++
-		}
-	case k8s.PodStatusInitializing:
-		subCounts.Initializing++
-	case k8s.PodStatusRunning:
-		subCounts.Initializing++
+		counts.Pending++
+	case k8s.PodStatusStalled:
+		counts.Stalled++
+	case k8s.PodStatusCreating:
+		counts.Creating++
+	case k8s.PodStatusReady:
+		counts.Creating++
 	case k8s.PodStatusErrImagePull:
-		subCounts.ErrImagePull++
+		counts.ErrImagePull++
 	case k8s.PodStatusTerminating:
-		subCounts.Terminating++
+		counts.Terminating++
 	case k8s.PodStatusFailed:
-		subCounts.Failed++
+		counts.Failed++
 	case k8s.PodStatusKilled:
-		subCounts.Killed++
+		counts.Killed++
 	case k8s.PodStatusKilledOOM:
-		subCounts.KilledOOM++
+		counts.KilledOOM++
 	default:
-		subCounts.Unknown++
+		counts.Unknown++
 	}
-}
-
-func getStatusCode(counts *status.ReplicaCounts, minReplicas int32) status.Code {
-	if counts.Updated.Ready >= counts.Requested {
-		return status.Live
-	}
-
-	if counts.Updated.ErrImagePull > 0 {
-		return status.ErrorImagePull
-	}
-
-	if counts.Updated.Failed > 0 || counts.Updated.Killed > 0 {
-		return status.Error
-	}
-
-	if counts.Updated.KilledOOM > 0 {
-		return status.OOM
-	}
-
-	if counts.Updated.Stalled > 0 {
-		return status.Stalled
-	}
-
-	if counts.Updated.Ready >= minReplicas {
-		return status.Live
-	}
-
-	return status.Updating
 }

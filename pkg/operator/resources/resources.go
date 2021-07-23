@@ -308,9 +308,6 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	fmt.Println("realtimeAPIDeployments", len(realtimeAPIDeployments))
-	fmt.Println("asyncAPIDeployments", len(asyncAPIDeployments))
-
 	var batchAPIVirtualServices []istioclientnetworking.VirtualService
 	var taskAPIVirtualServices []istioclientnetworking.VirtualService
 	var trafficSplitterVirtualServices []istioclientnetworking.VirtualService
@@ -485,4 +482,34 @@ func checkIfUsedByTrafficSplitter(apiName string) error {
 		return ErrorAPIUsedByTrafficSplitter(usedByTrafficSplitters)
 	}
 	return nil
+}
+
+func DescribeAPI(apiName string) ([]schema.APIResponse, error) {
+	deployedResource, err := GetDeployedResourceByName(apiName)
+	if err != nil {
+		return nil, err
+	}
+
+	var apiResponse []schema.APIResponse
+
+	switch deployedResource.Kind {
+	case userconfig.RealtimeAPIKind:
+		apiResponse, err = realtimeapi.DescribeAPIByName(deployedResource)
+		if err != nil {
+			return nil, err
+		}
+	case userconfig.AsyncAPIKind:
+		apiResponse, err = asyncapi.DescribeAPIByName(deployedResource)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, ErrorOperationIsOnlySupportedForKind(
+			*deployedResource,
+			userconfig.RealtimeAPIKind,
+			userconfig.AsyncAPIKind,
+		) // unexpected
+	}
+
+	return apiResponse, nil
 }

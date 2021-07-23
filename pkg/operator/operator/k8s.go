@@ -22,6 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 // APILoadBalancerURL returns the http endpoint of the ingress load balancer for deployed APIs
@@ -64,8 +65,12 @@ func APIEndpoint(api *spec.API) (string, error) {
 	return urls.Join(baseAPIEndpoint, *api.Networking.Endpoint), nil
 }
 
-func APIEndpointFromPath(apiNetworkingPath string) (string, error) {
-	var err error
+func APIEndpointFromResource(deployedResource *DeployedResource) (string, error) {
+	apiEndpoint, err := userconfig.EndpointFromAnnotation(deployedResource.VirtualService)
+	if err != nil {
+		return "", err
+	}
+
 	baseAPIEndpoint := ""
 
 	baseAPIEndpoint, err = APILoadBalancerURL()
@@ -74,5 +79,5 @@ func APIEndpointFromPath(apiNetworkingPath string) (string, error) {
 	}
 	baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
 
-	return urls.Join(baseAPIEndpoint, apiNetworkingPath), nil
+	return urls.Join(baseAPIEndpoint, apiEndpoint), nil
 }

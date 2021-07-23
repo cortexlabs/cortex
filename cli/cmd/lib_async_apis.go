@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -50,6 +51,32 @@ func asyncAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (stri
 	}
 
 	out += titleStr("configuration") + strings.TrimSpace(asyncAPI.Spec.UserStr())
+
+	return out, nil
+}
+
+func asyncDescribeAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (string, error) {
+	if asyncAPI.Metadata == nil {
+		return "", errors.ErrorUnexpected("missing metadata from operator response")
+	}
+
+	if asyncAPI.Status == nil {
+		return "", errors.ErrorUnexpected(fmt.Sprintf("missing status for %s api", asyncAPI.Metadata.Name))
+	}
+
+	t := asyncAPIsTable([]schema.APIResponse{asyncAPI}, []string{env.Name})
+	out := t.MustFormat()
+
+	if asyncAPI.DashboardURL != nil && *asyncAPI.DashboardURL != "" {
+		out += "\n" + console.Bold("metrics dashboard: ") + *asyncAPI.DashboardURL + "\n"
+	}
+
+	if asyncAPI.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *asyncAPI.Endpoint + "\n"
+	}
+
+	t = replicaCountTable(asyncAPI.Status.ReplicaCounts)
+	out += "\n" + t.MustFormat()
 
 	return out, nil
 }

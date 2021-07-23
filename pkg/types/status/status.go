@@ -21,37 +21,66 @@ import (
 )
 
 type Status struct {
-	Ready     int32 `json:"ready"`
-	Requested int32 `json:"requested"`
-	UpToDate  int32 `json:"up_to_date"`
+	Ready         int32          `json:"ready"`
+	Requested     int32          `json:"requested"`
+	UpToDate      int32          `json:"up_to_date"`
+	ReplicaCounts *ReplicaCounts `json:"replica_counts,omitempty"`
+}
+
+type ReplicaCountType string
+
+const (
+	ReplicaCountRequested      ReplicaCountType = "Requested"
+	ReplicaCountPending        ReplicaCountType = "Pending"
+	ReplicaCountCreating       ReplicaCountType = "Creating"
+	ReplicaCountNotReady       ReplicaCountType = "NotReady"
+	ReplicaCountReady          ReplicaCountType = "Ready"
+	ReplicaCountReadyOutOfDate ReplicaCountType = "ReadyOutOfDate"
+	ReplicaCountErrImagePull   ReplicaCountType = "ErrImagePull"
+	ReplicaCountTerminating    ReplicaCountType = "Terminating"
+	ReplicaCountFailed         ReplicaCountType = "Failed"
+	ReplicaCountKilled         ReplicaCountType = "Killed"
+	ReplicaCountKilledOOM      ReplicaCountType = "KilledOOM"
+	ReplicaCountStalled        ReplicaCountType = "Stalled"
+	ReplicaCountUnknown        ReplicaCountType = "Unknown"
+)
+
+var ReplicaCountTypes []ReplicaCountType = []ReplicaCountType{
+	ReplicaCountRequested, ReplicaCountPending, ReplicaCountCreating,
+	ReplicaCountNotReady, ReplicaCountReady, ReplicaCountReadyOutOfDate,
+	ReplicaCountErrImagePull, ReplicaCountTerminating, ReplicaCountFailed,
+	ReplicaCountKilled, ReplicaCountKilledOOM, ReplicaCountStalled,
+	ReplicaCountUnknown,
 }
 
 type ReplicaCounts struct {
-	Updated   SubReplicaCounts `json:"updated"`
-	Stale     SubReplicaCounts `json:"stale"`
-	Requested int32            `json:"requested"`
-}
-
-type SubReplicaCounts struct {
-	Pending      int32 `json:"pending"`
-	Initializing int32 `json:"initializing"`
-	Ready        int32 `json:"ready"`
-	ErrImagePull int32 `json:"err_image_pull"`
-	Terminating  int32 `json:"terminating"`
-	Failed       int32 `json:"failed"`
-	Killed       int32 `json:"killed"`
-	KilledOOM    int32 `json:"killed_oom"`
-	Stalled      int32 `json:"stalled"` // pending for a long time
-	Unknown      int32 `json:"unknown"`
+	Requested      int32 `json:"requested"`
+	Pending        int32 `json:"pending"`
+	Creating       int32 `json:"creating"`
+	NotReady       int32 `json:"not_ready"`
+	Ready          int32 `json:"ready"`
+	ReadyOutOfDate int32 `json:"ready_out_of_date"`
+	ErrImagePull   int32 `json:"err_image_pull"`
+	Terminating    int32 `json:"terminating"`
+	Failed         int32 `json:"failed"`
+	Killed         int32 `json:"killed"`
+	KilledOOM      int32 `json:"killed_oom"`
+	Stalled        int32 `json:"stalled"` // pending for a long time
+	Unknown        int32 `json:"unknown"`
 }
 
 // Worker counts don't have as many failure variations because Jobs clean up dead pods, so counting different failure scenarios isn't interesting
 type WorkerCounts struct {
 	Pending      int32 `json:"pending,omitempty"`
-	Initializing int32 `json:"initializing,omitempty"`
-	Running      int32 `json:"running,omitempty"`
+	Creating     int32 `json:"creating,omitempty"`
+	NotReady     int32 `json:"not_ready,omitempty"`
+	Ready        int32 `json:"ready,omitempty"`
 	Succeeded    int32 `json:"succeeded,omitempty"`
+	ErrImagePull int32 `json:"err_image_pull,omitempty"`
+	Terminating  int32 `json:"terminating,omitempty"`
 	Failed       int32 `json:"failed,omitempty"`
+	Killed       int32 `json:"killed,omitempty"`
+	KilledOOM    int32 `json:"killed_oom,omitempty"`
 	Stalled      int32 `json:"stalled,omitempty"` // pending for a long time
 	Unknown      int32 `json:"unknown,omitempty"`
 }
@@ -64,6 +93,36 @@ func StatusFromDeployment(deployment *kapps.Deployment) *Status {
 	}
 }
 
-func (src *SubReplicaCounts) TotalFailed() int32 {
-	return src.Failed + src.ErrImagePull + src.Killed + src.KilledOOM + src.Stalled
+func (counts *ReplicaCounts) GetCountBy(replicaType ReplicaCountType) int32 {
+	switch replicaType {
+	case ReplicaCountRequested:
+		return counts.Requested
+	case ReplicaCountPending:
+		return counts.Pending
+	case ReplicaCountCreating:
+		return counts.Creating
+	case ReplicaCountNotReady:
+		return counts.NotReady
+	case ReplicaCountReady:
+		return counts.Ready
+	case ReplicaCountReadyOutOfDate:
+		return counts.ReadyOutOfDate
+	case ReplicaCountErrImagePull:
+		return counts.ErrImagePull
+	case ReplicaCountTerminating:
+		return counts.Terminating
+	case ReplicaCountFailed:
+		return counts.Failed
+	case ReplicaCountKilled:
+		return counts.Killed
+	case ReplicaCountKilledOOM:
+		return counts.KilledOOM
+	case ReplicaCountStalled:
+		return counts.Stalled
+	}
+	return counts.Unknown
+}
+
+func (counts *ReplicaCounts) TotalFailed() int32 {
+	return counts.ErrImagePull + counts.Failed + counts.Killed + counts.KilledOOM + counts.Unknown
 }

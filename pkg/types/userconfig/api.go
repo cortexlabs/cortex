@@ -257,6 +257,14 @@ func TrafficSplitterTargetsFromAnnotations(k8sObj kmeta.Object) (int32, error) {
 	return targets, nil
 }
 
+func EndpointFromAnnotation(k8sObj kmeta.Object) (string, error) {
+	endpoint, err := k8s.GetAnnotation(k8sObj, EndpointAnnotationKey)
+	if err != nil {
+		return "", err
+	}
+	return endpoint, nil
+}
+
 func (api *API) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))

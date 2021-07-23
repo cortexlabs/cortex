@@ -442,6 +442,21 @@ func (r *BatchJobReconciler) getWorkerJob(ctx context.Context, batchJob batch.Ba
 	return &job, nil
 }
 
+func (r *BatchJobReconciler) getWorkerJobPods(ctx context.Context, batchJob batch.BatchJob) ([]kcore.Pod, error) {
+	workerJobPods := kcore.PodList{}
+	if err := r.List(ctx, &workerJobPods,
+		client.InNamespace(consts.DefaultNamespace),
+		client.MatchingLabels{
+			"jobID":   batchJob.Name,
+			"apiName": batchJob.Spec.APIName,
+			"apiID":   batchJob.Spec.APIID,
+		},
+	); err != nil {
+		return nil, err
+	}
+	return workerJobPods.Items, nil
+}
+
 func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.BatchJob, statusInfo batchJobStatusInfo) error {
 	batchJob.Status.ID = batchJob.Name
 
@@ -459,6 +474,11 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 		batchJob.Status.EndTime = statusInfo.EnqueuerJob.Status.CompletionTime
 	case batch.EnqueuingDone:
 		batchJob.Status.TotalBatchCount = statusInfo.TotalBatchCount
+	}
+
+	workerJobPods, err := r.getWorkerJobPods(ctx, *batchJob)
+	if err != nil {
+		return errors.Wrap(err, "failed to retrieve worker pods")
 	}
 
 	worker := statusInfo.WorkerJob
@@ -486,13 +506,11 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 				}
 			}
 
-			isWorkerOOM, err := r.checkWorkersOOM(ctx, batchJob)
-			if err != nil {
-				return err
-			}
-
-			if isWorkerOOM {
-				batchJobStatus = status.JobWorkerOOM
+			for i := range workerJobPods {
+				if k8s.WasPodOOMKilled(&workerJobPods[i]) {
+					batchJobStatus = status.JobWorkerOOM
+					break
+				}
 			}
 
 			batchJob.Status.Status = batchJobStatus
@@ -512,11 +530,36 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 			batchJob.Status.Status = status.JobRunning
 		}
 
-		batchJob.Status.WorkerCounts = &status.WorkerCounts{
-			Running:   worker.Status.Active,
-			Succeeded: worker.Status.Succeeded,
-			Failed:    worker.Status.Failed,
+		// TODO move this to its own function
+		workerCounts := status.WorkerCounts{}
+		for i := range workerJobPods {
+			switch k8s.GetPodStatus(&workerJobPods[i]) {
+			case k8s.PodStatusPending:
+				workerCounts.Pending++
+			case k8s.PodStatusStalled:
+				workerCounts.Stalled++
+			case k8s.PodStatusCreating:
+				workerCounts.Creating++
+			case k8s.PodStatusNotReady:
+				workerCounts.NotReady++
+			case k8s.PodStatusErrImagePull:
+				workerCounts.ErrImagePull++
+			case k8s.PodStatusTerminating:
+				workerCounts.Terminating++
+			case k8s.PodStatusFailed:
+				workerCounts.Failed++
+			case k8s.PodStatusKilled:
+				workerCounts.Killed++
+			case k8s.PodStatusKilledOOM:
+				workerCounts.KilledOOM++
+			case k8s.PodStatusSucceeded:
+				workerCounts.Succeeded++
+			case k8s.PodStatusUnknown:
+				workerCounts.Unknown++
+			}
 		}
+
+		batchJob.Status.WorkerCounts = &workerCounts
 	}
 
 	if err := r.Status().Update(ctx, batchJob); err != nil {
@@ -524,27 +567,6 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 	}
 
 	return nil
-}
-
-func (r *BatchJobReconciler) checkWorkersOOM(ctx context.Context, batchJob *batch.BatchJob) (bool, error) {
-	workerJobPods := kcore.PodList{}
-	if err := r.List(ctx, &workerJobPods,
-		client.InNamespace(consts.DefaultNamespace),
-		client.MatchingLabels{
-			"jobID":   batchJob.Name,
-			"apiName": batchJob.Spec.APIName,
-			"apiID":   batchJob.Spec.APIID,
-		},
-	); err != nil {
-		return false, err
-	}
-
-	for i := range workerJobPods.Items {
-		if k8s.WasPodOOMKilled(&workerJobPods.Items[i]) {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 func (r *BatchJobReconciler) deleteSQSQueue(batchJob batch.BatchJob) error {

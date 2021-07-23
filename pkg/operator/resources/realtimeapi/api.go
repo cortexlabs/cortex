@@ -242,6 +242,45 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	}, nil
 }
 
+func DescribeAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
+	deployment, err := config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
+	if err != nil {
+		return nil, err
+	}
+
+	if deployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find deployment", deployedResource.Name)
+	}
+
+	apiStatus := status.StatusFromDeployment(deployment)
+	apiMetadata, err := spec.MetadataFromDeployment(deployment)
+	if err != nil {
+		return nil, errors.ErrorUnexpected("unable to obtain metadata", deployedResource.Name)
+	}
+
+	pods, err := config.K8s.ListPodsByLabel("apiName", deployment.Labels["apiName"])
+	if err != nil {
+		return nil, err
+	}
+	apiStatus.ReplicaCounts = GetReplicaCounts(deployment, pods)
+
+	apiEndpoint, err := operator.APIEndpointFromResource(deployedResource)
+	if err != nil {
+		return nil, err
+	}
+
+	dashboardURL := pointer.String(getDashboardURL(deployedResource.Name))
+
+	return []schema.APIResponse{
+		{
+			Metadata:     apiMetadata,
+			Status:       apiStatus,
+			Endpoint:     &apiEndpoint,
+			DashboardURL: dashboardURL,
+		},
+	}, nil
+}
+
 func getK8sResources(apiName string) (*kapps.Deployment, *kcore.Service, *istioclientnetworking.VirtualService, error) {
 	var deployment *kapps.Deployment
 	var service *kcore.Service
@@ -360,14 +399,14 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 		return false, err
 	}
 
-	replicaCounts := getReplicaCounts(deployment, pods)
+	replicaCounts := GetReplicaCounts(deployment, pods)
 
 	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
 	if err != nil {
 		return false, err
 	}
 
-	if replicaCounts.Updated.Ready < autoscalingSpec.MinReplicas && replicaCounts.Updated.TotalFailed() == 0 {
+	if replicaCounts.Ready < autoscalingSpec.MinReplicas && replicaCounts.TotalFailed() == 0 {
 		return true, nil
 	}
 

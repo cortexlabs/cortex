@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -49,6 +50,32 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 	}
 
 	out += titleStr("configuration") + strings.TrimSpace(realtimeAPI.Spec.UserStr())
+
+	return out, nil
+}
+
+func realtimeDescribeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment) (string, error) {
+	if realtimeAPI.Metadata == nil {
+		return "", errors.ErrorUnexpected("missing metadata from operator response")
+	}
+
+	if realtimeAPI.Status == nil {
+		return "", errors.ErrorUnexpected(fmt.Sprintf("missing status for %s api", realtimeAPI.Metadata.Name))
+	}
+
+	t := realtimeAPIsTable([]schema.APIResponse{realtimeAPI}, []string{env.Name})
+	out := t.MustFormat()
+
+	if realtimeAPI.DashboardURL != nil && *realtimeAPI.DashboardURL != "" {
+		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
+	}
+
+	if realtimeAPI.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *realtimeAPI.Endpoint + "\n"
+	}
+
+	t = replicaCountTable(realtimeAPI.Status.ReplicaCounts)
+	out += "\n" + t.MustFormat()
 
 	return out, nil
 }

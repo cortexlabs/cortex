@@ -48,14 +48,14 @@ const (
 )
 
 var (
-	_flagGetEnv string
-	_flagWatch  bool
+	_flagGetEnv   string
+	_flagGetWatch bool
 )
 
 func getInit() {
 	_getCmd.Flags().SortFlags = false
 	_getCmd.Flags().StringVarP(&_flagGetEnv, "env", "e", "", "environment to use")
-	_getCmd.Flags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every 2 seconds")
+	_getCmd.Flags().BoolVarP(&_flagGetWatch, "watch", "w", false, "re-run the command every 2 seconds")
 	_getCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStringsExcluding(flags.YAMLOutputType), "|")))
 	addVerboseFlag(_getCmd)
 }
@@ -88,7 +88,7 @@ var _getCmd = &cobra.Command{
 			telemetry.Event("cli.get")
 		}
 
-		rerun(func() (string, error) {
+		rerun(_flagGetWatch, func() (string, error) {
 			if len(args) == 1 {
 				env, err := ReadOrConfigureEnv(envName)
 				if err != nil {

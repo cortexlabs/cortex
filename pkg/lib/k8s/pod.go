@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,37 +46,50 @@ const (
 	ReasonCompleted = "Completed"
 )
 
-type PodStatus string
-
-const (
-	PodStatusUnknown      PodStatus = "Unknown"
-	PodStatusPending      PodStatus = "Pending"
-	PodStatusInitializing PodStatus = "Initializing"
-	PodStatusRunning      PodStatus = "Running"
-	PodStatusErrImagePull PodStatus = "Image pull error"
-	PodStatusTerminating  PodStatus = "Terminating"
-	PodStatusSucceeded    PodStatus = "Succeeded"
-	PodStatusFailed       PodStatus = "Failed"
-	PodStatusKilled       PodStatus = "Killed"
-	PodStatusKilledOOM    PodStatus = "Out of Memory"
-)
-
-var _killStatuses = map[int32]bool{
-	137: true, // SIGKILL
-	143: true, // SIGTERM
-	130: true, // SIGINT
-	129: true, // SIGHUP
-}
-
-// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/images/types.go#L27
-var _imagePullErrorStrings = strset.New("ErrImagePull", "ImagePullBackOff", "RegistryUnavailable")
-
 type PodSpec struct {
 	Name        string
 	K8sPodSpec  kcore.PodSpec
 	Labels      map[string]string
 	Annotations map[string]string
 }
+
+type PodStatus string
+
+const (
+	PodStatusPending      PodStatus = "Pending"
+	PodStatusCreating     PodStatus = "Creating"
+	PodStatusNotReady     PodStatus = "NotReady"
+	PodStatusReady        PodStatus = "Ready"
+	PodStatusErrImagePull PodStatus = "ErrImagePull"
+	PodStatusTerminating  PodStatus = "Terminating"
+	PodStatusFailed       PodStatus = "Failed"
+	PodStatusKilled       PodStatus = "Killed"
+	PodStatusKilledOOM    PodStatus = "KilledOOM"
+	PodStatusStalled      PodStatus = "Stalled"
+
+	PodStatusSucceeded PodStatus = "Succeeded"
+
+	PodStatusUnknown PodStatus = "Unknown"
+)
+
+var (
+	_killStatuses = map[int32]bool{
+		137: true, // SIGKILL
+		143: true, // SIGTERM
+		130: true, // SIGINT
+		129: true, // SIGHUP
+	}
+
+	_evictedMemoryMessageRegex = regexp.MustCompile(`(?i)low\W+on\W+resource\W+memory`)
+
+	// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/images/types.go#L27
+	_imagePullErrorStrings = strset.New("ErrImagePull", "ImagePullBackOff", "RegistryUnavailable")
+
+	// https://github.com/kubernetes/kubernetes/blob/9f47110aa29094ed2878cf1d85874cb59214664a/staging/src/k8s.io/api/core/v1/types.go#L76-L77
+	_creatingReasons = strset.New("ContainerCreating", "PodInitializing")
+
+	_waitForCreatingPodTimeout = time.Minute * 15
+)
 
 func Pod(spec *PodSpec) *kcore.Pod {
 	pod := &kcore.Pod{
@@ -88,6 +102,26 @@ func Pod(spec *PodSpec) *kcore.Pod {
 		Spec: spec.K8sPodSpec,
 	}
 	return pod
+}
+
+func GetPodConditionOf(pod *kcore.Pod, podType kcore.PodConditionType) *bool {
+	if pod == nil {
+		return nil
+	}
+
+	var condition *bool
+	for _, podCondition := range pod.Status.Conditions {
+		if podCondition.Type == podType {
+			if podCondition.Status == kcore.ConditionTrue {
+				condition = pointer.Bool(true)
+			}
+			if podCondition.Status == kcore.ConditionFalse {
+				condition = pointer.Bool(false)
+			}
+			break
+		}
+	}
+	return condition
 }
 
 func (c *Client) CreatePod(pod *kcore.Pod) (*kcore.Pod, error) {
@@ -120,12 +154,28 @@ func (c *Client) ApplyPod(pod *kcore.Pod) (*kcore.Pod, error) {
 }
 
 func IsPodReady(pod *kcore.Pod) bool {
-	if GetPodStatus(pod) != PodStatusRunning {
+	if GetPodStatus(pod) != PodStatusReady {
 		return false
 	}
 
+	// TODO use the GetPodConditionOf func here
 	for _, condition := range pod.Status.Conditions {
-		if condition.Type == "Ready" && condition.Status == kcore.ConditionTrue {
+		if condition.Type == kcore.PodReady && condition.Status == kcore.ConditionTrue {
+			return true
+		}
+	}
+
+	return false
+}
+
+func IsPodStalled(pod *kcore.Pod) bool {
+	if GetPodStatus(pod) != PodStatusPending {
+		return false
+	}
+
+	// TODO use the GetPodConditionOf func here
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == kcore.PodScheduled && condition.Status == kcore.ConditionFalse && !condition.LastTransitionTime.Time.IsZero() && time.Since(condition.LastTransitionTime.Time) >= _waitForCreatingPodTimeout {
 			return true
 		}
 	}
@@ -137,7 +187,7 @@ func GetPodReadyTime(pod *kcore.Pod) *time.Time {
 	for i := range pod.Status.Conditions {
 		condition := pod.Status.Conditions[i]
 
-		if condition.Type == "Ready" && condition.Status == kcore.ConditionTrue {
+		if condition.Type == kcore.PodReady && condition.Status == kcore.ConditionTrue {
 			if condition.LastTransitionTime.Time.IsZero() {
 				return nil
 			}
@@ -147,8 +197,6 @@ func GetPodReadyTime(pod *kcore.Pod) *time.Time {
 
 	return nil
 }
-
-var _evictedMemoryMessageRegex = regexp.MustCompile(`(?i)low\W+on\W+resource\W+memory`)
 
 func WasPodOOMKilled(pod *kcore.Pod) bool {
 	if pod.Status.Reason == ReasonEvicted && _evictedMemoryMessageRegex.MatchString(pod.Status.Message) {
@@ -176,15 +224,11 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 
 	switch pod.Status.Phase {
 	case kcore.PodPending:
-		initPodStatus := PodStatusFromContainerStatuses(pod.Status.InitContainerStatuses)
-		if initPodStatus == PodStatusRunning {
-			return PodStatusInitializing
+		podCondition := GetPodConditionOf(pod, kcore.PodScheduled)
+		if podCondition != nil && !*podCondition {
+			return PodStatusStalled
 		}
-		allPodStatus := PodStatusFromContainerStatuses(append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...))
-		if allPodStatus == PodStatusErrImagePull {
-			return PodStatusErrImagePull
-		}
-		return PodStatusPending
+		return PodStatusFromContainerStatuses(append(pod.Status.InitContainerStatuses, pod.Status.ContainerStatuses...))
 	case kcore.PodSucceeded:
 		return PodStatusSucceeded
 	case kcore.PodFailed:
@@ -215,7 +259,17 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 			return PodStatusTerminating
 		}
 
-		return PodStatusFromContainerStatuses(pod.Status.ContainerStatuses)
+		podCondition := GetPodConditionOf(pod, kcore.PodReady)
+		if podCondition != nil && *podCondition {
+			return PodStatusReady
+		}
+
+		status := PodStatusFromContainerStatuses(pod.Status.ContainerStatuses)
+		if status == PodStatusReady || status == PodStatusNotReady {
+			return PodStatusNotReady
+		}
+
+		return status
 	default:
 		return PodStatusUnknown
 	}
@@ -224,7 +278,9 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) PodStatus {
 	numContainers := len(containerStatuses)
 	numWaiting := 0
-	numRunning := 0
+	numCreating := 0
+	numNotReady := 0
+	numReady := 0
 	numSucceeded := 0
 	numFailed := 0
 	numKilled := 0
@@ -235,9 +291,9 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 	}
 	for _, containerStatus := range containerStatuses {
 		if containerStatus.State.Running != nil && containerStatus.Ready {
-			numRunning++
-		} else if containerStatus.State.Running != nil && containerStatus.RestartCount == 0 {
-			numRunning++
+			numReady++
+		} else if containerStatus.State.Running != nil && !containerStatus.Ready {
+			numNotReady++
 		} else if containerStatus.State.Terminated != nil {
 			exitCode := containerStatus.State.Terminated.ExitCode
 			reason := containerStatus.State.Terminated.Reason
@@ -264,6 +320,8 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 			}
 		} else if containerStatus.State.Waiting != nil && _imagePullErrorStrings.Has(containerStatus.State.Waiting.Reason) {
 			return PodStatusErrImagePull
+		} else if containerStatus.State.Waiting != nil && _creatingReasons.Has(containerStatus.State.Waiting.Reason) {
+			numCreating++
 		} else {
 			// either containerStatus.State.Waiting != nil or all containerStatus.States are nil (which implies waiting)
 			numWaiting++
@@ -279,8 +337,12 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 		return PodStatusPending
 	} else if numSucceeded == numContainers {
 		return PodStatusSucceeded
+	} else if numCreating > 0 {
+		return PodStatusCreating
+	} else if numNotReady > 0 {
+		return PodStatusNotReady
 	} else {
-		return PodStatusRunning
+		return PodStatusReady
 	}
 }
 
