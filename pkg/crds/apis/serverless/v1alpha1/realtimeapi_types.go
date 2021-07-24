@@ -148,7 +148,7 @@ type AutoscalingSpec struct {
 	// +kubebuilder:validation:Optional
 	// Desired number of in-flight requests per replica (including requests actively being processed as well as queued),
 	// which the autoscaler tries to maintain
-	TargetInFlight int32 `json:"target_in_flight,omitempty"`
+	TargetInFlight string `json:"target_in_flight,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="60s"
@@ -166,25 +166,25 @@ type AutoscalingSpec struct {
 	UpscaleStabilizationPeriod kmeta.Duration `json:"upscale_stabilization_period,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="750m"
+	// +kubebuilder:default="0.75"
 	// Maximum factor by which to scale down the API on a single scaling event
-	MaxDownscaleFactor resource.Quantity `json:"max_downscale_factor,omitempty"`
+	MaxDownscaleFactor string `json:"max_downscale_factor,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="1500m"
+	// +kubebuilder:default="1.5"
 	// Maximum factor by which to scale up the API on a single scaling event
-	MaxUpscaleFactor resource.Quantity `json:"max_upscale_factor,omitempty"`
+	MaxUpscaleFactor string `json:"max_upscale_factor,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="50m"
+	// +kubebuilder:default="0.5"
 	// Any recommendation falling within this factor below the current number of replicas will not trigger a
 	// scale down event
-	DownscaleTolerance resource.Quantity `json:"downscale_tolerance,omitempty"`
+	DownscaleTolerance string `json:"downscale_tolerance,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="50m"
+	// +kubebuilder:default="0.5"
 	// Any recommendation falling within this factor above the current number of replicas will not trigger a scale up event
-	UpscaleTolerance resource.Quantity `json:"upscale_tolerance,omitempty"`
+	UpscaleTolerance string `json:"upscale_tolerance,omitempty"`
 }
 
 type UpdateStratagySpec struct {

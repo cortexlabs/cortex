@@ -60,38 +60,26 @@ spec:
                       made during this period
                     type: string
                   downscale_tolerance:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    default: 50m
+                    default: "0.5"
                     description: Any recommendation falling within this factor below
                       the current number of replicas will not trigger a scale down
                       event
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
+                    type: string
                   max_downscale_factor:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    default: 750m
+                    default: "0.75"
                     description: Maximum factor by which to scale down the API on
                       a single scaling event
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
+                    type: string
                   max_replicas:
                     default: 100
                     description: Maximum number of replicas
                     format: int32
                     type: integer
                   max_upscale_factor:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    default: 1500m
+                    default: "1.5"
                     description: Maximum factor by which to scale up the API on a
                       single scaling event
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
+                    type: string
                   min_replicas:
                     default: 1
                     description: Minimum number of replicas
@@ -101,22 +89,17 @@ spec:
                     description: Desired number of in-flight requests per replica
                       (including requests actively being processed as well as queued),
                       which the autoscaler tries to maintain
-                    format: int32
-                    type: integer
+                    type: string
                   upscale_stabilization_period:
                     default: 1m
                     description: The API will not scale above the lowest recommendation
                       made during this period
                     type: string
                   upscale_tolerance:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    default: 50m
+                    default: "0.5"
                     description: Any recommendation falling within this factor above
                       the current number of replicas will not trigger a scale up event
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
+                    type: string
                   window:
                     default: 60s
                     description: Duration over which to average the API's in-flight
@@ -661,6 +644,8 @@ spec:
                       unknown:
                         format: int32
                         type: integer
+                    required:
+                    - ready
                     type: object
                   updated:
                     properties:
@@ -697,6 +682,8 @@ spec:
                       unknown:
                         format: int32
                         type: integer
+                    required:
+                    - ready
                     type: object
                 type: object
               status:

@@ -559,13 +559,13 @@ func (r *RealtimeAPIReconciler) generateAPIAnnotations(api serverless.RealtimeAP
 	return map[string]string{
 		userconfig.MinReplicasAnnotationKey:                  s.Int32(api.Spec.Autoscaling.MinReplicas),
 		userconfig.MaxReplicasAnnotationKey:                  s.Int32(api.Spec.Autoscaling.MaxReplicas),
-		userconfig.TargetInFlightAnnotationKey:               s.Int32(api.Spec.Autoscaling.TargetInFlight),
+		userconfig.TargetInFlightAnnotationKey:               api.Spec.Autoscaling.TargetInFlight,
 		userconfig.WindowAnnotationKey:                       api.Spec.Autoscaling.Window.Duration.String(),
 		userconfig.DownscaleStabilizationPeriodAnnotationKey: api.Spec.Autoscaling.DownscaleStabilizationPeriod.Duration.String(),
 		userconfig.UpscaleStabilizationPeriodAnnotationKey:   api.Spec.Autoscaling.UpscaleStabilizationPeriod.Duration.String(),
-		userconfig.MaxDownscaleFactorAnnotationKey:           s.Float64(api.Spec.Autoscaling.MaxDownscaleFactor.AsApproximateFloat64()),
-		userconfig.MaxUpscaleFactorAnnotationKey:             s.Float64(api.Spec.Autoscaling.MaxUpscaleFactor.AsApproximateFloat64()),
-		userconfig.DownscaleToleranceAnnotationKey:           s.Float64(api.Spec.Autoscaling.DownscaleTolerance.AsApproximateFloat64()),
-		userconfig.UpscaleToleranceAnnotationKey:             s.Float64(api.Spec.Autoscaling.UpscaleTolerance.AsApproximateFloat64()),
+		userconfig.MaxDownscaleFactorAnnotationKey:           api.Spec.Autoscaling.MaxDownscaleFactor,
+		userconfig.MaxUpscaleFactorAnnotationKey:             api.Spec.Autoscaling.MaxUpscaleFactor,
+		userconfig.DownscaleToleranceAnnotationKey:           api.Spec.Autoscaling.DownscaleTolerance,
+		userconfig.UpscaleToleranceAnnotationKey:             api.Spec.Autoscaling.UpscaleTolerance,
 	}
 }

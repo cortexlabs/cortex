@@ -17,16 +17,18 @@ limitations under the License.
 package realtimeapi
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
-	"time"
+	"reflect"
 
 	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/consts"
+	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -36,6 +38,11 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const _realtimeDashboardUID = "realtimeapi"
@@ -45,67 +52,35 @@ func generateDeploymentID() string {
 }
 
 func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) {
-	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig.Name)
+	ctx := context.Background()
+	var api serverless.RealtimeAPI
+	key := client.ObjectKey{Namespace: consts.DefaultNamespace, Name: apiConfig.Name}
+
+	apiSpec := &spec.API{API: apiConfig}
+	err := config.K8s.Get(ctx, key, &api)
 	if err != nil {
-		return nil, "", err
+		if kerrors.IsNotFound(err) {
+			if kerrors.IsNotFound(err) {
+				api := APIConfigToK8sResource(*apiConfig)
+				if err = config.K8s.Create(ctx, &api); err != nil {
+					return nil, "", errors.Wrap(err, "failed to create realtime api resource")
+				}
+				return apiSpec, fmt.Sprintf("creating %s", apiConfig.Resource.UserString()), nil
+			}
+		}
+		return nil, "", errors.Wrap(err, "failed to get realtime api resource")
 	}
 
-	initialDeploymentTime := time.Now().UnixNano()
-	deploymentID := generateDeploymentID()
-	if prevVirtualService != nil && prevVirtualService.Labels["initialDeploymentTime"] != "" {
-		var err error
-		initialDeploymentTime, err = k8s.ParseInt64Label(prevVirtualService, "initialDeploymentTime")
-		if err != nil {
-			return nil, "", err
+	desiredAPI := APIConfigToK8sResource(*apiConfig)
+	if !reflect.DeepEqual(api.Spec, desiredAPI.Spec) || force {
+		api.Spec = desiredAPI.Spec
+		if err = config.K8s.Update(ctx, &api); err != nil {
+			return nil, "", errors.Wrap(err, "failed to update realtime api resource")
 		}
-		deploymentID = prevVirtualService.Labels["deploymentID"]
+		return apiSpec, fmt.Sprintf("updating %s", apiConfig.Resource.UserString()), nil
 	}
 
-	api := spec.GetAPISpec(apiConfig, initialDeploymentTime, deploymentID, config.ClusterConfig.ClusterUID)
-
-	if prevDeployment == nil {
-		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
-			return nil, "", errors.Wrap(err, "upload api spec")
-		}
-
-		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
-			routines.RunWithPanicHandler(func() {
-				_ = deleteK8sResources(api.Name)
-			})
-			return nil, "", err
-		}
-
-		return api, fmt.Sprintf("creating %s", api.Resource.UserString()), nil
-	}
-
-	if prevVirtualService.Labels["specID"] != api.SpecID || prevVirtualService.Labels["deploymentID"] != api.DeploymentID {
-		isUpdating, err := isAPIUpdating(prevDeployment)
-		if err != nil {
-			return nil, "", err
-		}
-		if isUpdating && !force {
-			return nil, "", ErrorAPIUpdating(api.Name)
-		}
-
-		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
-			return nil, "", errors.Wrap(err, "upload api spec")
-		}
-
-		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
-			return nil, "", err
-		}
-		return api, fmt.Sprintf("updating %s", api.Resource.UserString()), nil
-	}
-
-	// deployment didn't change
-	isUpdating, err := isAPIUpdating(prevDeployment)
-	if err != nil {
-		return nil, "", err
-	}
-	if isUpdating {
-		return api, fmt.Sprintf("%s is already updating", api.Resource.UserString()), nil
-	}
-	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
+	return apiSpec, fmt.Sprintf("%s is up to date", apiConfig.Resource.UserString()), nil
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
@@ -395,4 +370,91 @@ func getDashboardURL(apiName string) string {
 	)
 
 	return dashboardURL
+}
+
+func APIConfigToK8sResource(apiConfig userconfig.API) serverless.RealtimeAPI {
+	var containers []serverless.ContainerSpec
+	for _, containerConfig := range apiConfig.Pod.Containers {
+		var env []kcore.EnvVar
+		for k, v := range containerConfig.Env {
+			env = append(env, kcore.EnvVar{
+				Name:  k,
+				Value: v,
+			})
+		}
+
+		var compute *serverless.ComputeSpec
+		if containerConfig.Compute != nil {
+			var cpu *kresource.Quantity
+			if containerConfig.Compute.CPU != nil {
+				cpu = &containerConfig.Compute.CPU.Quantity
+			}
+			var mem *kresource.Quantity
+			if containerConfig.Compute.Mem != nil {
+				mem = &containerConfig.Compute.Mem.Quantity
+			}
+			var shm *kresource.Quantity
+			if containerConfig.Compute.Shm != nil {
+				shm = &containerConfig.Compute.Shm.Quantity
+			}
+
+			compute = &serverless.ComputeSpec{
+				CPU: cpu,
+				GPU: containerConfig.Compute.GPU,
+				Inf: containerConfig.Compute.Inf,
+				Mem: mem,
+				Shm: shm,
+			}
+		}
+
+		container := serverless.ContainerSpec{
+			Name:           containerConfig.Name,
+			Image:          containerConfig.Image,
+			Command:        containerConfig.Command,
+			Args:           containerConfig.Args,
+			Env:            env,
+			Compute:        compute,
+			ReadinessProbe: workloads.GetProbeSpec(containerConfig.ReadinessProbe),
+			LivenessProbe:  workloads.GetProbeSpec(containerConfig.LivenessProbe),
+		}
+
+		containers = append(containers, container)
+	}
+
+	api := serverless.RealtimeAPI{
+		ObjectMeta: kmeta.ObjectMeta{
+			Name:      apiConfig.Name,
+			Namespace: consts.DefaultNamespace,
+		},
+		Spec: serverless.RealtimeAPISpec{
+			Pod: serverless.PodSpec{
+				Port:           *apiConfig.Pod.Port,
+				MaxConcurrency: int32(apiConfig.Pod.MaxConcurrency),
+				MaxQueueLength: int32(apiConfig.Pod.MaxQueueLength),
+				Replicas:       apiConfig.Autoscaling.InitReplicas,
+				Containers:     containers,
+			},
+			Autoscaling: serverless.AutoscalingSpec{
+				MinReplicas:                  apiConfig.Autoscaling.MinReplicas,
+				MaxReplicas:                  apiConfig.Autoscaling.MaxReplicas,
+				TargetInFlight:               fmt.Sprintf("%f", *apiConfig.Autoscaling.TargetInFlight),
+				Window:                       kmeta.Duration{Duration: apiConfig.Autoscaling.Window},
+				DownscaleStabilizationPeriod: kmeta.Duration{Duration: apiConfig.Autoscaling.DownscaleStabilizationPeriod},
+				UpscaleStabilizationPeriod:   kmeta.Duration{Duration: apiConfig.Autoscaling.UpscaleStabilizationPeriod},
+				MaxDownscaleFactor:           fmt.Sprintf("%f", apiConfig.Autoscaling.MaxDownscaleFactor),
+				MaxUpscaleFactor:             fmt.Sprintf("%f", apiConfig.Autoscaling.MaxUpscaleFactor),
+				DownscaleTolerance:           fmt.Sprintf("%f", apiConfig.Autoscaling.DownscaleTolerance),
+				UpscaleTolerance:             fmt.Sprintf("%f", apiConfig.Autoscaling.UpscaleTolerance),
+			},
+			NodeGroups: apiConfig.NodeGroups,
+			UpdateStrategy: serverless.UpdateStratagySpec{
+				MaxSurge:       intstr.FromString(apiConfig.UpdateStrategy.MaxSurge),
+				MaxUnavailable: intstr.FromString(apiConfig.UpdateStrategy.MaxUnavailable),
+			},
+			Networking: serverless.NetworkingSpec{
+				Endpoint: *apiConfig.Networking.Endpoint,
+			},
+		},
+	}
+	return api
 }

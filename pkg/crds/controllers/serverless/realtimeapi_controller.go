@@ -90,6 +90,10 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		api.Annotations["cortex.dev/spec-id"] != specID ||
 		api.Annotations["cortex.dev/api-id"] != apiID
 
+	if api.Annotations == nil {
+		api.Annotations = map[string]string{}
+	}
+
 	if api.Annotations["cortex.dev/deployment-id"] != deploymentID {
 		log.V(1).Info("updating deployment id annotation")
 		api.Annotations["cortex.dev/deployment-id"] = deploymentID
