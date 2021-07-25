@@ -104,9 +104,11 @@ while true; do
       if [[ "$out" == *"authorization token has expired"* ]] || [[ "$out" == *"no basic auth credentials"* ]]; then
         registry_login $login_url $region
         continue
-      elif [[ "$out" == *"does not exist"* ]]; then
+      elif [[ "$out" == *"repository with name"*"does not exist"* ]]; then
         create_ecr_repo $repo_name $region
         continue
+      else
+        exit $exit_code
       fi
     fi
   fi
