@@ -242,7 +242,8 @@ func getDashboardURL(apiName string) string {
 
 func APIConfigToK8sResource(apiConfig userconfig.API) serverless.RealtimeAPI {
 	var containers []serverless.ContainerSpec
-	for _, containerConfig := range apiConfig.Pod.Containers {
+	for i := range apiConfig.Pod.Containers {
+		containerConfig := apiConfig.Pod.Containers[i]
 		var env []kcore.EnvVar
 		for k, v := range containerConfig.Env {
 			env = append(env, kcore.EnvVar{
