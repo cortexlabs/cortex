@@ -281,8 +281,8 @@ function start_controller_manager() {
 function restart_controller_manager() {
   echo -n "￮ restarting controller manager "
 
-  kubectl scale deployment operator-controller-manager --replicas=0 - >/dev/null
-  kubectl scale deployment operator-controller-manager --replicas=1 - >/dev/null
+  kubectl scale deployment operator-controller-manager --replicas=0 >/dev/null
+  kubectl scale deployment operator-controller-manager --replicas=1 >/dev/null
 
   echo "✓"
 }
