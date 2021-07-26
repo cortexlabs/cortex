@@ -447,9 +447,10 @@ func (r *BatchJobReconciler) getWorkerJobPods(ctx context.Context, batchJob batc
 	if err := r.List(ctx, &workerJobPods,
 		client.InNamespace(consts.DefaultNamespace),
 		client.MatchingLabels{
-			"jobID":   batchJob.Name,
-			"apiName": batchJob.Spec.APIName,
-			"apiID":   batchJob.Spec.APIID,
+			"jobID":            batchJob.Name,
+			"apiName":          batchJob.Spec.APIName,
+			"apiID":            batchJob.Spec.APIID,
+			"cortex.dev/batch": "worker",
 		},
 	); err != nil {
 		return nil, err
