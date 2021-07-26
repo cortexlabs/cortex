@@ -109,7 +109,7 @@ func RefreshAPI(apiName string) (string, error) {
 	return fmt.Sprintf("updating %s", apiResource.UserString()), nil
 }
 
-func DeleteAPI(apiName string, keepCache bool) error {
+func DeleteAPI(apiName string, _ bool) error {
 	ctx := context.Background()
 	api := serverless.RealtimeAPI{
 		ObjectMeta: kmeta.ObjectMeta{
@@ -241,7 +241,7 @@ func getDashboardURL(apiName string) string {
 }
 
 func APIConfigToK8sResource(apiConfig userconfig.API) serverless.RealtimeAPI {
-	var containers []serverless.ContainerSpec
+	containers := make([]serverless.ContainerSpec, len(apiConfig.Pod.Containers))
 	for i := range apiConfig.Pod.Containers {
 		containerConfig := apiConfig.Pod.Containers[i]
 		var env []kcore.EnvVar
