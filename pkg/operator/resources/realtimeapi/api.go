@@ -316,7 +316,7 @@ func APIConfigToK8sResource(apiConfig userconfig.API) serverless.RealtimeAPI {
 				UpscaleTolerance:             fmt.Sprintf("%f", apiConfig.Autoscaling.UpscaleTolerance),
 			},
 			NodeGroups: apiConfig.NodeGroups,
-			UpdateStrategy: serverless.UpdateStratagySpec{
+			UpdateStrategy: serverless.UpdateStrategySpec{
 				MaxSurge:       intstr.FromString(apiConfig.UpdateStrategy.MaxSurge),
 				MaxUnavailable: intstr.FromString(apiConfig.UpdateStrategy.MaxUnavailable),
 			},

@@ -43,7 +43,7 @@ type RealtimeAPISpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default={"max_surge": "25%", "max_unavailable": "25%"}
 	// Deployment strategy to use when replacing existing replicas with new ones
-	UpdateStrategy UpdateStratagySpec `json:"update_strategy"`
+	UpdateStrategy UpdateStrategySpec `json:"update_strategy"`
 
 	// +kubebuilder:validation:Required
 	// Networking configuration
@@ -187,7 +187,7 @@ type AutoscalingSpec struct {
 	UpscaleTolerance string `json:"upscale_tolerance,omitempty"`
 }
 
-type UpdateStratagySpec struct {
+type UpdateStrategySpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="25%"
 	// Maximum number of replicas that can be scheduled above the desired number of replicas during an update;
