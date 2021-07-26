@@ -97,8 +97,8 @@ type ErrorResponse struct {
 }
 
 type APIVersion struct {
-	APIID       string `json:"api_id"`
-	LastUpdated int64  `json:"last_updated"`
+	APIID       string `json:"api_id" yaml:"api_id"`
+	LastUpdated int64  `json:"last_updated" yaml:"last_updated"`
 }
 
 type VerifyCortexResponse struct{}
