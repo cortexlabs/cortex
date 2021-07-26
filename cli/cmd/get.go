@@ -35,6 +35,7 @@ import (
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 )
 
@@ -104,7 +105,7 @@ var _getCmd = &cobra.Command{
 					return "", err
 				}
 
-				if _flagOutput == flags.JSONOutputType {
+				if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 					return apiTable, nil
 				}
 
@@ -134,7 +135,7 @@ var _getCmd = &cobra.Command{
 				if err != nil {
 					return "", err
 				}
-				if _flagOutput == flags.JSONOutputType {
+				if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 					return jobTable, nil
 				}
 
@@ -164,7 +165,7 @@ var _getCmd = &cobra.Command{
 						return "", err
 					}
 
-					if _flagOutput == flags.JSONOutputType {
+					if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 						return apiTable, nil
 					}
 
@@ -245,12 +246,16 @@ func getAPIsInAllEnvironments() (string, error) {
 		allAPIsOutput = append(allAPIsOutput, apisOutput)
 	}
 
+	var bytes []byte
 	if _flagOutput == flags.JSONOutputType {
-		bytes, err := libjson.Marshal(allAPIsOutput)
-		if err != nil {
-			return "", err
-		}
-
+		bytes, err = libjson.Marshal(allAPIsOutput)
+	} else if _flagOutput == flags.YAMLOutputType {
+		bytes, err = yaml.Marshal(allAPIsOutput)
+	}
+	if err != nil {
+		return "", err
+	}
+	if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 		return string(bytes), nil
 	}
 
@@ -335,11 +340,16 @@ func getAPIsByEnv(env cliconfig.Environment) (string, error) {
 		return "", err
 	}
 
+	var bytes []byte
 	if _flagOutput == flags.JSONOutputType {
-		bytes, err := libjson.Marshal(apisRes)
-		if err != nil {
-			return "", err
-		}
+		bytes, err = libjson.Marshal(apisRes)
+	} else if _flagOutput == flags.YAMLOutputType {
+		bytes, err = yaml.Marshal(apisRes)
+	}
+	if err != nil {
+		return "", err
+	}
+	if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 		return string(bytes), nil
 	}
 
@@ -455,11 +465,16 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		return "", err
 	}
 
+	var bytes []byte
 	if _flagOutput == flags.JSONOutputType {
-		bytes, err := libjson.Marshal(apisRes)
-		if err != nil {
-			return "", err
-		}
+		bytes, err = libjson.Marshal(apisRes)
+	} else if _flagOutput == flags.YAMLOutputType {
+		bytes, err = yaml.Marshal(apisRes)
+	}
+	if err != nil {
+		return "", err
+	}
+	if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 		return string(bytes), nil
 	}
 

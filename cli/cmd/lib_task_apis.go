@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/yaml"
 )
 
 const (
@@ -142,11 +143,16 @@ func getTaskJob(env cliconfig.Environment, apiName string, jobID string) (string
 		return "", err
 	}
 
+	var bytes []byte
 	if _flagOutput == flags.JSONOutputType {
-		bytes, err := libjson.Marshal(resp)
-		if err != nil {
-			return "", err
-		}
+		bytes, err = libjson.Marshal(resp)
+	} else if _flagOutput == flags.YAMLOutputType {
+		bytes, err = yaml.Marshal(resp)
+	}
+	if err != nil {
+		return "", err
+	}
+	if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 		return string(bytes), nil
 	}
 

@@ -36,23 +36,23 @@ import (
 
 type API struct {
 	*userconfig.API
-	ID           string `json:"id"`
-	SpecID       string `json:"spec_id"`
-	PodID        string `json:"pod_id"`
-	DeploymentID string `json:"deployment_id"`
+	ID           string `json:"id" yaml:"id"`
+	SpecID       string `json:"spec_id" yaml:"spec_id"`
+	PodID        string `json:"pod_id" yaml:"pod_id"`
+	DeploymentID string `json:"deployment_id" yaml:"deployment_id"`
 
-	Key string `json:"key"`
+	Key string `json:"key" yaml:"key"`
 
-	InitialDeploymentTime int64  `json:"initial_deployment_time"`
-	LastUpdated           int64  `json:"last_updated"`
-	MetadataRoot          string `json:"metadata_root"`
+	InitialDeploymentTime int64  `json:"initial_deployment_time" yaml:"initial_deployment_time"`
+	LastUpdated           int64  `json:"last_updated" yaml:"last_updated"`
+	MetadataRoot          string `json:"metadata_root" yaml:"metadata_root"`
 }
 
 type Metadata struct {
 	*userconfig.Resource
-	APIID        string `json:"id"`
-	DeploymentID string `json:"deployment_id,omitempty"`
-	LastUpdated  int64  `json:"last_updated"`
+	APIID        string `json:"id" yaml:"id"`
+	DeploymentID string `json:"deployment_id,omitempty" yaml:"deployment_id,omitempty"`
+	LastUpdated  int64  `json:"last_updated" yaml:"last_updated"`
 }
 
 func MetadataFromDeployment(deployment *kapps.Deployment) (*Metadata, error) {

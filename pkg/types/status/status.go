@@ -21,10 +21,10 @@ import (
 )
 
 type Status struct {
-	Ready         int32          `json:"ready"`
-	Requested     int32          `json:"requested"`
-	UpToDate      int32          `json:"up_to_date"`
-	ReplicaCounts *ReplicaCounts `json:"replica_counts,omitempty"`
+	Ready         int32          `json:"ready" yaml:"ready"`
+	Requested     int32          `json:"requested" yaml:"requested"`
+	UpToDate      int32          `json:"up_to_date" yaml:"up_to_date"`
+	ReplicaCounts *ReplicaCounts `json:"replica_counts,omitempty" yaml:"replica_counts,omitempty"`
 }
 
 type ReplicaCountType string
@@ -54,35 +54,35 @@ var ReplicaCountTypes []ReplicaCountType = []ReplicaCountType{
 }
 
 type ReplicaCounts struct {
-	Requested      int32 `json:"requested"`
-	Pending        int32 `json:"pending"`
-	Creating       int32 `json:"creating"`
-	NotReady       int32 `json:"not_ready"`
-	Ready          int32 `json:"ready"`
-	ReadyOutOfDate int32 `json:"ready_out_of_date"`
-	ErrImagePull   int32 `json:"err_image_pull"`
-	Terminating    int32 `json:"terminating"`
-	Failed         int32 `json:"failed"`
-	Killed         int32 `json:"killed"`
-	KilledOOM      int32 `json:"killed_oom"`
-	Stalled        int32 `json:"stalled"` // pending for a long time
-	Unknown        int32 `json:"unknown"`
+	Requested      int32 `json:"requested" yaml:"requested"`
+	Pending        int32 `json:"pending" yaml:"pending"`
+	Creating       int32 `json:"creating" yaml:"creating"`
+	NotReady       int32 `json:"not_ready" yaml:"not_ready"`
+	Ready          int32 `json:"ready" yaml:"ready"`
+	ReadyOutOfDate int32 `json:"ready_out_of_date" yaml:"ready_out_of_date"`
+	ErrImagePull   int32 `json:"err_image_pull" yaml:"err_image_pull"`
+	Terminating    int32 `json:"terminating" yaml:"terminating"`
+	Failed         int32 `json:"failed" yaml:"failed"`
+	Killed         int32 `json:"killed" yaml:"killed"`
+	KilledOOM      int32 `json:"killed_oom" yaml:"killed_oom"`
+	Stalled        int32 `json:"stalled" yaml:"stalled"` // pending for a long time
+	Unknown        int32 `json:"unknown" yaml:"unknown"`
 }
 
 // Worker counts don't have as many failure variations because Jobs clean up dead pods, so counting different failure scenarios isn't interesting
 type WorkerCounts struct {
-	Pending      int32 `json:"pending,omitempty"`
-	Creating     int32 `json:"creating,omitempty"`
-	NotReady     int32 `json:"not_ready,omitempty"`
-	Ready        int32 `json:"ready,omitempty"`
-	Succeeded    int32 `json:"succeeded,omitempty"`
-	ErrImagePull int32 `json:"err_image_pull,omitempty"`
-	Terminating  int32 `json:"terminating,omitempty"`
-	Failed       int32 `json:"failed,omitempty"`
-	Killed       int32 `json:"killed,omitempty"`
-	KilledOOM    int32 `json:"killed_oom,omitempty"`
-	Stalled      int32 `json:"stalled,omitempty"` // pending for a long time
-	Unknown      int32 `json:"unknown,omitempty"`
+	Pending      int32 `json:"pending,omitempty" yaml:"pending,omitempty"`
+	Creating     int32 `json:"creating,omitempty" yaml:"creating,omitempty"`
+	NotReady     int32 `json:"not_ready,omitempty" yaml:"not_ready,omitempty"`
+	Ready        int32 `json:"ready,omitempty" yaml:"ready,omitempty"`
+	Succeeded    int32 `json:"succeeded,omitempty" yaml:"succeeded,omitempty"`
+	ErrImagePull int32 `json:"err_image_pull,omitempty" yaml:"err_image_pull,omitempty"`
+	Terminating  int32 `json:"terminating,omitempty" yaml:"terminating,omitempty"`
+	Failed       int32 `json:"failed,omitempty" yaml:"failed,omitempty"`
+	Killed       int32 `json:"killed,omitempty" yaml:"killed,omitempty"`
+	KilledOOM    int32 `json:"killed_oom,omitempty" yaml:"killed_oom,omitempty"`
+	Stalled      int32 `json:"stalled,omitempty" yaml:"stalled,omitempty"` // pending for a long time
+	Unknown      int32 `json:"unknown,omitempty" yaml:"unknown,omitempty"`
 }
 
 func FromDeployment(deployment *kapps.Deployment) *Status {

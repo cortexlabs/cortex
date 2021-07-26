@@ -50,20 +50,20 @@ type NodeInfo struct {
 }
 
 type DeployResult struct {
-	API     *APIResponse `json:"api"`
-	Message string       `json:"message"`
-	Error   string       `json:"error"`
+	API     *APIResponse `json:"api" yaml:"api"`
+	Message string       `json:"message" yaml:"message"`
+	Error   string       `json:"error" yaml:"error"`
 }
 
 type APIResponse struct {
-	Spec             *spec.API               `json:"spec,omitempty"`
-	Metadata         *spec.Metadata          `json:"metadata,omitempty"`
-	Status           *status.Status          `json:"status,omitempty"`
-	Endpoint         *string                 `json:"endpoint,omitempty"`
-	DashboardURL     *string                 `json:"dashboard_url,omitempty"`
-	BatchJobStatuses []status.BatchJobStatus `json:"batch_job_statuses,omitempty"`
-	TaskJobStatuses  []status.TaskJobStatus  `json:"task_job_statuses,omitempty"`
-	APIVersions      []APIVersion            `json:"api_versions,omitempty"`
+	Spec             *spec.API               `json:"spec,omitempty" yaml:"spec,omitempty"`
+	Metadata         *spec.Metadata          `json:"metadata,omitempty"  yaml:"metadata,omitempty"`
+	Status           *status.Status          `json:"status,omitempty"  yaml:"status,omitempty"`
+	Endpoint         *string                 `json:"endpoint,omitempty"  yaml:"endpoint,omitempty"`
+	DashboardURL     *string                 `json:"dashboard_url,omitempty"  yaml:"dashboard_url,omitempty"`
+	BatchJobStatuses []status.BatchJobStatus `json:"batch_job_statuses,omitempty"  yaml:"batch_job_statuses,omitempty"`
+	TaskJobStatuses  []status.TaskJobStatus  `json:"task_job_statuses,omitempty"  yaml:"task_job_statuses,omitempty"`
+	APIVersions      []APIVersion            `json:"api_versions,omitempty"  yaml:"api_versions,omitempty"`
 }
 
 type LogResponse struct {
@@ -71,16 +71,16 @@ type LogResponse struct {
 }
 
 type BatchJobResponse struct {
-	APISpec   spec.API              `json:"api_spec"`
-	JobStatus status.BatchJobStatus `json:"job_status"`
-	Metrics   *metrics.BatchMetrics `json:"metrics,omitempty"`
-	Endpoint  string                `json:"endpoint"`
+	APISpec   spec.API              `json:"api_spec" yaml:"api_spec"`
+	JobStatus status.BatchJobStatus `json:"job_status" yaml:"job_status"`
+	Metrics   *metrics.BatchMetrics `json:"metrics,omitempty" yaml:"metrics,omitempty"`
+	Endpoint  string                `json:"endpoint" yaml:"endpoint"`
 }
 
 type TaskJobResponse struct {
-	APISpec   spec.API             `json:"api_spec"`
-	JobStatus status.TaskJobStatus `json:"job_status"`
-	Endpoint  string               `json:"endpoint"`
+	APISpec   spec.API             `json:"api_spec" yaml:"api_spec"`
+	JobStatus status.TaskJobStatus `json:"job_status" yaml:"job_status"`
+	Endpoint  string               `json:"endpoint" yaml:"endpoint"`
 }
 
 type DeleteResponse struct {
