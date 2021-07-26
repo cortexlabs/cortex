@@ -41,6 +41,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	libstr "github.com/cortexlabs/cortex/pkg/lib/strings"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/structs"
 	"github.com/cortexlabs/yaml"
 )
@@ -165,6 +166,27 @@ type NodeGroup struct {
 	SpotConfig               *SpotConfig `json:"spot_config" yaml:"spot_config"`
 }
 
+// compares the supported updatable fields of a nodegroup
+func (n *NodeGroup) HasChanged(old *NodeGroup) bool {
+	return n.MaxInstances != old.MaxInstances || n.MinInstances != old.MinInstances || n.Priority != old.Priority
+}
+
+func (n *NodeGroup) UpdatePlan(old *NodeGroup) string {
+	var changes []string
+
+	if old.MinInstances != n.MinInstances {
+		changes = append(changes, fmt.Sprintf("%s from %d to %d", MinInstancesKey, old.MinInstances, n.MinInstances))
+	}
+	if old.MaxInstances != n.MaxInstances {
+		changes = append(changes, fmt.Sprintf("%s from %d to %d", MaxInstancesKey, old.MaxInstances, n.MaxInstances))
+	}
+	if old.Priority != n.Priority {
+		changes = append(changes, fmt.Sprintf("%s from %d to %d", PriorityKey, old.Priority, n.Priority))
+	}
+
+	return fmt.Sprintf("nodegroup %s will be updated: %s", n.Name, s.StrsAnd(changes))
+}
+
 type SpotConfig struct {
 	InstanceDistribution                []string `json:"instance_distribution" yaml:"instance_distribution"`
 	OnDemandBaseCapacity                *int64   `json:"on_demand_base_capacity" yaml:"on_demand_base_capacity"`
@@ -207,13 +229,13 @@ type AccessConfig struct {
 type ConfigureChanges struct {
 	NodeGroupsToAdd       []string
 	NodeGroupsToRemove    []string
-	NodeGroupsToScale     []string
+	NodeGroupsToUpdate    []string
 	EKSNodeGroupsToRemove []string // EKS node group names of (NodeGroupsToRemove ∩ Cortex-converted EKS node groups) ∪ (Cortex-converted EKS node groups - the new cluster config's nodegroups)
 	FieldsToUpdate        []string
 }
 
 func (c *ConfigureChanges) HasChanges() bool {
-	return len(c.NodeGroupsToAdd)+len(c.NodeGroupsToRemove)+len(c.NodeGroupsToScale)+len(c.EKSNodeGroupsToRemove)+len(c.FieldsToUpdate) != 0
+	return len(c.NodeGroupsToAdd)+len(c.NodeGroupsToRemove)+len(c.NodeGroupsToUpdate)+len(c.EKSNodeGroupsToRemove)+len(c.FieldsToUpdate) != 0
 }
 
 // GetGhostEKSNodeGroups returns the set difference between EKSNodeGroupsToRemove and the EKS-converted NodeGroupsToRemove
@@ -1087,8 +1109,10 @@ func (cc *Config) validateSharedNodeGroupsDiff(oldConfig Config) error {
 
 		newNgCopy.MinInstances = 0
 		newNgCopy.MaxInstances = 0
+		newNgCopy.Priority = 0
 		oldNgCopy.MinInstances = 0
 		oldNgCopy.MaxInstances = 0
+		oldNgCopy.Priority = 0
 
 		newHash, err := newNgCopy.Hash()
 		if err != nil {
@@ -1200,17 +1224,17 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, k8sClient *k8s.Clie
 	}
 
 	sharedNgsFromNewConfig, sharedNgsFromOldConfig := cc.getCommonNodeGroups(oldConfig)
-	ngNamesToBeScaled := []*NodeGroup{}
+	ngsToBeUpdated := []*NodeGroup{}
 	for i := range sharedNgsFromNewConfig {
-		if sharedNgsFromNewConfig[i].MinInstances != sharedNgsFromOldConfig[i].MinInstances || sharedNgsFromNewConfig[i].MaxInstances != sharedNgsFromOldConfig[i].MaxInstances {
-			ngNamesToBeScaled = append(ngNamesToBeScaled, sharedNgsFromNewConfig[i])
+		if sharedNgsFromNewConfig[i].HasChanged(sharedNgsFromOldConfig[i]) {
+			ngsToBeUpdated = append(ngsToBeUpdated, sharedNgsFromNewConfig[i])
 		}
 	}
 
 	return ConfigureChanges{
 		NodeGroupsToAdd:       GetNodeGroupNames(ngsToBeAdded),
 		NodeGroupsToRemove:    GetNodeGroupNames(ngsToBeRemoved),
-		NodeGroupsToScale:     GetNodeGroupNames(ngNamesToBeScaled),
+		NodeGroupsToUpdate:    GetNodeGroupNames(ngsToBeUpdated),
 		EKSNodeGroupsToRemove: getStaleEksNodeGroups(cc.ClusterName, eksNodeGroupStacks, cc.NodeGroups, ngsToBeRemoved),
 		FieldsToUpdate:        fieldsToUpdate,
 	}, nil
