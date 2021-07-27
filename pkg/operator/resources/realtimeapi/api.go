@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
-	"sort"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -190,32 +189,26 @@ func GetAllAPIs() ([]schema.APIResponse, error) {
 		apiIDs[i] = api.Annotations["cortex.dev/api-id"]
 	}
 
-	apiSpecs, err := operator.DownloadAPISpecs(apiNames, apiIDs)
-	if err != nil {
-		return nil, err
-	}
-
 	realtimeAPIs := make([]schema.APIResponse, len(apis.Items))
 	for i := range apis.Items {
 		api := apis.Items[i]
-		api.Status.ReplicaCounts.Requested = api.Spec.Pod.Replicas
+
+		metadata, err := metadataFromServerless(&api)
+		if err != nil {
+			return nil, err
+		}
 
 		realtimeAPIs[i] = schema.APIResponse{
-			Spec: apiSpecs[i],
+			Metadata: metadata,
 			Status: &status.Status{
-				APIName:       api.Name,
-				APIID:         api.Annotations["cortex.dev/api-id"],
-				Code:          api.Status.Status,
-				ReplicaCounts: api.Status.ReplicaCounts,
+				Ready:     api.Status.Ready,
+				Requested: api.Status.Requested,
+				UpToDate:  api.Status.UpToDate,
 			},
-			Endpoint: api.Status.Endpoint,
 		}
 	}
 
-	sort.Strings(apiNames)
-	for i := range apiNames {
-		realtimeAPIs[i] = mappedRealtimeAPIs[apiNames[i]]
-	}
+	// TODO check if we need to sort the APIs
 
 	return realtimeAPIs, nil
 }
@@ -229,24 +222,59 @@ func GetAPIByName(apiName string) ([]schema.APIResponse, error) {
 		return nil, errors.Wrap(err, "failed to get realtime api resource")
 	}
 
+	metadata, err := metadataFromServerless(&api)
+	if err != nil {
+		return nil, err
+	}
+
 	apiSpec, err := operator.DownloadAPISpec(api.Name, api.Annotations["cortex.dev/api-id"])
 	if err != nil {
 		return nil, err
 	}
 
 	dashboardURL := pointer.String(getDashboardURL(api.Name))
-	api.Status.ReplicaCounts.Requested = api.Spec.Pod.Replicas
 
 	return []schema.APIResponse{
 		{
-			Spec: *apiSpec,
+			Spec:     apiSpec,
+			Metadata: metadata,
 			Status: &status.Status{
-				APIName:       api.Name,
-				APIID:         api.Annotations["cortex.dev/api-id"],
-				Code:          api.Status.Status,
-				ReplicaCounts: api.Status.ReplicaCounts,
+				Ready:     api.Status.Ready,
+				Requested: api.Status.Requested,
+				UpToDate:  api.Status.UpToDate,
 			},
-			Endpoint:     api.Status.Endpoint,
+			Endpoint:     &api.Status.Endpoint,
+			DashboardURL: dashboardURL,
+		},
+	}, nil
+}
+
+func DescribeAPIByName(apiName string) ([]schema.APIResponse, error) {
+	ctx := context.Background()
+
+	api := serverless.RealtimeAPI{}
+	key := client.ObjectKey{Namespace: consts.DefaultNamespace, Name: apiName}
+	if err := config.K8s.Get(ctx, key, &api); err != nil {
+		return nil, errors.Wrap(err, "failed to get realtime api resource")
+	}
+
+	metadata, err := metadataFromServerless(&api)
+	if err != nil {
+		return nil, err
+	}
+
+	dashboardURL := pointer.String(getDashboardURL(api.Name))
+
+	return []schema.APIResponse{
+		{
+			Metadata: metadata,
+			Status: &status.Status{
+				Ready:         api.Status.Ready,
+				Requested:     api.Status.Requested,
+				UpToDate:      api.Status.UpToDate,
+				ReplicaCounts: &api.Status.ReplicaCounts,
+			},
+			Endpoint:     &api.Status.Endpoint,
 			DashboardURL: dashboardURL,
 		},
 	}, nil
@@ -367,44 +395,18 @@ func deleteBucketResources(apiName string) error {
 	return config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true)
 }
 
-// TODO move the following functions into the CRD
-
-// returns true if min_replicas are not ready and no updated replicas have errored
-func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
-	pods, err := config.K8s.ListPodsByLabel("apiName", deployment.Labels["apiName"])
+func metadataFromServerless(sv *serverless.RealtimeAPI) (*spec.Metadata, error) {
+	lastUpdated, err := spec.TimeFromAPIID(sv.Labels["apiID"])
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-
-	replicaCounts := GetReplicaCounts(deployment, pods)
-
-	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
-	if err != nil {
-		return false, err
-	}
-
-	if replicaCounts.Ready < autoscalingSpec.MinReplicas && replicaCounts.TotalFailed() == 0 {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	return deployment.Spec.Template.Labels["podID"] == pod.Labels["podID"] &&
-		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
-}
-
-func getDashboardURL(apiName string) string {
-	loadBalancerURL, err := operator.LoadBalancerURL()
-	if err != nil {
-		return ""
-	}
-
-	dashboardURL := fmt.Sprintf(
-		"%s/dashboard/d/%s/realtimeapi?orgId=1&refresh=30s&var-api_name=%s",
-		loadBalancerURL, _realtimeDashboardUID, apiName,
-	)
-
-	return dashboardURL
+	return &spec.Metadata{
+		Resource: &userconfig.Resource{
+			Name: sv.Name,
+			Kind: userconfig.KindFromString(sv.Kind),
+		},
+		APIID:        sv.Annotations["cortex.dev/api-id"],
+		DeploymentID: sv.Annotations["cortex.dev/deployment-id"],
+		LastUpdated:  lastUpdated.Unix(),
+	}, nil
 }

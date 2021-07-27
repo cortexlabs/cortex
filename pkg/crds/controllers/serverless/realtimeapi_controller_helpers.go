@@ -19,7 +19,6 @@ package serverlesscontroller
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
@@ -64,22 +63,22 @@ func (r *RealtimeAPIReconciler) updateStatus(ctx context.Context, api *serverles
 		return errors.Wrap(err, "failed to get api endpoint")
 	}
 
-	apiStatus := status.Pending
-	api.Status.ReplicaCounts = status.ReplicaCounts{}
-	if deployment != nil {
-		if deployment.Status.ReadyReplicas == api.Spec.Pod.Replicas {
-			apiStatus = status.Live
-			api.Status.ReplicaCounts.Updated.Ready = deployment.Status.ReadyReplicas
-			// TODO: handle out of date (?)
-		} else {
-			if err = r.getReplicaCounts(ctx, api); err != nil {
-				return err
-			}
-			apiStatus = r.getStatusCode(api)
-		}
+	apiPods, err := r.getAPIPods(ctx, api)
+	if err != nil {
+		return err
 	}
+	api.Status.ReplicaCounts = getReplicaCounts(apiPods, deployment)
 
-	api.Status.Status = apiStatus
+	isUpdating, err := isAPIUpdating(deployment, api.Status.ReplicaCounts)
+	if err != nil {
+		return err
+	}
+	api.Status.IsUpdating = isUpdating
+
+	api.Status.Ready = deployment.Status.ReadyReplicas
+	api.Status.Requested = deployment.Status.Replicas
+	api.Status.UpToDate = deployment.Status.UpdatedReplicas
+
 	if err = r.Status().Update(ctx, api); err != nil {
 		return err
 	}
@@ -87,78 +86,16 @@ func (r *RealtimeAPIReconciler) updateStatus(ctx context.Context, api *serverles
 	return nil
 }
 
-func (r *RealtimeAPIReconciler) getReplicaCounts(ctx context.Context, api *serverless.RealtimeAPI) error {
+func (r *RealtimeAPIReconciler) getAPIPods(ctx context.Context, api *serverless.RealtimeAPI) ([]kcore.Pod, error) {
 	var podList kcore.PodList
 	if err := r.List(ctx, &podList, client.MatchingLabels{
 		"apiName":      api.Name,
 		"apiKind":      userconfig.RealtimeAPIKind.String(),
 		"deploymentID": api.Annotations["cortex.dev/deployment-id"],
 	}); err != nil {
-		return err
+		return nil, err
 	}
-	for i := range podList.Items {
-		pod := &podList.Items[i]
-		if k8s.IsPodReady(pod) {
-			api.Status.ReplicaCounts.Updated.Ready++
-			continue
-		}
-
-		switch k8s.GetPodStatus(pod) {
-		case k8s.PodStatusPending:
-			if time.Since(pod.CreationTimestamp.Time) > consts.WaitForInitializingReplicasTimeout {
-				api.Status.ReplicaCounts.Updated.Stalled++
-			} else {
-				api.Status.ReplicaCounts.Updated.Pending++
-			}
-		case k8s.PodStatusInitializing:
-			api.Status.ReplicaCounts.Updated.Initializing++
-		case k8s.PodStatusRunning:
-			api.Status.ReplicaCounts.Updated.Initializing++
-		case k8s.PodStatusErrImagePull:
-			api.Status.ReplicaCounts.Updated.ErrImagePull++
-		case k8s.PodStatusTerminating:
-			api.Status.ReplicaCounts.Updated.Terminating++
-		case k8s.PodStatusFailed:
-			api.Status.ReplicaCounts.Updated.Failed++
-		case k8s.PodStatusKilled:
-			api.Status.ReplicaCounts.Updated.Killed++
-		case k8s.PodStatusKilledOOM:
-			api.Status.ReplicaCounts.Updated.KilledOOM++
-		default:
-			api.Status.ReplicaCounts.Updated.Unknown++
-		}
-	}
-
-	return nil
-}
-
-func (r *RealtimeAPIReconciler) getStatusCode(api *serverless.RealtimeAPI) status.Code {
-	counts := api.Status.ReplicaCounts
-	if counts.Updated.Ready >= api.Spec.Pod.Replicas {
-		return status.Live
-	}
-
-	if counts.Updated.ErrImagePull > 0 {
-		return status.ErrorImagePull
-	}
-
-	if counts.Updated.Failed > 0 || counts.Updated.Killed > 0 {
-		return status.Error
-	}
-
-	if counts.Updated.KilledOOM > 0 {
-		return status.OOM
-	}
-
-	if counts.Updated.Stalled > 0 {
-		return status.Stalled
-	}
-
-	if counts.Updated.Ready >= api.Spec.Autoscaling.MinReplicas {
-		return status.Live
-	}
-
-	return status.Updating
+	return podList.Items, nil
 }
 
 func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, api serverless.RealtimeAPI) (controllerutil.OperationResult, error) {
@@ -531,4 +468,88 @@ func (r *RealtimeAPIReconciler) generateAPIAnnotations(api serverless.RealtimeAP
 		userconfig.DownscaleToleranceAnnotationKey:           api.Spec.Autoscaling.DownscaleTolerance,
 		userconfig.UpscaleToleranceAnnotationKey:             api.Spec.Autoscaling.UpscaleTolerance,
 	}
+}
+
+func getReplicaCounts(pods []kcore.Pod, deployment *kapps.Deployment) status.ReplicaCounts {
+	counts := status.ReplicaCounts{}
+	counts.Requested = *deployment.Spec.Replicas
+
+	for i := range pods {
+		pod := pods[i]
+		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
+			continue
+		}
+		addPodToReplicaCounts(&pods[i], deployment, &counts)
+	}
+
+	return counts
+}
+
+func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts *status.ReplicaCounts) {
+	latest := false
+	if isPodSpecLatest(deployment, pod) {
+		latest = true
+	}
+
+	isPodReady := k8s.IsPodReady(pod)
+	if latest && isPodReady {
+		counts.Ready++
+		return
+	} else if !latest && isPodReady {
+		counts.ReadyOutOfDate++
+		return
+	}
+
+	podStatus := k8s.GetPodStatus(pod)
+
+	if podStatus == k8s.PodStatusTerminating {
+		counts.Terminating++
+		return
+	}
+
+	if !latest {
+		return
+	}
+
+	switch podStatus {
+	case k8s.PodStatusPending:
+		counts.Pending++
+	case k8s.PodStatusStalled:
+		counts.Stalled++
+	case k8s.PodStatusCreating:
+		counts.Creating++
+	case k8s.PodStatusReady:
+		counts.Ready++
+	case k8s.PodStatusNotReady:
+		counts.NotReady++
+	case k8s.PodStatusErrImagePull:
+		counts.ErrImagePull++
+	case k8s.PodStatusFailed:
+		counts.Failed++
+	case k8s.PodStatusKilled:
+		counts.Killed++
+	case k8s.PodStatusKilledOOM:
+		counts.KilledOOM++
+	case k8s.PodStatusUnknown:
+		counts.Unknown++
+	}
+}
+
+func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
+	return deployment.Spec.Template.Labels["podID"] == pod.Labels["podID"] &&
+		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
+}
+
+// returns true if min_replicas are not ready and no updated replicas have errored
+func isAPIUpdating(deployment *kapps.Deployment, replicaCounts status.ReplicaCounts) (bool, error) {
+	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
+	if err != nil {
+		return false, err
+	}
+
+	if replicaCounts.Ready < autoscalingSpec.MinReplicas && replicaCounts.TotalFailed() == 0 {
+		return true, nil
+	}
+
+	return false, nil
 }

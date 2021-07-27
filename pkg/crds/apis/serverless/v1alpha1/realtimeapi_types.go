@@ -218,7 +218,10 @@ type NetworkingSpec struct {
 // RealtimeAPIStatus defines the observed state of RealtimeAPI
 type RealtimeAPIStatus struct {
 	// +kubebuilder:validation:Type=string
-	Status        status.Code          `json:"status"`
+	Ready         int32                `json:"ready"`
+	Requested     int32                `json:"requested"`
+	UpToDate      int32                `json:"up_to_date"`
+	IsUpdating    bool                 `json:"is_updating"`
 	ReplicaCounts status.ReplicaCounts `json:"replica_counts"`
 	Endpoint      string               `json:"endpoint,omitempty"`
 }
@@ -266,7 +269,6 @@ func (api RealtimeAPI) GetOrCreateAPIIDs() (deploymentID, podID, specID, apiID s
 	if apiID == "" ||
 		api.Annotations["cortex.dev/deployment-id"] != deploymentID ||
 		api.Annotations["cortex.dev/spec-id"] != specID {
-
 		apiID = fmt.Sprintf("%s-%s-%s", spec.MonotonicallyDecreasingID(), deploymentID, specID)
 	}
 

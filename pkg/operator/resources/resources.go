@@ -491,7 +491,7 @@ func DescribeAPI(apiName string) ([]schema.APIResponse, error) {
 
 	switch deployedResource.Kind {
 	case userconfig.RealtimeAPIKind:
-		apiResponse, err = realtimeapi.DescribeAPIByName(deployedResource)
+		apiResponse, err = realtimeapi.DescribeAPIByName(apiName)
 		if err != nil {
 			return nil, err
 		}
