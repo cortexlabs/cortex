@@ -103,6 +103,8 @@ function cluster_configure() {
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 | kubectl apply -f - >/dev/null
   echo "✓"
 
+  restart_controller_manager
+
   restart_operator
 
   validate_cortex
@@ -273,6 +275,14 @@ function start_controller_manager() {
     && cd ../.. > /dev/null
 
   kustomize build config/default | kubectl apply -f - >/dev/null
+  echo "✓"
+}
+
+function restart_controller_manager() {
+  echo -n "￮ restarting controller manager "
+
+  kubectl rollout restart deployments/operator-controller-manager >/dev/null
+
   echo "✓"
 }
 
