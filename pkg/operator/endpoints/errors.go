@@ -53,6 +53,17 @@ func ErrorHeaderMissing(header string) error {
 	})
 }
 
+func ErrorAuthHeaderMissing(header, host, url string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrHeaderMissing,
+		Message: fmt.Sprintf("missing %s header", header),
+		Metadata: map[string]string{
+			"host": host,
+			"url":  url,
+		},
+	})
+}
+
 func ErrorHeaderMalformed(header string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrHeaderMalformed,

@@ -15,31 +15,27 @@
 import json
 import os
 import shutil
-import subprocess
-import sys
-import threading
 import time
 import yaml
-from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import List, Dict, Any
 
 from cortex import util
-from cortex.binary import run_cli, get_cli_path
+from cortex.binary import run_cli
 from cortex.telemetry import sentry_wrapper
 
 
 class Client:
     @sentry_wrapper
-    def __init__(self, env: Dict):
+    def __init__(self, env_config: Dict):
         """
         A client to deploy and manage APIs in the specified environment.
 
         Args:
-            env: Environment config
+            env_config: Environment config
         """
 
-        self.env = env
-        self.env_name = env["name"]
+        self.env = env_config
+        self.env_name = env_config["name"]
 
     # CORTEX_VERSION_MINOR
     @sentry_wrapper
