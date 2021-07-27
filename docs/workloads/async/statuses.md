@@ -25,4 +25,4 @@ The replica states of an API can be inspected by running the `cortex describe <a
 | KilledOOM | Replica was terminated due to excessive memory usage; try allocating more memory to the API and re-deploy |
 | Stalled | Replica has been in a pending state for more than 15 minutes; causes like insufficient memory, CPU, GPU or Inf could be culprit; could also be that the node selector on the API is out-of-date |
 | Terminating | Replica is currently in the process of being terminated |
-| Unknown | Replica is in an undefined state; should not be possible |
+| Unknown | Replica is in an unknown state |
