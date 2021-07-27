@@ -85,7 +85,7 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Step 3: Get or create deployment and API ids
-	deploymentID, specID, apiID := r.getOrCreateAPIIDs(api)
+	deploymentID, podID, specID, apiID := api.GetOrCreateAPIIDs()
 	idsOutdated := api.Annotations["cortex.dev/deployment-id"] != deploymentID ||
 		api.Annotations["cortex.dev/spec-id"] != specID ||
 		api.Annotations["cortex.dev/api-id"] != apiID
@@ -100,7 +100,8 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	if api.Annotations["cortex.dev/spec-id"] != specID {
-		log.V(1).Info("updating spec id annotation")
+		log.V(1).Info("updating pod and spec id annotations")
+		api.Annotations["cortex.dev/pod-id"] = podID
 		api.Annotations["cortex.dev/spec-id"] = specID
 	}
 

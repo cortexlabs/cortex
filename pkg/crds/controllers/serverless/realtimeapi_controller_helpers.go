@@ -17,7 +17,6 @@ limitations under the License.
 package serverlesscontroller
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -25,13 +24,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
@@ -247,7 +244,7 @@ func (r *RealtimeAPIReconciler) getEndpoint(ctx context.Context, api *serverless
 	}
 
 	ingress := svc.Status.LoadBalancer.Ingress
-	if ingress == nil || len(ingress) == 0 {
+	if len(ingress) == 0 {
 		return "", nil
 	}
 
@@ -261,7 +258,6 @@ func (r *RealtimeAPIReconciler) getEndpoint(ctx context.Context, api *serverless
 
 func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) kapps.Deployment {
 	containers, volumes := r.desiredContainers(api)
-	deploymentID, _, apiID := r.getOrCreateAPIIDs(api)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),
@@ -271,8 +267,8 @@ func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) ka
 		Labels: map[string]string{
 			"apiName":        api.Name,
 			"apiKind":        userconfig.RealtimeAPIKind.String(),
-			"apiID":          apiID,
-			"deploymentID":   deploymentID,
+			"apiID":          api.Annotations["cortex.dev/api-id"],
+			"deploymentID":   api.Annotations["cortex.dev/deployment-id"],
 			"cortex.dev/api": "true",
 		},
 		Annotations: r.generateAPIAnnotations(api),
@@ -284,7 +280,7 @@ func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) ka
 			Labels: map[string]string{
 				"apiName":        api.Name,
 				"apiKind":        userconfig.RealtimeAPIKind.String(),
-				"deploymentID":   deploymentID,
+				"deploymentID":   api.Annotations["cortex.dev/deployment-id"],
 				"cortex.dev/api": "true",
 			},
 			Annotations: map[string]string{
@@ -339,8 +335,6 @@ func (r *RealtimeAPIReconciler) desiredVirtualService(api serverless.RealtimeAPI
 		activatorWeight = 100
 	}
 
-	deploymentID, _, apiID := r.getOrCreateAPIIDs(api)
-
 	return *k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:     workloads.K8sName(api.Name),
 		Gateways: []string{"apis-gateway"},
@@ -387,8 +381,8 @@ func (r *RealtimeAPIReconciler) desiredVirtualService(api serverless.RealtimeAPI
 		Labels: map[string]string{
 			"apiName":        api.Name,
 			"apiKind":        userconfig.RealtimeAPIKind.String(),
-			"apiID":          apiID,
-			"deploymentID":   deploymentID,
+			"apiID":          api.Annotations["cortex.dev/api-id"],
+			"deploymentID":   api.Annotations["cortex.dev/deployment-id"],
 			"cortex.dev/api": "true",
 		},
 	})
@@ -406,8 +400,8 @@ func (r *RealtimeAPIReconciler) userContainers(api serverless.RealtimeAPI) ([]kc
 		workloads.ClientConfigMount(),
 	}
 
-	var containers []kcore.Container
-	for _, container := range api.Spec.Pod.Containers {
+	containers := make([]kcore.Container, len(api.Spec.Pod.Containers))
+	for i, container := range api.Spec.Pod.Containers {
 		containerResourceList := kcore.ResourceList{}
 		containerResourceLimitsList := kcore.ResourceList{}
 		securityContext := kcore.SecurityContext{
@@ -453,7 +447,7 @@ func (r *RealtimeAPIReconciler) userContainers(api serverless.RealtimeAPI) ([]kc
 		containerEnvVars = append(containerEnvVars, workloads.ClientConfigEnvVar())
 		containerEnvVars = append(containerEnvVars, container.Env...)
 
-		containers = append(containers, kcore.Container{
+		containers[i] = kcore.Container{
 			Name:           container.Name,
 			Image:          container.Image,
 			Command:        container.Command,
@@ -468,7 +462,7 @@ func (r *RealtimeAPIReconciler) userContainers(api serverless.RealtimeAPI) ([]kc
 			},
 			ImagePullPolicy: kcore.PullAlways,
 			SecurityContext: &securityContext,
-		})
+		}
 	}
 
 	return containers, volumes
@@ -522,37 +516,6 @@ func (r *RealtimeAPIReconciler) proxyContainer(api serverless.RealtimeAPI) (kcor
 			FailureThreshold:    1,
 		},
 	}, workloads.ClusterConfigVolume()
-}
-
-func (r *RealtimeAPIReconciler) getOrCreateAPIIDs(api serverless.RealtimeAPI) (deploymentID string, specID string, apiID string) {
-	deploymentID = api.Annotations["cortex.dev/deployment-id"]
-	if deploymentID == "" {
-		deploymentID = k8s.RandomName()[:10]
-	}
-
-	specID = r.getSpecHash(api)
-
-	apiID = api.Annotations["cortex.dev/api-id"]
-	if apiID == "" ||
-		api.Annotations["cortex.dev/deployment-id"] != deploymentID ||
-		api.Annotations["cortex.dev/spec-id"] != specID {
-
-		apiID = fmt.Sprintf("%s-%s-%s", spec.MonotonicallyDecreasingID(), deploymentID, specID)
-	}
-
-	return deploymentID, specID, apiID
-}
-
-func (r *RealtimeAPIReconciler) getSpecHash(api serverless.RealtimeAPI) string {
-	var buf bytes.Buffer
-	buf.WriteString(api.Name)
-	buf.WriteString(s.Obj(api.TypeMeta))
-	buf.WriteString(s.Obj(api.Spec.Pod))
-	buf.WriteString(s.Obj(api.Spec.Networking))
-	buf.WriteString(s.Obj(api.Spec.Autoscaling))
-	buf.WriteString(s.Obj(api.Spec.NodeGroups))
-	buf.WriteString(s.Obj(api.Spec.UpdateStrategy))
-	return hash.Bytes(buf.Bytes())[:32]
 }
 
 func (r *RealtimeAPIReconciler) generateAPIAnnotations(api serverless.RealtimeAPI) map[string]string {

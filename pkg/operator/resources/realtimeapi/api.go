@@ -19,6 +19,7 @@ package realtimeapi
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"time"
 
@@ -27,6 +28,8 @@ import (
 	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/maps"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -55,7 +58,6 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 	var api serverless.RealtimeAPI
 	key := client.ObjectKey{Namespace: consts.DefaultNamespace, Name: apiConfig.Name}
 
-	apiSpec := &spec.API{API: apiConfig}
 	err := config.K8s.Get(ctx, key, &api)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
@@ -64,6 +66,23 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 				if err = config.K8s.Create(ctx, &api); err != nil {
 					return nil, "", errors.Wrap(err, "failed to create realtime api resource")
 				}
+
+				apiSpec := &spec.API{
+					API:                   apiConfig,
+					ID:                    api.Annotations["cortex.dev/api-id"],
+					SpecID:                api.Annotations["cortex.dev/spec-id"],
+					PodID:                 api.Annotations["cortex.dev/pod-id"],
+					DeploymentID:          api.Annotations["cortex.dev/deployment-id"],
+					Key:                   spec.Key(apiConfig.Name, api.Annotations["cortex.dev/api-id"], config.ClusterConfig.ClusterUID),
+					InitialDeploymentTime: api.CreationTimestamp.Unix(),
+					LastUpdated:           api.CreationTimestamp.Unix(),
+					MetadataRoot:          spec.MetadataRoot(apiConfig.Name, config.ClusterConfig.ClusterUID),
+				}
+
+				if err := config.AWS.UploadJSONToS3(apiSpec, config.ClusterConfig.Bucket, apiSpec.Key); err != nil {
+					return nil, "", errors.Wrap(err, "failed to upload api spec")
+				}
+
 				return apiSpec, fmt.Sprintf("creating %s", apiConfig.Resource.UserString()), nil
 			}
 		}
@@ -71,13 +90,34 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 	}
 
 	desiredAPI := K8sResourceFromAPIConfig(*apiConfig)
+
+	apiSpec := &spec.API{
+		API:                   apiConfig,
+		ID:                    desiredAPI.Annotations["cortex.dev/api-id"],
+		SpecID:                desiredAPI.Annotations["cortex.dev/spec-id"],
+		PodID:                 desiredAPI.Annotations["cortex.dev/pod-id"],
+		DeploymentID:          desiredAPI.Annotations["cortex.dev/deployment-id"],
+		Key:                   spec.Key(apiConfig.Name, desiredAPI.Annotations["cortex.dev/api-id"], config.ClusterConfig.ClusterUID),
+		InitialDeploymentTime: api.CreationTimestamp.Unix(),
+		MetadataRoot:          spec.MetadataRoot(apiConfig.Name, config.ClusterConfig.ClusterUID),
+	}
+
 	if !reflect.DeepEqual(api.Spec, desiredAPI.Spec) || force {
 		api.Spec = desiredAPI.Spec
-		api.Annotations["cortex.dev/last-updated"] = s.Int64(time.Now().Unix())
+		api.Annotations = maps.MergeStrMapsString(api.Annotations, desiredAPI.Annotations)
+
+		lastUpdated := time.Now().Unix()
+		api.Annotations["cortex.dev/last-updated"] = s.Int64(lastUpdated)
+		apiSpec.LastUpdated = lastUpdated
 
 		if err = config.K8s.Update(ctx, &api); err != nil {
 			return nil, "", errors.Wrap(err, "failed to update realtime api resource")
 		}
+
+		if err := config.AWS.UploadJSONToS3(apiSpec, config.ClusterConfig.Bucket, apiSpec.Key); err != nil {
+			return nil, "", errors.Wrap(err, "failed to upload api spec")
+		}
+
 		return apiSpec, fmt.Sprintf("updating %s", apiConfig.Resource.UserString()), nil
 	}
 
@@ -109,21 +149,30 @@ func RefreshAPI(apiName string) (string, error) {
 	return fmt.Sprintf("updating %s", apiResource.UserString()), nil
 }
 
-func DeleteAPI(apiName string, _ bool) error {
-	ctx := context.Background()
-	api := serverless.RealtimeAPI{
-		ObjectMeta: kmeta.ObjectMeta{
-			Name:      apiName,
-			Namespace: consts.DefaultNamespace,
+func DeleteAPI(apiName string, keepCache bool) error {
+	return parallel.RunFirstErr(
+		func() error {
+			ctx := context.Background()
+			api := serverless.RealtimeAPI{
+				ObjectMeta: kmeta.ObjectMeta{
+					Name:      apiName,
+					Namespace: consts.DefaultNamespace,
+				},
+			}
+			if err := config.K8s.Delete(ctx, &api); err != nil {
+				return errors.Wrap(err, "failed to delete realtime api resource")
+			}
+			return nil
 		},
-	}
-	if err := config.K8s.Delete(ctx, &api); err != nil {
-		return errors.Wrap(err, "failed to delete realtime api resource")
-	}
-
-	// TODO: delete bucket resources (?)
-
-	return nil
+		func() error {
+			if keepCache {
+				return nil
+			}
+			// best effort deletion, swallow errors because there could be weird error messages
+			_ = deleteBucketResources(apiName)
+			return nil
+		},
+	)
 }
 
 func GetAllAPIs() ([]schema.APIResponse, error) {
@@ -133,31 +182,25 @@ func GetAllAPIs() ([]schema.APIResponse, error) {
 		return nil, errors.Wrap(err, "failed to list realtime api resources")
 	}
 
+	apiNames := make([]string, len(apis.Items))
+	apiIDs := make([]string, len(apis.Items))
+	for i, api := range apis.Items {
+		apiNames[i] = api.Name
+		apiIDs[i] = api.Annotations["cortex.dev/api-id"]
+	}
+
+	apiSpecs, err := operator.DownloadAPISpecs(apiNames, apiIDs)
+	if err != nil {
+		return nil, err
+	}
+
 	realtimeAPIs := make([]schema.APIResponse, len(apis.Items))
 	for i := range apis.Items {
 		api := apis.Items[i]
 		api.Status.ReplicaCounts.Requested = api.Spec.Pod.Replicas
 
-		lastUpdated := api.CreationTimestamp.Unix()
-		if api.Annotations["cortex.dev/last-updated"] != "" {
-			var ok bool
-			lastUpdated, ok = s.ParseInt64(api.Annotations["cortex.dev/last-updated"])
-			if !ok {
-				return nil, errors.ErrorUnexpected("failed to parse 'cortex.dev/last-updated' annotation")
-			}
-		}
-
 		realtimeAPIs[i] = schema.APIResponse{
-			Spec: spec.API{
-				API: &userconfig.API{
-					Resource: userconfig.Resource{
-						Name: api.Name,
-						Kind: userconfig.RealtimeAPIKind,
-					},
-				},
-				LastUpdated:           lastUpdated,
-				InitialDeploymentTime: api.CreationTimestamp.Unix(),
-			},
+			Spec: apiSpecs[i],
 			Status: &status.Status{
 				APIName:       api.Name,
 				APIID:         api.Annotations["cortex.dev/api-id"],
@@ -180,40 +223,17 @@ func GetAPIByName(apiName string) ([]schema.APIResponse, error) {
 		return nil, errors.Wrap(err, "failed to get realtime api resource")
 	}
 
-	// TODO: needs api id history
-	//api, err := operator.DownloadAPISpec(st.APIName, st.APIID)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	dashboardURL := pointer.String(getDashboardURL(api.Name))
-
-	lastUpdated := api.CreationTimestamp.Unix()
-	if api.Annotations["cortex.dev/last-updated"] != "" {
-		var ok bool
-		lastUpdated, ok = s.ParseInt64(api.Annotations["cortex.dev/last-updated"])
-		if !ok {
-			return nil, errors.ErrorUnexpected("failed to parse 'cortex.dev/last-updated' annotation")
-		}
+	apiSpec, err := operator.DownloadAPISpec(api.Name, api.Annotations["cortex.dev/api-id"])
+	if err != nil {
+		return nil, err
 	}
 
+	dashboardURL := pointer.String(getDashboardURL(api.Name))
 	api.Status.ReplicaCounts.Requested = api.Spec.Pod.Replicas
 
 	return []schema.APIResponse{
 		{
-			Spec: spec.API{
-				API: &userconfig.API{
-					Resource: userconfig.Resource{
-						Name: api.Name,
-						Kind: userconfig.RealtimeAPIKind,
-					},
-				},
-				ID:                    api.Annotations["cortex.dev/api-id"],
-				SpecID:                api.Annotations["cortex.dev/spec-id"],
-				DeploymentID:          api.Annotations["cortex.dev/deployment-id"],
-				InitialDeploymentTime: api.CreationTimestamp.Unix(),
-				LastUpdated:           lastUpdated,
-			},
+			Spec: *apiSpec,
 			Status: &status.Status{
 				APIName:       api.Name,
 				APIID:         api.Annotations["cortex.dev/api-id"],
@@ -244,9 +264,9 @@ func getDashboardURL(apiName string) string {
 func K8sResourceFromAPIConfig(apiConfig userconfig.API) serverless.RealtimeAPI {
 	containers := make([]serverless.ContainerSpec, len(apiConfig.Pod.Containers))
 	for i := range apiConfig.Pod.Containers {
-		containerConfig := apiConfig.Pod.Containers[i]
+		container := apiConfig.Pod.Containers[i]
 		var env []kcore.EnvVar
-		for k, v := range containerConfig.Env {
+		for k, v := range container.Env {
 			env = append(env, kcore.EnvVar{
 				Name:  k,
 				Value: v,
@@ -254,41 +274,39 @@ func K8sResourceFromAPIConfig(apiConfig userconfig.API) serverless.RealtimeAPI {
 		}
 
 		var compute *serverless.ComputeSpec
-		if containerConfig.Compute != nil {
+		if container.Compute != nil {
 			var cpu *kresource.Quantity
-			if containerConfig.Compute.CPU != nil {
-				cpu = &containerConfig.Compute.CPU.Quantity
+			if container.Compute.CPU != nil {
+				cpu = &container.Compute.CPU.Quantity
 			}
 			var mem *kresource.Quantity
-			if containerConfig.Compute.Mem != nil {
-				mem = &containerConfig.Compute.Mem.Quantity
+			if container.Compute.Mem != nil {
+				mem = &container.Compute.Mem.Quantity
 			}
 			var shm *kresource.Quantity
-			if containerConfig.Compute.Shm != nil {
-				shm = &containerConfig.Compute.Shm.Quantity
+			if container.Compute.Shm != nil {
+				shm = &container.Compute.Shm.Quantity
 			}
 
 			compute = &serverless.ComputeSpec{
 				CPU: cpu,
-				GPU: containerConfig.Compute.GPU,
-				Inf: containerConfig.Compute.Inf,
+				GPU: container.Compute.GPU,
+				Inf: container.Compute.Inf,
 				Mem: mem,
 				Shm: shm,
 			}
 		}
 
-		container := serverless.ContainerSpec{
-			Name:           containerConfig.Name,
-			Image:          containerConfig.Image,
-			Command:        containerConfig.Command,
-			Args:           containerConfig.Args,
+		containers[i] = serverless.ContainerSpec{
+			Name:           container.Name,
+			Image:          container.Image,
+			Command:        container.Command,
+			Args:           container.Args,
 			Env:            env,
 			Compute:        compute,
-			ReadinessProbe: workloads.GetProbeSpec(containerConfig.ReadinessProbe),
-			LivenessProbe:  workloads.GetProbeSpec(containerConfig.LivenessProbe),
+			ReadinessProbe: workloads.GetProbeSpec(container.ReadinessProbe),
+			LivenessProbe:  workloads.GetProbeSpec(container.LivenessProbe),
 		}
-
-		containers = append(containers, container)
 	}
 
 	api := serverless.RealtimeAPI{
@@ -326,5 +344,19 @@ func K8sResourceFromAPIConfig(apiConfig userconfig.API) serverless.RealtimeAPI {
 			},
 		},
 	}
+
+	deploymentID, podID, specID, apiID := api.GetOrCreateAPIIDs()
+	api.Annotations = map[string]string{
+		"cortex.dev/deployment-id": deploymentID,
+		"cortex.dev/spec-id":       specID,
+		"cortex.dev/pod-id":        podID,
+		"cortex.dev/api-id":        apiID,
+	}
+
 	return api
+}
+
+func deleteBucketResources(apiName string) error {
+	prefix := filepath.Join(config.ClusterConfig.ClusterUID, "apis", apiName)
+	return config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true)
 }

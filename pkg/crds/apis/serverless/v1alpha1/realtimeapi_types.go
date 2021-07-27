@@ -17,11 +17,18 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"bytes"
+	"fmt"
+
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -225,20 +232,54 @@ type RealtimeAPIStatus struct {
 
 // RealtimeAPI is the Schema for the realtimeapis API
 type RealtimeAPI struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	kmeta.TypeMeta   `json:",inline"`
+	kmeta.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   RealtimeAPISpec   `json:"spec,omitempty"`
 	Status RealtimeAPIStatus `json:"status,omitempty"`
+}
+
+// GetOrCreateAPIIDs retrieves API ids from annotations or creates them if they don't exist
+func (api RealtimeAPI) GetOrCreateAPIIDs() (deploymentID, podID, specID, apiID string) {
+	deploymentID = api.Annotations["cortex.dev/deployment-id"]
+	if deploymentID == "" {
+		deploymentID = k8s.RandomName()[:10]
+	}
+
+	var buf bytes.Buffer
+
+	buf.WriteString(api.Name)
+	buf.WriteString(api.Name)
+	buf.WriteString(userconfig.RealtimeAPIKind.String())
+	buf.WriteString(s.Obj(api.Spec.Pod))
+	podID = hash.Bytes(buf.Bytes())
+
+	buf.Reset()
+	buf.WriteString(podID)
+	buf.WriteString(s.Obj(api.Spec.Networking))
+	buf.WriteString(s.Obj(api.Spec.Autoscaling))
+	buf.WriteString(s.Obj(api.Spec.NodeGroups))
+	buf.WriteString(s.Obj(api.Spec.UpdateStrategy))
+	specID = hash.Bytes(buf.Bytes())[:32]
+
+	apiID = api.Annotations["cortex.dev/api-id"]
+	if apiID == "" ||
+		api.Annotations["cortex.dev/deployment-id"] != deploymentID ||
+		api.Annotations["cortex.dev/spec-id"] != specID {
+
+		apiID = fmt.Sprintf("%s-%s-%s", spec.MonotonicallyDecreasingID(), deploymentID, specID)
+	}
+
+	return deploymentID, podID, specID, apiID
 }
 
 //+kubebuilder:object:root=true
 
 // RealtimeAPIList contains a list of RealtimeAPI
 type RealtimeAPIList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []RealtimeAPI `json:"items"`
+	kmeta.TypeMeta `json:",inline"`
+	kmeta.ListMeta `json:"metadata,omitempty"`
+	Items          []RealtimeAPI `json:"items"`
 }
 
 func init() {
