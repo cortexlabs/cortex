@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package asyncapi
+package realtimeapi
 
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -23,17 +23,18 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
+// TODO move these functions into the realtime CRD
+
 func GetReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) *status.ReplicaCounts {
 	counts := status.ReplicaCounts{}
 	counts.Requested = *deployment.Spec.Replicas
 
 	for i := range pods {
 		pod := pods[i]
-
 		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
 			continue
 		}
-		addPodToReplicaCounts(&pod, deployment, &counts)
+		addPodToReplicaCounts(&pods[i], deployment, &counts)
 	}
 
 	return &counts

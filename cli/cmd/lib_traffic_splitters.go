@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -44,12 +45,14 @@ func trafficSplitterTable(trafficSplitter schema.APIResponse, env cliconfig.Envi
 	if err != nil {
 		return "", err
 	}
-	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
 	out += t.MustFormat()
 
 	out += "\n" + console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated)
-	out += "\n" + console.Bold("endpoint: ") + trafficSplitter.Endpoint + "\n"
+
+	if trafficSplitter.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *trafficSplitter.Endpoint + "\n"
+	}
 
 	out += "\n" + apiHistoryTable(trafficSplitter.APIVersions)
 
@@ -72,7 +75,10 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 		}
 
 		apiRes := apisRes[0]
-		lastUpdated := time.Unix(apiRes.Spec.LastUpdated, 0)
+		if apiRes.Metadata == nil || apiRes.Status == nil {
+			continue
+		}
+		lastUpdated := time.Unix(apiRes.Metadata.LastUpdated, 0)
 
 		apiName := apiRes.Spec.Name
 		if api.Shadow {
@@ -82,8 +88,8 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 			env.Name,
 			apiName,
 			api.Weight,
-			apiRes.Status.Message(),
-			apiRes.Status.Requested,
+			fmt.Sprintf("%d/%d", apiRes.Status.Ready, apiRes.Status.Requested),
+			apiRes.Status.UpToDate,
 			libtime.SinceStr(&lastUpdated),
 		})
 	}
@@ -93,9 +99,9 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 			{Title: _titleEnvironment},
 			{Title: _titleAPIs},
 			{Title: _trafficSplitterWeights},
-			{Title: _titleStatus},
-			{Title: _titleRequested},
-			{Title: _titleLastupdated},
+			{Title: _titleLive},
+			{Title: _titleUpToDate},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}, nil
@@ -104,20 +110,14 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 func trafficSplitterListTable(trafficSplitter []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(trafficSplitter))
 	for i, splitAPI := range trafficSplitter {
-		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
-		var apis []string
-		for _, api := range splitAPI.Spec.APIs {
-			apiName := api.Name
-			if api.Shadow {
-				apiName += " (shadow)"
-			}
-			apis = append(apis, apiName+":"+s.Int32(api.Weight))
+		if splitAPI.Metadata == nil || splitAPI.NumTrafficSplitterTargets == nil {
+			continue
 		}
-		apisStr := s.TruncateEllipses(strings.Join(apis, " "), 50)
+		lastUpdated := time.Unix(splitAPI.Metadata.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
-			splitAPI.Spec.Name,
-			apisStr,
+			splitAPI.Metadata.Name,
+			s.Int32(*splitAPI.NumTrafficSplitterTargets),
 			libtime.SinceStr(&lastUpdated),
 		})
 	}
@@ -127,7 +127,7 @@ func trafficSplitterListTable(trafficSplitter []schema.APIResponse, envNames []s
 			{Title: _titleEnvironment},
 			{Title: _titleTrafficSplitter},
 			{Title: _titleAPIs},
-			{Title: _titleLastupdated},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}

@@ -155,6 +155,10 @@ func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 func (api *API) ToK8sAnnotations() map[string]string {
 	annotations := map[string]string{}
 
+	if len(api.APIs) > 0 {
+		annotations[NumTrafficSplitterTargetsAnnotationKey] = s.Int32(int32(len(api.APIs)))
+	}
+
 	if api.Pod != nil && api.Kind == RealtimeAPIKind {
 		annotations[MaxConcurrencyAnnotationKey] = s.Int64(api.Pod.MaxConcurrency)
 		annotations[MaxQueueLengthAnnotationKey] = s.Int64(api.Pod.MaxQueueLength)
@@ -243,6 +247,36 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 	a.UpscaleTolerance = upscaleTolerance
 
 	return &a, nil
+}
+
+func TrafficSplitterTargetsFromAnnotations(k8sObj kmeta.Object) (int32, error) {
+	targets, err := k8s.ParseInt32Annotation(k8sObj, NumTrafficSplitterTargetsAnnotationKey)
+	if err != nil {
+		return 0, err
+	}
+	return targets, nil
+}
+
+func EndpointFromAnnotation(k8sObj kmeta.Object) (string, error) {
+	endpoint, err := k8s.GetAnnotation(k8sObj, EndpointAnnotationKey)
+	if err != nil {
+		return "", err
+	}
+	return endpoint, nil
+}
+
+func ConcurrencyFromAnnotations(k8sObj kmeta.Object) (int, int, error) {
+	maxQueueLength, err := k8s.ParseIntAnnotation(k8sObj, MaxQueueLengthAnnotationKey)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	maxConcurrency, err := k8s.ParseIntAnnotation(k8sObj, MaxConcurrencyAnnotationKey)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return maxQueueLength, maxConcurrency, nil
 }
 
 func (api *API) UserStr() string {

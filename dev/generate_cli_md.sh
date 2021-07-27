@@ -33,6 +33,7 @@ echo "# CLI commands" >> $out_file
 commands=(
   "deploy"
   "get"
+  "describe"
   "logs"
   "refresh"
   "delete"

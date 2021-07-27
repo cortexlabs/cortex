@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -211,6 +212,11 @@ func GetAllAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
+	sort.Strings(apiNames)
+	for i := range apiNames {
+		realtimeAPIs[i] = mappedRealtimeAPIs[apiNames[i]]
+	}
+
 	return realtimeAPIs, nil
 }
 
@@ -359,4 +365,46 @@ func K8sResourceFromAPIConfig(apiConfig userconfig.API) serverless.RealtimeAPI {
 func deleteBucketResources(apiName string) error {
 	prefix := filepath.Join(config.ClusterConfig.ClusterUID, "apis", apiName)
 	return config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true)
+}
+
+// TODO move the following functions into the CRD
+
+// returns true if min_replicas are not ready and no updated replicas have errored
+func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
+	pods, err := config.K8s.ListPodsByLabel("apiName", deployment.Labels["apiName"])
+	if err != nil {
+		return false, err
+	}
+
+	replicaCounts := GetReplicaCounts(deployment, pods)
+
+	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
+	if err != nil {
+		return false, err
+	}
+
+	if replicaCounts.Ready < autoscalingSpec.MinReplicas && replicaCounts.TotalFailed() == 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
+	return deployment.Spec.Template.Labels["podID"] == pod.Labels["podID"] &&
+		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
+}
+
+func getDashboardURL(apiName string) string {
+	loadBalancerURL, err := operator.LoadBalancerURL()
+	if err != nil {
+		return ""
+	}
+
+	dashboardURL := fmt.Sprintf(
+		"%s/dashboard/d/%s/realtimeapi?orgId=1&refresh=30s&var-api_name=%s",
+		loadBalancerURL, _realtimeDashboardUID, apiName,
+	)
+
+	return dashboardURL
 }
