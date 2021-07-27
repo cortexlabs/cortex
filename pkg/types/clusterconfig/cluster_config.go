@@ -167,24 +167,24 @@ type NodeGroup struct {
 }
 
 // compares the supported updatable fields of a nodegroup
-func (n *NodeGroup) HasChanged(old *NodeGroup) bool {
-	return n.MaxInstances != old.MaxInstances || n.MinInstances != old.MinInstances || n.Priority != old.Priority
+func (ng *NodeGroup) HasChanged(old *NodeGroup) bool {
+	return ng.MaxInstances != old.MaxInstances || ng.MinInstances != old.MinInstances || ng.Priority != old.Priority
 }
 
-func (n *NodeGroup) UpdatePlan(old *NodeGroup) string {
+func (ng *NodeGroup) UpdatePlan(old *NodeGroup) string {
 	var changes []string
 
-	if old.MinInstances != n.MinInstances {
-		changes = append(changes, fmt.Sprintf("%s from %d to %d", MinInstancesKey, old.MinInstances, n.MinInstances))
+	if old.MinInstances != ng.MinInstances {
+		changes = append(changes, fmt.Sprintf("%s from %d to %d", MinInstancesKey, old.MinInstances, ng.MinInstances))
 	}
-	if old.MaxInstances != n.MaxInstances {
-		changes = append(changes, fmt.Sprintf("%s from %d to %d", MaxInstancesKey, old.MaxInstances, n.MaxInstances))
+	if old.MaxInstances != ng.MaxInstances {
+		changes = append(changes, fmt.Sprintf("%s from %d to %d", MaxInstancesKey, old.MaxInstances, ng.MaxInstances))
 	}
-	if old.Priority != n.Priority {
-		changes = append(changes, fmt.Sprintf("%s from %d to %d", PriorityKey, old.Priority, n.Priority))
+	if old.Priority != ng.Priority {
+		changes = append(changes, fmt.Sprintf("%s from %d to %d", PriorityKey, old.Priority, ng.Priority))
 	}
 
-	return fmt.Sprintf("nodegroup %s will be updated: %s", n.Name, s.StrsAnd(changes))
+	return fmt.Sprintf("nodegroup %s will be updated: %s", ng.Name, s.StrsAnd(changes))
 }
 
 type SpotConfig struct {
