@@ -81,7 +81,6 @@ spec:
             - "--port=8000"
             - "--autoscaler-url=http://autoscaler.default:8000"
             - "--namespace=default"
-            - "--cluster-config=/configs/cluster/cluster.yaml"
           ports:
             - name: http
               containerPort: 8000
@@ -111,15 +110,6 @@ spec:
           envFrom:
           - configMapRef:
               name: env-vars
-          volumeMounts:
-          - mountPath: /configs/cluster/cluster.yaml
-            name: cluster-config
-            subPath: cluster.yaml
-      volumes:
-      - configMap:
-          defaultMode: 420
-          name: cluster-config
-        name: cluster-config
 ---
 
 apiVersion: v1
