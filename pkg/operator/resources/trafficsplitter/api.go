@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -132,34 +133,27 @@ func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination
 
 // GetAllAPIs returns a list of metadata, in the form of schema.APIResponse, about all the created traffic splitter APIs
 func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schema.APIResponse, error) {
-	var (
-		apiNames         []string
-		apiIDs           []string
-		trafficSplitters []schema.APIResponse
-	)
+	var trafficSplitters []schema.APIResponse
+	for i := range virtualServices {
+		apiName := virtualServices[i].Labels["apiName"]
 
-	for _, virtualService := range virtualServices {
-		if virtualService.Labels["apiKind"] == userconfig.TrafficSplitterKind.String() {
-			apiNames = append(apiNames, virtualService.Labels["apiName"])
-			apiIDs = append(apiIDs, virtualService.Labels["apiID"])
-		}
-	}
-
-	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range apis {
-		trafficSplitter := apis[i]
-		endpoint, err := operator.APIEndpoint(&trafficSplitter)
+		metadata, err := spec.MetadataFromVirtualService(&virtualServices[i])
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
+		}
+
+		if metadata.Kind != userconfig.TrafficSplitterKind {
+			continue
+		}
+
+		targets, err := userconfig.TrafficSplitterTargetsFromAnnotations(&virtualServices[i])
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
 
 		trafficSplitters = append(trafficSplitters, schema.APIResponse{
-			Spec:     trafficSplitter,
-			Endpoint: endpoint,
+			Metadata:                  metadata,
+			NumTrafficSplitterTargets: pointer.Int32(targets),
 		})
 	}
 
@@ -168,7 +162,12 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 
 // GetAPIByName retrieves the metadata, in the form of schema.APIResponse, of a single traffic splitter API
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
-	api, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.VirtualService.Labels["apiID"])
+	metadata, err := spec.MetadataFromVirtualService(deployedResource.VirtualService)
+	if err != nil {
+		return nil, err
+	}
+
+	api, err := operator.DownloadAPISpec(deployedResource.Name, metadata.APIID)
 	if err != nil {
 		return nil, err
 	}
@@ -180,8 +179,9 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	return []schema.APIResponse{
 		{
-			Spec:     *api,
-			Endpoint: endpoint,
+			Spec:     api,
+			Metadata: metadata,
+			Endpoint: &endpoint,
 		},
 	}, nil
 }

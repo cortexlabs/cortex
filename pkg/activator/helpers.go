@@ -17,8 +17,6 @@ limitations under the License.
 package activator
 
 import (
-	"strconv"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -50,8 +48,7 @@ func getAPIMeta(obj interface{}) (apiMeta, error) {
 		return apiMeta{}, errors.ErrorUnexpected("got a virtual service without apiName label")
 	}
 
-	annotations := resource.GetAnnotations()
-	maxQueueLength, maxConcurrency, err := concurrencyFromAnnotations(annotations)
+	maxQueueLength, maxConcurrency, err := userconfig.ConcurrencyFromAnnotations(resource)
 	if err != nil {
 		return apiMeta{}, err
 	}
@@ -60,22 +57,8 @@ func getAPIMeta(obj interface{}) (apiMeta, error) {
 		apiName:        apiName,
 		apiKind:        userconfig.KindFromString(apiKind),
 		labels:         labels,
-		annotations:    annotations,
+		annotations:    resource.GetAnnotations(),
 		maxConcurrency: maxConcurrency,
 		maxQueueLength: maxQueueLength,
 	}, nil
-}
-
-func concurrencyFromAnnotations(annotations map[string]string) (int, int, error) {
-	maxQueueLength, err := strconv.Atoi(annotations[userconfig.MaxQueueLengthAnnotationKey])
-	if err != nil {
-		return 0, 0, errors.ErrorUnexpected("failed to parse annotation", userconfig.MaxQueueLengthAnnotationKey)
-	}
-
-	maxConcurrency, err := strconv.Atoi(annotations[userconfig.MaxConcurrencyAnnotationKey])
-	if err != nil {
-		return 0, 0, errors.ErrorUnexpected("failed to parse annotation", userconfig.MaxConcurrencyAnnotationKey)
-	}
-
-	return maxQueueLength, maxConcurrency, err
 }

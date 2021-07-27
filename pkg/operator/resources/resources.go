@@ -158,8 +158,8 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*schema.APIResponse, stri
 		apiEndpoint, _ := operator.APIEndpoint(api)
 
 		return &schema.APIResponse{
-			Spec:     *api,
-			Endpoint: apiEndpoint,
+			Spec:     api,
+			Endpoint: &apiEndpoint,
 		}, msg, nil
 	}
 
@@ -256,7 +256,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 func GetAPIs() ([]schema.APIResponse, error) {
 	var deployments []kapps.Deployment
 	var k8sTaskJobs []kbatch.Job
-	var pods []kcore.Pod
+	var taskAPIPods []kcore.Pod
 	var virtualServices []istioclientnetworking.VirtualService
 	var batchJobList batch.BatchJobList
 
@@ -268,7 +268,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		},
 		func() error {
 			var err error
-			pods, err = config.K8s.ListPodsWithLabelKeys("apiName")
+			taskAPIPods, err = config.K8s.ListPodsByLabel("apiKind", userconfig.TaskAPIKind.String())
 			return err
 		},
 		func() error {
@@ -308,23 +308,6 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	var realtimeAPIPods []kcore.Pod
-	var batchAPIPods []kcore.Pod
-	var taskAPIPods []kcore.Pod
-	var asyncAPIPods []kcore.Pod
-	for _, pod := range pods {
-		switch pod.Labels["apiKind"] {
-		case userconfig.RealtimeAPIKind.String():
-			realtimeAPIPods = append(realtimeAPIPods, pod)
-		case userconfig.BatchAPIKind.String():
-			batchAPIPods = append(batchAPIPods, pod)
-		case userconfig.TaskAPIKind.String():
-			taskAPIPods = append(taskAPIPods, pod)
-		case userconfig.AsyncAPIKind.String():
-			asyncAPIPods = append(asyncAPIPods, pod)
-		}
-	}
-
 	var batchAPIVirtualServices []istioclientnetworking.VirtualService
 	var taskAPIVirtualServices []istioclientnetworking.VirtualService
 	var trafficSplitterVirtualServices []istioclientnetworking.VirtualService
@@ -340,7 +323,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIPods, realtimeAPIDeployments)
+	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIDeployments)
 	if err != nil {
 		return nil, err
 	}
@@ -356,7 +339,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	asyncAPIList, err := asyncapi.GetAllAPIs(asyncAPIPods, asyncAPIDeployments)
+	asyncAPIList, err := asyncapi.GetAllAPIs(asyncAPIDeployments)
 	if err != nil {
 		return nil, err
 	}
@@ -449,7 +432,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 
 	return []schema.APIResponse{
 		{
-			Spec: *apiSpec,
+			Spec: apiSpec,
 		},
 	}, nil
 }
@@ -499,4 +482,34 @@ func checkIfUsedByTrafficSplitter(apiName string) error {
 		return ErrorAPIUsedByTrafficSplitter(usedByTrafficSplitters)
 	}
 	return nil
+}
+
+func DescribeAPI(apiName string) ([]schema.APIResponse, error) {
+	deployedResource, err := GetDeployedResourceByName(apiName)
+	if err != nil {
+		return nil, err
+	}
+
+	var apiResponse []schema.APIResponse
+
+	switch deployedResource.Kind {
+	case userconfig.RealtimeAPIKind:
+		apiResponse, err = realtimeapi.DescribeAPIByName(deployedResource)
+		if err != nil {
+			return nil, err
+		}
+	case userconfig.AsyncAPIKind:
+		apiResponse, err = asyncapi.DescribeAPIByName(deployedResource)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, ErrorOperationIsOnlySupportedForKind(
+			*deployedResource,
+			userconfig.RealtimeAPIKind,
+			userconfig.AsyncAPIKind,
+		) // unexpected
+	}
+
+	return apiResponse, nil
 }

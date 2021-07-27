@@ -17,9 +17,6 @@ limitations under the License.
 package job
 
 import (
-	"time"
-
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kbatch "k8s.io/api/batch/v1"
@@ -43,34 +40,32 @@ func GetWorkerCountsForJob(k8sJob kbatch.Job, pods []kcore.Pod) status.WorkerCou
 
 func addPodToWorkerCounts(pod *kcore.Pod, workerCounts *status.WorkerCounts) {
 	if k8s.IsPodReady(pod) {
-		workerCounts.Running++
+		workerCounts.Ready++
 		return
 	}
 
 	switch k8s.GetPodStatus(pod) {
 	case k8s.PodStatusPending:
-		if time.Since(pod.CreationTimestamp.Time) > consts.WaitForInitializingReplicasTimeout {
-			workerCounts.Stalled++
-		} else {
-			workerCounts.Pending++
-		}
-	case k8s.PodStatusInitializing:
-		workerCounts.Initializing++
-	case k8s.PodStatusRunning:
-		workerCounts.Initializing++
+		workerCounts.Pending++
+	case k8s.PodStatusStalled:
+		workerCounts.Stalled++
+	case k8s.PodStatusCreating:
+		workerCounts.Creating++
+	case k8s.PodStatusNotReady:
+		workerCounts.NotReady++
 	case k8s.PodStatusErrImagePull:
-		workerCounts.Failed++
+		workerCounts.ErrImagePull++
 	case k8s.PodStatusTerminating:
-		workerCounts.Failed++
+		workerCounts.Terminating++
 	case k8s.PodStatusFailed:
 		workerCounts.Failed++
 	case k8s.PodStatusKilled:
-		workerCounts.Failed++
+		workerCounts.Killed++
 	case k8s.PodStatusKilledOOM:
-		workerCounts.Failed++
+		workerCounts.KilledOOM++
 	case k8s.PodStatusSucceeded:
 		workerCounts.Succeeded++
-	default:
+	case k8s.PodStatusUnknown:
 		workerCounts.Unknown++
 	}
 }
