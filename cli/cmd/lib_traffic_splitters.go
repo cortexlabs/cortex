@@ -110,14 +110,14 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 func trafficSplitterListTable(trafficSplitter []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(trafficSplitter))
 	for i, splitAPI := range trafficSplitter {
-		if splitAPI.Metadata == nil || splitAPI.Status == nil {
+		if splitAPI.Metadata == nil || splitAPI.NumTrafficSplitterTargets == nil {
 			continue
 		}
 		lastUpdated := time.Unix(splitAPI.Metadata.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
 			splitAPI.Metadata.Name,
-			s.Int32(splitAPI.Status.Ready),
+			s.Int32(*splitAPI.NumTrafficSplitterTargets),
 			libtime.SinceStr(&lastUpdated),
 		})
 	}

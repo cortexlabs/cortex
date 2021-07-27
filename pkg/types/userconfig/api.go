@@ -156,7 +156,7 @@ func (api *API) ToK8sAnnotations() map[string]string {
 	annotations := map[string]string{}
 
 	if len(api.APIs) > 0 {
-		annotations[NumberOfTrafficSplitterTargets] = s.Int32(int32(len(api.APIs)))
+		annotations[NumTrafficSplitterTargetsAnnotationKey] = s.Int32(int32(len(api.APIs)))
 	}
 
 	if api.Pod != nil && api.Kind == RealtimeAPIKind {
@@ -250,7 +250,7 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 }
 
 func TrafficSplitterTargetsFromAnnotations(k8sObj kmeta.Object) (int32, error) {
-	targets, err := k8s.ParseInt32Annotation(k8sObj, NumberOfTrafficSplitterTargets)
+	targets, err := k8s.ParseInt32Annotation(k8sObj, NumTrafficSplitterTargetsAnnotationKey)
 	if err != nil {
 		return 0, err
 	}

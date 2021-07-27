@@ -26,11 +26,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -142,21 +142,19 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
 
+		if metadata.Kind != userconfig.TrafficSplitterKind {
+			continue
+		}
+
 		targets, err := userconfig.TrafficSplitterTargetsFromAnnotations(&virtualServices[i])
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
 
-		if metadata.Kind == userconfig.TrafficSplitterKind {
-			trafficSplitters = append(trafficSplitters, schema.APIResponse{
-				Metadata: metadata,
-				Status: &status.Status{
-					Ready:     targets,
-					Requested: targets,
-					UpToDate:  targets,
-				},
-			})
-		}
+		trafficSplitters = append(trafficSplitters, schema.APIResponse{
+			Metadata:                  metadata,
+			NumTrafficSplitterTargets: pointer.Int32(targets),
+		})
 	}
 
 	return trafficSplitters, nil

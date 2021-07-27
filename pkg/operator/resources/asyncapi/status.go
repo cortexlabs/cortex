@@ -73,7 +73,7 @@ func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts 
 	case k8s.PodStatusCreating:
 		counts.Creating++
 	case k8s.PodStatusReady:
-		counts.Creating++
+		counts.Ready++
 	case k8s.PodStatusNotReady:
 		counts.NotReady++
 	case k8s.PodStatusErrImagePull:

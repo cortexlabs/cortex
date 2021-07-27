@@ -61,7 +61,7 @@ type ReplicaCounts struct {
 	Ready          int32 `json:"ready" yaml:"ready"`
 	ReadyOutOfDate int32 `json:"ready_out_of_date" yaml:"ready_out_of_date"`
 	ErrImagePull   int32 `json:"err_image_pull" yaml:"err_image_pull"`
-	Terminating    int32 `json:"terminating" yaml:"terminating"`
+	Terminating    int32 `json:"terminating" yaml:"terminating"` // includes up-to-date and out-of-date pods
 	Failed         int32 `json:"failed" yaml:"failed"`
 	Killed         int32 `json:"killed" yaml:"killed"`
 	KilledOOM      int32 `json:"killed_oom" yaml:"killed_oom"`

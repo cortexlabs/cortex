@@ -56,14 +56,15 @@ type DeployResult struct {
 }
 
 type APIResponse struct {
-	Spec             *spec.API               `json:"spec,omitempty" yaml:"spec,omitempty"`
-	Metadata         *spec.Metadata          `json:"metadata,omitempty"  yaml:"metadata,omitempty"`
-	Status           *status.Status          `json:"status,omitempty"  yaml:"status,omitempty"`
-	Endpoint         *string                 `json:"endpoint,omitempty"  yaml:"endpoint,omitempty"`
-	DashboardURL     *string                 `json:"dashboard_url,omitempty"  yaml:"dashboard_url,omitempty"`
-	BatchJobStatuses []status.BatchJobStatus `json:"batch_job_statuses,omitempty"  yaml:"batch_job_statuses,omitempty"`
-	TaskJobStatuses  []status.TaskJobStatus  `json:"task_job_statuses,omitempty"  yaml:"task_job_statuses,omitempty"`
-	APIVersions      []APIVersion            `json:"api_versions,omitempty"  yaml:"api_versions,omitempty"`
+	Spec                      *spec.API               `json:"spec,omitempty" yaml:"spec,omitempty"`
+	Metadata                  *spec.Metadata          `json:"metadata,omitempty"  yaml:"metadata,omitempty"`
+	Status                    *status.Status          `json:"status,omitempty"  yaml:"status,omitempty"`
+	NumTrafficSplitterTargets *int32                  `json:"num_traffic_splitter_targets,omitempty" yaml:"num_traffic_splitter_targets,omitempty"`
+	Endpoint                  *string                 `json:"endpoint,omitempty"  yaml:"endpoint,omitempty"`
+	DashboardURL              *string                 `json:"dashboard_url,omitempty"  yaml:"dashboard_url,omitempty"`
+	BatchJobStatuses          []status.BatchJobStatus `json:"batch_job_statuses,omitempty"  yaml:"batch_job_statuses,omitempty"`
+	TaskJobStatuses           []status.TaskJobStatus  `json:"task_job_statuses,omitempty"  yaml:"task_job_statuses,omitempty"`
+	APIVersions               []APIVersion            `json:"api_versions,omitempty"  yaml:"api_versions,omitempty"`
 }
 
 type LogResponse struct {
