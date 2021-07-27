@@ -11,6 +11,9 @@ spec:
     matchLabels:
       control-plane: controller-manager
   replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
   template:
     metadata:
       labels:
