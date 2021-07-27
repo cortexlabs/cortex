@@ -60,7 +60,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			if kerrors.IsNotFound(err) {
-				api := APIConfigToK8sResource(*apiConfig)
+				api = K8sResourceFromAPIConfig(*apiConfig)
 				if err = config.K8s.Create(ctx, &api); err != nil {
 					return nil, "", errors.Wrap(err, "failed to create realtime api resource")
 				}
@@ -70,7 +70,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		return nil, "", errors.Wrap(err, "failed to get realtime api resource")
 	}
 
-	desiredAPI := APIConfigToK8sResource(*apiConfig)
+	desiredAPI := K8sResourceFromAPIConfig(*apiConfig)
 	if !reflect.DeepEqual(api.Spec, desiredAPI.Spec) || force {
 		api.Spec = desiredAPI.Spec
 		api.Annotations["cortex.dev/last-updated"] = s.Int64(time.Now().Unix())
@@ -240,7 +240,8 @@ func getDashboardURL(apiName string) string {
 	return dashboardURL
 }
 
-func APIConfigToK8sResource(apiConfig userconfig.API) serverless.RealtimeAPI {
+// K8sResourceFromAPIConfig converts a cortex API config into a realtime API CRD resource
+func K8sResourceFromAPIConfig(apiConfig userconfig.API) serverless.RealtimeAPI {
 	containers := make([]serverless.ContainerSpec, len(apiConfig.Pod.Containers))
 	for i := range apiConfig.Pod.Containers {
 		containerConfig := apiConfig.Pod.Containers[i]
