@@ -531,35 +531,7 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 			batchJob.Status.Status = status.JobRunning
 		}
 
-		// TODO move this to its own function
-		workerCounts := status.WorkerCounts{}
-		for i := range workerJobPods {
-			switch k8s.GetPodStatus(&workerJobPods[i]) {
-			case k8s.PodStatusPending:
-				workerCounts.Pending++
-			case k8s.PodStatusStalled:
-				workerCounts.Stalled++
-			case k8s.PodStatusCreating:
-				workerCounts.Creating++
-			case k8s.PodStatusNotReady:
-				workerCounts.NotReady++
-			case k8s.PodStatusErrImagePull:
-				workerCounts.ErrImagePull++
-			case k8s.PodStatusTerminating:
-				workerCounts.Terminating++
-			case k8s.PodStatusFailed:
-				workerCounts.Failed++
-			case k8s.PodStatusKilled:
-				workerCounts.Killed++
-			case k8s.PodStatusKilledOOM:
-				workerCounts.KilledOOM++
-			case k8s.PodStatusSucceeded:
-				workerCounts.Succeeded++
-			case k8s.PodStatusUnknown:
-				workerCounts.Unknown++
-			}
-		}
-
+		workerCounts := getReplicaCounts(workerJobPods)
 		batchJob.Status.WorkerCounts = &workerCounts
 	}
 
@@ -758,4 +730,35 @@ func saveJobStatus(r *BatchJobReconciler, batchJob batch.BatchJob) error {
 			return r.AWS.UploadStringToS3("", r.ClusterConfig.Bucket, key)
 		},
 	)
+}
+
+func getReplicaCounts(workerJobPods []kcore.Pod) status.WorkerCounts {
+	workerCounts := status.WorkerCounts{}
+	for i := range workerJobPods {
+		switch k8s.GetPodStatus(&workerJobPods[i]) {
+		case k8s.PodStatusPending:
+			workerCounts.Pending++
+		case k8s.PodStatusStalled:
+			workerCounts.Stalled++
+		case k8s.PodStatusCreating:
+			workerCounts.Creating++
+		case k8s.PodStatusNotReady:
+			workerCounts.NotReady++
+		case k8s.PodStatusErrImagePull:
+			workerCounts.ErrImagePull++
+		case k8s.PodStatusTerminating:
+			workerCounts.Terminating++
+		case k8s.PodStatusFailed:
+			workerCounts.Failed++
+		case k8s.PodStatusKilled:
+			workerCounts.Killed++
+		case k8s.PodStatusKilledOOM:
+			workerCounts.KilledOOM++
+		case k8s.PodStatusSucceeded:
+			workerCounts.Succeeded++
+		case k8s.PodStatusUnknown:
+			workerCounts.Unknown++
+		}
+	}
+	return workerCounts
 }

@@ -21,28 +21,28 @@ import (
 )
 
 type Status struct {
-	Ready         int32          `json:"ready" yaml:"ready"`
-	Requested     int32          `json:"requested" yaml:"requested"`
-	UpToDate      int32          `json:"up_to_date" yaml:"up_to_date"`
+	Ready         int32          `json:"ready" yaml:"ready"`           // deployment-reported number of ready replicas (latest + out of date)
+	Requested     int32          `json:"requested" yaml:"requested"`   // deployment-reported number of requested replicas
+	UpToDate      int32          `json:"up_to_date" yaml:"up_to_date"` // deployment-reported number of up-to-date replicas (in whichever phase they are found in)
 	ReplicaCounts *ReplicaCounts `json:"replica_counts,omitempty" yaml:"replica_counts,omitempty"`
 }
 
 type ReplicaCountType string
 
 const (
-	ReplicaCountRequested      ReplicaCountType = "Requested"
-	ReplicaCountPending        ReplicaCountType = "Pending"
-	ReplicaCountCreating       ReplicaCountType = "Creating"
-	ReplicaCountNotReady       ReplicaCountType = "NotReady"
-	ReplicaCountReady          ReplicaCountType = "Ready"
-	ReplicaCountReadyOutOfDate ReplicaCountType = "ReadyOutOfDate"
-	ReplicaCountErrImagePull   ReplicaCountType = "ErrImagePull"
-	ReplicaCountTerminating    ReplicaCountType = "Terminating"
-	ReplicaCountFailed         ReplicaCountType = "Failed"
-	ReplicaCountKilled         ReplicaCountType = "Killed"
-	ReplicaCountKilledOOM      ReplicaCountType = "KilledOOM"
-	ReplicaCountStalled        ReplicaCountType = "Stalled"
-	ReplicaCountUnknown        ReplicaCountType = "Unknown"
+	ReplicaCountRequested      ReplicaCountType = "Requested"      // requested number of replicas (for up-to-date pods)
+	ReplicaCountPending        ReplicaCountType = "Pending"        // pods that are in the pending state (for up-to-date pods)
+	ReplicaCountCreating       ReplicaCountType = "Creating"       // pods that that have their init/non-init containers in the process of being created (for up-to-date pods)
+	ReplicaCountNotReady       ReplicaCountType = "NotReady"       // pods that are not passing the readiness checks (for up-to-date pods)
+	ReplicaCountReady          ReplicaCountType = "Ready"          // pods that are passing the readiness checks (for up-to-date pods)
+	ReplicaCountReadyOutOfDate ReplicaCountType = "ReadyOutOfDate" // pods that are passing the readiness checks (for out-of-date pods)
+	ReplicaCountErrImagePull   ReplicaCountType = "ErrImagePull"   // pods that couldn't pull the containers' images (for up-to-date pods)
+	ReplicaCountTerminating    ReplicaCountType = "Terminating"    // pods that are in a terminating state (for up-to-date pods)
+	ReplicaCountFailed         ReplicaCountType = "Failed"         // pods that have had their containers erroring (for up-to-date pods)
+	ReplicaCountKilled         ReplicaCountType = "Killed"         // pods that have had their container processes killed (for up-to-date pods)
+	ReplicaCountKilledOOM      ReplicaCountType = "KilledOOM"      // pods that have had their containers OOM (for up-to-date pods)
+	ReplicaCountStalled        ReplicaCountType = "Stalled"        // pods that have been in a pending state for more than 15 mins (for up-to-date pods)
+	ReplicaCountUnknown        ReplicaCountType = "Unknown"        // pods that are in an unknown state (for up-to-date pods)
 )
 
 var ReplicaCountTypes []ReplicaCountType = []ReplicaCountType{

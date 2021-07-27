@@ -265,6 +265,20 @@ func EndpointFromAnnotation(k8sObj kmeta.Object) (string, error) {
 	return endpoint, nil
 }
 
+func ConcurrencyFromAnnotations(k8sObj kmeta.Object) (int, int, error) {
+	maxQueueLength, err := k8s.ParseIntAnnotation(k8sObj, MaxQueueLengthAnnotationKey)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	maxConcurrency, err := k8s.ParseIntAnnotation(k8sObj, MaxConcurrencyAnnotationKey)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return maxQueueLength, maxConcurrency, nil
+}
+
 func (api *API) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
