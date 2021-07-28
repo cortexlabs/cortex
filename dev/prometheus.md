@@ -51,21 +51,16 @@ The following is a list of metrics that are currently in use.
 #### Kubelet metrics
 1. container_cpu_usage_seconds_total with the following labels:
     1. pod
-    1. container
-    1. name
 1. container_memory_working_set_bytes with the following labels:
     1. pod
-    1. name
-    1. container
 
 #### Kube-state-metrics metrics
 
 1. kube_pod_container_resource_requests with the following labels:
-    1. exported_pod
+    1. pod
     1. resource
-    1. exported_container (required for not dropping the values for each container of each pod)
 1. kube_pod_info with the following labels:
-    1. exported_pod
+    1. pod
 1. kube_deployment_status_replicas_available with the following labels:
     1. deployment
 1. kube_job_status_active with the following labels:
@@ -74,11 +69,11 @@ The following is a list of metrics that are currently in use.
 #### DCGM metrics
 
 1. DCGM_FI_DEV_GPU_UTIL with the following labels:
-    1. exported_pod
+    1. pod
 1. DCGM_FI_DEV_FB_USED with the following labels:
-    1. exported_pod
+    1. pod
 1. DCGM_FI_DEV_FB_FREE with the following labels:
-    1. exported_pod
+    1. pod
 
 #### Node metrics
 
