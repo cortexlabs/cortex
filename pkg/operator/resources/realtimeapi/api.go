@@ -19,6 +19,7 @@ package realtimeapi
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -175,56 +176,50 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIResponse, error) {
-	statuses, err := GetAllStatuses(deployments, pods)
-	if err != nil {
-		return nil, err
-	}
+func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
+	realtimeAPIs := make([]schema.APIResponse, len(deployments))
+	mappedRealtimeAPIs := make(map[string]schema.APIResponse, len(deployments))
+	apiNames := make([]string, len(deployments))
 
-	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
-	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
-	if err != nil {
-		return nil, err
-	}
+	for i := range deployments {
+		apiName := deployments[i].Labels["apiName"]
+		apiNames[i] = apiName
 
-	realtimeAPIs := make([]schema.APIResponse, len(apis))
-
-	for i := range apis {
-		api := apis[i]
-		endpoint, err := operator.APIEndpoint(&api)
+		metadata, err := spec.MetadataFromDeployment(&deployments[i])
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
+		mappedRealtimeAPIs[apiName] = schema.APIResponse{
+			Status:   status.FromDeployment(&deployments[i]),
+			Metadata: metadata,
+		}
+	}
 
-		realtimeAPIs[i] = schema.APIResponse{
-			Spec:     api,
-			Status:   &statuses[i],
-			Endpoint: endpoint,
-		}
+	sort.Strings(apiNames)
+	for i := range apiNames {
+		realtimeAPIs[i] = mappedRealtimeAPIs[apiNames[i]]
 	}
 
 	return realtimeAPIs, nil
 }
 
-func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
-	apiNames := make([]string, len(statuses))
-	apiIDs := make([]string, len(statuses))
-
-	for i, st := range statuses {
-		apiNames[i] = st.APIName
-		apiIDs[i] = st.APIID
-	}
-
-	return apiNames, apiIDs
-}
-
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
-	st, err := GetStatus(deployedResource.Name)
+	deployment, err := config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
 	if err != nil {
 		return nil, err
 	}
 
-	api, err := operator.DownloadAPISpec(st.APIName, st.APIID)
+	if deployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find deployment", deployedResource.Name)
+	}
+
+	apiStatus := status.FromDeployment(deployment)
+	apiMetadata, err := spec.MetadataFromDeployment(deployment)
+	if err != nil {
+		return nil, errors.ErrorUnexpected("unable to obtain metadata", deployedResource.Name)
+	}
+
+	api, err := operator.DownloadAPISpec(apiMetadata.Name, apiMetadata.APIID)
 	if err != nil {
 		return nil, err
 	}
@@ -238,9 +233,49 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	return []schema.APIResponse{
 		{
-			Spec:         *api,
-			Status:       st,
-			Endpoint:     apiEndpoint,
+			Spec:         api,
+			Metadata:     apiMetadata,
+			Status:       apiStatus,
+			Endpoint:     &apiEndpoint,
+			DashboardURL: dashboardURL,
+		},
+	}, nil
+}
+
+func DescribeAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
+	deployment, err := config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
+	if err != nil {
+		return nil, err
+	}
+
+	if deployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find deployment", deployedResource.Name)
+	}
+
+	apiStatus := status.FromDeployment(deployment)
+	apiMetadata, err := spec.MetadataFromDeployment(deployment)
+	if err != nil {
+		return nil, errors.ErrorUnexpected("unable to obtain metadata", deployedResource.Name)
+	}
+
+	pods, err := config.K8s.ListPodsByLabel("apiName", deployment.Labels["apiName"])
+	if err != nil {
+		return nil, err
+	}
+	apiStatus.ReplicaCounts = GetReplicaCounts(deployment, pods)
+
+	apiEndpoint, err := operator.APIEndpointFromResource(deployedResource)
+	if err != nil {
+		return nil, err
+	}
+
+	dashboardURL := pointer.String(getDashboardURL(deployedResource.Name))
+
+	return []schema.APIResponse{
+		{
+			Metadata:     apiMetadata,
+			Status:       apiStatus,
+			Endpoint:     &apiEndpoint,
 			DashboardURL: dashboardURL,
 		},
 	}, nil
@@ -364,14 +399,14 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 		return false, err
 	}
 
-	replicaCounts := getReplicaCounts(deployment, pods)
+	replicaCounts := GetReplicaCounts(deployment, pods)
 
 	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
 	if err != nil {
 		return false, err
 	}
 
-	if replicaCounts.Updated.Ready < autoscalingSpec.MinReplicas && replicaCounts.Updated.TotalFailed() == 0 {
+	if replicaCounts.Ready < autoscalingSpec.MinReplicas && replicaCounts.TotalFailed() == 0 {
 		return true, nil
 	}
 

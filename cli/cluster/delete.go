@@ -22,6 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -70,8 +71,7 @@ func getReadyRealtimeAPIReplicasOrNil(operatorConfig OperatorConfig, apiName str
 		return nil
 	}
 
-	totalReady := apiRes.Status.Updated.Ready + apiRes.Status.Stale.Ready
-	return &totalReady
+	return pointer.Int32(apiRes.Status.Ready)
 }
 
 func StopJob(operatorConfig OperatorConfig, kind userconfig.Kind, apiName string, jobID string) (schema.DeleteResponse, error) {

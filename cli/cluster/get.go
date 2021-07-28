@@ -51,6 +51,20 @@ func GetAPI(operatorConfig OperatorConfig, apiName string) ([]schema.APIResponse
 	return apiRes, nil
 }
 
+func DescribeAPI(operatorConfig OperatorConfig, apiName string) ([]schema.APIResponse, error) {
+	httpRes, err := HTTPGet(operatorConfig, "/describe/"+apiName)
+	if err != nil {
+		return nil, err
+	}
+
+	var apiRes []schema.APIResponse
+	if err = json.Unmarshal(httpRes, &apiRes); err != nil {
+		return nil, errors.Wrap(err, "/describe/"+apiName, string(httpRes))
+	}
+
+	return apiRes, nil
+}
+
 func GetAPIByID(operatorConfig OperatorConfig, apiName string, apiID string) ([]schema.APIResponse, error) {
 	httpRes, err := HTTPGet(operatorConfig, "/get/"+apiName+"/"+apiID)
 	if err != nil {

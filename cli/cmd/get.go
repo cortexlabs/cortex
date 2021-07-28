@@ -35,29 +35,28 @@ import (
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 )
 
 const (
 	_titleEnvironment = "env"
 	_titleRealtimeAPI = "realtime api"
-	_titleStatus      = "status"
+	_titleAsyncAPI    = "async api"
+	_titleLive        = "live"
 	_titleUpToDate    = "up-to-date"
-	_titleStale       = "stale"
-	_titleRequested   = "requested"
-	_titleFailed      = "failed"
-	_titleLastupdated = "last update"
+	_titleLastUpdated = "last update"
 )
 
 var (
-	_flagGetEnv string
-	_flagWatch  bool
+	_flagGetEnv   string
+	_flagGetWatch bool
 )
 
 func getInit() {
 	_getCmd.Flags().SortFlags = false
 	_getCmd.Flags().StringVarP(&_flagGetEnv, "env", "e", "", "environment to use")
-	_getCmd.Flags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every 2 seconds")
+	_getCmd.Flags().BoolVarP(&_flagGetWatch, "watch", "w", false, "re-run the command every 2 seconds")
 	_getCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStringsExcluding(flags.YAMLOutputType), "|")))
 	addVerboseFlag(_getCmd)
 }
@@ -90,7 +89,7 @@ var _getCmd = &cobra.Command{
 			telemetry.Event("cli.get")
 		}
 
-		rerun(func() (string, error) {
+		rerun(_flagGetWatch, func() (string, error) {
 			if len(args) == 1 {
 				env, err := ReadOrConfigureEnv(envName)
 				if err != nil {
@@ -106,7 +105,7 @@ var _getCmd = &cobra.Command{
 					return "", err
 				}
 
-				if _flagOutput == flags.JSONOutputType {
+				if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 					return apiTable, nil
 				}
 
@@ -136,7 +135,7 @@ var _getCmd = &cobra.Command{
 				if err != nil {
 					return "", err
 				}
-				if _flagOutput == flags.JSONOutputType {
+				if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 					return jobTable, nil
 				}
 
@@ -166,7 +165,7 @@ var _getCmd = &cobra.Command{
 						return "", err
 					}
 
-					if _flagOutput == flags.JSONOutputType {
+					if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 						return apiTable, nil
 					}
 
@@ -221,7 +220,7 @@ func getAPIsInAllEnvironments() (string, error) {
 
 		if err == nil {
 			for _, api := range apisRes {
-				switch api.Spec.Kind {
+				switch api.Metadata.Kind {
 				case userconfig.BatchAPIKind:
 					allBatchAPIEnvs = append(allBatchAPIEnvs, env.Name)
 					allBatchAPIs = append(allBatchAPIs, api)
@@ -247,12 +246,16 @@ func getAPIsInAllEnvironments() (string, error) {
 		allAPIsOutput = append(allAPIsOutput, apisOutput)
 	}
 
+	var bytes []byte
 	if _flagOutput == flags.JSONOutputType {
-		bytes, err := libjson.Marshal(allAPIsOutput)
-		if err != nil {
-			return "", err
-		}
-
+		bytes, err = libjson.Marshal(allAPIsOutput)
+	} else if _flagOutput == flags.YAMLOutputType {
+		bytes, err = yaml.Marshal(allAPIsOutput)
+	}
+	if err != nil {
+		return "", err
+	}
+	if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 		return string(bytes), nil
 	}
 
@@ -337,11 +340,16 @@ func getAPIsByEnv(env cliconfig.Environment) (string, error) {
 		return "", err
 	}
 
+	var bytes []byte
 	if _flagOutput == flags.JSONOutputType {
-		bytes, err := libjson.Marshal(apisRes)
-		if err != nil {
-			return "", err
-		}
+		bytes, err = libjson.Marshal(apisRes)
+	} else if _flagOutput == flags.YAMLOutputType {
+		bytes, err = yaml.Marshal(apisRes)
+	}
+	if err != nil {
+		return "", err
+	}
+	if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 		return string(bytes), nil
 	}
 
@@ -457,16 +465,21 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		return "", err
 	}
 
+	var bytes []byte
 	if _flagOutput == flags.JSONOutputType {
-		bytes, err := libjson.Marshal(apisRes)
-		if err != nil {
-			return "", err
-		}
+		bytes, err = libjson.Marshal(apisRes)
+	} else if _flagOutput == flags.YAMLOutputType {
+		bytes, err = yaml.Marshal(apisRes)
+	}
+	if err != nil {
+		return "", err
+	}
+	if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 		return string(bytes), nil
 	}
 
 	if len(apisRes) == 0 {
-		exit.Error(errors.ErrorUnexpected(fmt.Sprintf("unable to find API %s", apiName)))
+		exit.Error(errors.ErrorUnexpected(fmt.Sprintf("unable to find api %s", apiName)))
 	}
 
 	apiRes := apisRes[0]

@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/activator"
@@ -32,7 +33,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"go.uber.org/zap"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
@@ -43,12 +43,11 @@ import (
 
 func main() {
 	var (
-		port              int
-		adminPort         int
-		inCluster         bool
-		autoscalerURL     string
-		namespace         string
-		clusterConfigPath string
+		port          int
+		adminPort     int
+		inCluster     bool
+		autoscalerURL string
+		namespace     string
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the activator server will be exposed")
@@ -59,7 +58,6 @@ func main() {
 		"kubernetes namespace where the cortex APIs are deployed "+
 			"(can be set through the CORTEX_NAMESPACE env variable)",
 	)
-	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
 	flag.Parse()
 
 	log := logging.GetLogger()
@@ -72,16 +70,9 @@ func main() {
 		log.Fatal("--autoscaler-url is a required option")
 	case namespace == "":
 		log.Fatal("--namespace is a required option")
-	case clusterConfigPath == "":
-		log.Fatal("--cluster-config flag is required")
 	}
 
-	clusterConfig, err := clusterconfig.NewForFile(clusterConfigPath)
-	if err != nil {
-		exit(log, err)
-	}
-
-	awsClient, err := aws.NewForRegion(clusterConfig.Region)
+	awsClient, err := aws.New()
 	if err != nil {
 		exit(log, err)
 	}
@@ -91,8 +82,10 @@ func main() {
 		exit(log, err)
 	}
 
+	telemetryEnabled := strings.ToLower(os.Getenv("CORTEX_TELEMETRY_DISABLE")) != "true"
+
 	err = telemetry.Init(telemetry.Config{
-		Enabled: clusterConfig.Telemetry,
+		Enabled: telemetryEnabled,
 		UserID:  userID,
 		Properties: map[string]string{
 			"kind":       userconfig.RealtimeAPIKind.String(),
