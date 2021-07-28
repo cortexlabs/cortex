@@ -49,6 +49,18 @@ spec:
         )"
     - action: labelkeep
       regex: (__name__|pod|container|name)
+    - action: keep
+      regex: ()
+      sourceLabels:
+      - container
+    - action: keep
+      regex: ()
+      sourceLabels:
+      - name
+    - action: drop
+      regex: (node-exporter|aws-node|fluent-bit|kube-proxy)-(.+)
+      sourceLabels:
+      - pod
     path: /metrics/cadvisor
     port: https-metrics
     relabelings:
