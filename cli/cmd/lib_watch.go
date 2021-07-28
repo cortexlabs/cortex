@@ -56,8 +56,8 @@ func watchHeader() string {
 	return fmt.Sprintf("$ %s  %s%s", _cmdStr, padding, libtime.LocalHourNow())
 }
 
-func rerun(f func() (string, error)) {
-	if _flagWatch {
+func rerun(watchFlag bool, f func() (string, error)) {
+	if watchFlag {
 		print("\033[H\033[2J") // clear the screen
 
 		var prevStrSlice []string

@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/yaml"
 )
 
 const (
@@ -41,7 +42,10 @@ func taskAPIsTable(taskAPIs []schema.APIResponse, envNames []string) table.Table
 	rows := make([][]interface{}, 0, len(taskAPIs))
 
 	for i, taskAPI := range taskAPIs {
-		lastAPIUpdated := time.Unix(taskAPI.Spec.LastUpdated, 0)
+		if taskAPI.Metadata == nil {
+			continue
+		}
+		lastAPIUpdated := time.Unix(taskAPI.Metadata.LastUpdated, 0)
 		latestStartTime := time.Time{}
 		latestJobID := "-"
 		runningJobs := 0
@@ -59,7 +63,7 @@ func taskAPIsTable(taskAPIs []schema.APIResponse, envNames []string) table.Table
 
 		rows = append(rows, []interface{}{
 			envNames[i],
-			taskAPI.Spec.Name,
+			taskAPI.Metadata.Name,
 			runningJobs,
 			latestJobID,
 			libtime.SinceStr(&lastAPIUpdated),
@@ -72,7 +76,7 @@ func taskAPIsTable(taskAPIs []schema.APIResponse, envNames []string) table.Table
 			{Title: _titleTaskAPI},
 			{Title: _titleTaskJobCount},
 			{Title: _titleLatestTaskJobID},
-			{Title: _titleLastupdated},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}
@@ -118,7 +122,9 @@ func taskAPITable(taskAPI schema.APIResponse) string {
 		out += "\n" + console.Bold("metrics dashboard: ") + *taskAPI.DashboardURL + "\n"
 	}
 
-	out += "\n" + console.Bold("endpoint: ") + taskAPI.Endpoint + "\n"
+	if taskAPI.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *taskAPI.Endpoint + "\n"
+	}
 
 	out += "\n" + apiHistoryTable(taskAPI.APIVersions)
 
@@ -137,11 +143,16 @@ func getTaskJob(env cliconfig.Environment, apiName string, jobID string) (string
 		return "", err
 	}
 
+	var bytes []byte
 	if _flagOutput == flags.JSONOutputType {
-		bytes, err := libjson.Marshal(resp)
-		if err != nil {
-			return "", err
-		}
+		bytes, err = libjson.Marshal(resp)
+	} else if _flagOutput == flags.YAMLOutputType {
+		bytes, err = yaml.Marshal(resp)
+	}
+	if err != nil {
+		return "", err
+	}
+	if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 		return string(bytes), nil
 	}
 
@@ -176,22 +187,34 @@ func getTaskJob(env cliconfig.Environment, apiName string, jobID string) (string
 		if job.WorkerCounts != nil {
 			t := table.Table{
 				Headers: []table.Header{
-					{Title: "requested"},
-					{Title: "pending", Hidden: job.WorkerCounts.Pending == 0},
-					{Title: "initializing", Hidden: job.WorkerCounts.Initializing == 0},
-					{Title: "stalled", Hidden: job.WorkerCounts.Stalled == 0},
-					{Title: "running"},
-					{Title: "failed", Hidden: job.WorkerCounts.Failed == 0},
-					{Title: "succeeded"},
+					{Title: "Requested"},
+					{Title: "Pending"},
+					{Title: "Creating"},
+					{Title: "Ready"},
+					{Title: "NotReady"},
+					{Title: "ErrImagePull", Hidden: job.WorkerCounts.ErrImagePull == 0},
+					{Title: "Terminating", Hidden: job.WorkerCounts.Terminating == 0},
+					{Title: "Failed", Hidden: job.WorkerCounts.Failed == 0},
+					{Title: "Killed", Hidden: job.WorkerCounts.Killed == 0},
+					{Title: "KilledOOM", Hidden: job.WorkerCounts.KilledOOM == 0},
+					{Title: "Stalled", Hidden: job.WorkerCounts.Stalled == 0},
+					{Title: "Unknown", Hidden: job.WorkerCounts.Unknown == 0},
+					{Title: "Succeeded"},
 				},
 				Rows: [][]interface{}{
 					{
 						job.Workers,
 						job.WorkerCounts.Pending,
-						job.WorkerCounts.Initializing,
-						job.WorkerCounts.Stalled,
-						job.WorkerCounts.Running,
+						job.WorkerCounts.Creating,
+						job.WorkerCounts.Ready,
+						job.WorkerCounts.NotReady,
+						job.WorkerCounts.ErrImagePull,
+						job.WorkerCounts.Terminating,
 						job.WorkerCounts.Failed,
+						job.WorkerCounts.Killed,
+						job.WorkerCounts.KilledOOM,
+						job.WorkerCounts.Stalled,
+						job.WorkerCounts.Unknown,
 						job.WorkerCounts.Succeeded,
 					},
 				},

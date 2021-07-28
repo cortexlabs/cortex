@@ -19,6 +19,7 @@ package endpoints
 import (
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/asyncapi"
@@ -98,7 +99,10 @@ func GetLogURL(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, err)
 			return
 		}
-		logURL, err := operator.APILogURL(apiResponse[0].Spec)
+		if apiResponse[0].Spec == nil {
+			respondError(w, r, errors.ErrorUnexpected("unable to get api spec", apiName))
+		}
+		logURL, err := operator.APILogURL(*apiResponse[0].Spec)
 		if err != nil {
 			respondError(w, r, err)
 			return
@@ -112,7 +116,10 @@ func GetLogURL(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, err)
 			return
 		}
-		logURL, err := operator.APILogURL(apiResponse[0].Spec)
+		if apiResponse[0].Spec == nil {
+			respondError(w, r, errors.ErrorUnexpected("unable to get api spec", apiName))
+		}
+		logURL, err := operator.APILogURL(*apiResponse[0].Spec)
 		if err != nil {
 			respondError(w, r, err)
 			return
