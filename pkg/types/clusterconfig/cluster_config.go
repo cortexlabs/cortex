@@ -175,16 +175,16 @@ func (ng *NodeGroup) UpdatePlan(old *NodeGroup) string {
 	var changes []string
 
 	if old.MinInstances != ng.MinInstances {
-		changes = append(changes, fmt.Sprintf("%s from %d to %d", MinInstancesKey, old.MinInstances, ng.MinInstances))
+		changes = append(changes, fmt.Sprintf("%s %d->%d", MinInstancesKey, old.MinInstances, ng.MinInstances))
 	}
 	if old.MaxInstances != ng.MaxInstances {
-		changes = append(changes, fmt.Sprintf("%s from %d to %d", MaxInstancesKey, old.MaxInstances, ng.MaxInstances))
+		changes = append(changes, fmt.Sprintf("%s %d->%d", MaxInstancesKey, old.MaxInstances, ng.MaxInstances))
 	}
 	if old.Priority != ng.Priority {
-		changes = append(changes, fmt.Sprintf("%s from %d to %d", PriorityKey, old.Priority, ng.Priority))
+		changes = append(changes, fmt.Sprintf("%s %d->%d", PriorityKey, old.Priority, ng.Priority))
 	}
 
-	return fmt.Sprintf("nodegroup %s will be updated: %s", ng.Name, s.StrsAnd(changes))
+	return fmt.Sprintf("nodegroup %s will be updated with the following changes: %s", ng.Name, s.StrsAnd(changes))
 }
 
 type SpotConfig struct {
