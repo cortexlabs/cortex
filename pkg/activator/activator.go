@@ -131,7 +131,7 @@ func (a *activator) getOrCreateAPIActivator(ctx context.Context, apiName string)
 		return nil, errors.WithStack(err)
 	}
 
-	maxQueueLength, maxConcurrency, err := concurrencyFromAnnotations(vs.Annotations)
+	maxQueueLength, maxConcurrency, err := userconfig.ConcurrencyFromAnnotations(vs)
 	if err != nil {
 		return nil, err
 	}

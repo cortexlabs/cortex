@@ -32,9 +32,9 @@ const (
 )
 
 type JobKey struct {
-	ID      string          `json:"job_id"`
-	APIName string          `json:"api_name"`
-	Kind    userconfig.Kind `json:"kind"`
+	ID      string          `json:"job_id" yaml:"job_id"`
+	APIName string          `json:"api_name" yaml:"api_name"`
+	Kind    userconfig.Kind `json:"kind" yaml:"kind"`
 }
 
 func (j JobKey) UserString() string {
@@ -56,39 +56,39 @@ func (j JobKey) K8sName() string {
 }
 
 type SQSDeadLetterQueue struct {
-	ARN             string `json:"arn"`
-	MaxReceiveCount int    `json:"max_receive_count"`
+	ARN             string `json:"arn" yaml:"arn"`
+	MaxReceiveCount int    `json:"max_receive_count" yaml:"max_receive_count"`
 }
 
 type RuntimeBatchJobConfig struct {
-	Workers            int                    `json:"workers"`
-	SQSDeadLetterQueue *SQSDeadLetterQueue    `json:"sqs_dead_letter_queue"`
-	Config             map[string]interface{} `json:"config"`
-	Timeout            *int                   `json:"timeout"`
+	Workers            int                    `json:"workers" yaml:"workers"`
+	SQSDeadLetterQueue *SQSDeadLetterQueue    `json:"sqs_dead_letter_queue" yaml:"sqs_dead_letter_queue"`
+	Config             map[string]interface{} `json:"config" yaml:"config"`
+	Timeout            *int                   `json:"timeout" yaml:"timeout"`
 }
 
 type RuntimeTaskJobConfig struct {
-	Workers int                    `json:"workers"`
-	Config  map[string]interface{} `json:"config"`
-	Timeout *int                   `json:"timeout"`
+	Workers int                    `json:"workers" yaml:"workers"`
+	Config  map[string]interface{} `json:"config" yaml:"config"`
+	Timeout *int                   `json:"timeout" yaml:"timeout"`
 }
 
 type BatchJob struct {
 	JobKey
 	RuntimeBatchJobConfig
-	APIID           string    `json:"api_id"`
-	SQSUrl          string    `json:"sqs_url"`
-	TotalBatchCount int       `json:"total_batch_count,omitempty"`
-	StartTime       time.Time `json:"start_time,omitempty"`
+	APIID           string    `json:"api_id" yaml:"api_id"`
+	SQSUrl          string    `json:"sqs_url" yaml:"sqs_url"`
+	TotalBatchCount int       `json:"total_batch_count,omitempty" yaml:"total_batch_count,omitempty"`
+	StartTime       time.Time `json:"start_time,omitempty" yaml:"start_time,omitempty"`
 }
 
 type TaskJob struct {
 	JobKey
 	RuntimeTaskJobConfig
-	APIID     string    `json:"api_id"`
-	SpecID    string    `json:"spec_id"`
-	PodID     string    `json:"pod_id"`
-	StartTime time.Time `json:"start_time"`
+	APIID     string    `json:"api_id" yaml:"api_id"`
+	SpecID    string    `json:"spec_id" yaml:"spec_id"`
+	PodID     string    `json:"pod_id" yaml:"pod_id"`
+	StartTime time.Time `json:"start_time" yaml:"start_time"`
 }
 
 // e.g. /<cluster UID>/jobs/<job_api_kind>/<cortex version>/<api_name>
