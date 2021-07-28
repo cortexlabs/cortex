@@ -85,9 +85,13 @@ type WorkerCounts struct {
 }
 
 func FromDeployment(deployment *kapps.Deployment) *Status {
+	var requested int32
+	if deployment.Spec.Replicas != nil {
+		requested = *deployment.Spec.Replicas
+	}
 	return &Status{
 		Ready:     deployment.Status.ReadyReplicas,
-		Requested: deployment.Status.Replicas,
+		Requested: requested,
 		UpToDate:  deployment.Status.UpdatedReplicas,
 	}
 }

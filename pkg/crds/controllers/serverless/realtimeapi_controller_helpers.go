@@ -64,8 +64,10 @@ func (r *RealtimeAPIReconciler) updateStatus(ctx context.Context, api *serverles
 
 	if deployment != nil {
 		api.Status.Ready = deployment.Status.ReadyReplicas
-		api.Status.Requested = deployment.Status.Replicas
 		api.Status.UpToDate = deployment.Status.UpdatedReplicas
+		if deployment.Spec.Replicas != nil {
+			api.Status.Requested = *deployment.Spec.Replicas
+		}
 
 		if err = r.Status().Update(ctx, api); err != nil {
 			return err
