@@ -522,7 +522,7 @@ data:
           "targets": [
             {
               "exemplar": false,
-              "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"$api_name.+\", container!=\"POD\", name!=\"\"}[1m]))",
+              "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"$api_name.+\"}[1m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -531,7 +531,7 @@ data:
             },
             {
               "exemplar": true,
-              "expr": "sum(kube_pod_container_resource_requests{exported_pod=~\"$api_name.+\", resource=\"cpu\"})",
+              "expr": "sum(kube_pod_container_resource_requests{pod=~\"$api_name.+\", resource=\"cpu\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Total CPU Request",
@@ -628,7 +628,7 @@ data:
           "targets": [
             {
               "exemplar": false,
-              "expr": "sum(sum_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container!=\"POD\"}[1m]))\n/\navg(count_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container=\"api\"}[1m])) / 1024^2",
+              "expr": "sum(sum_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\"}[1m]))\n/\navg(count_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container=\"api\"}[1m])) / 1024^2",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -637,7 +637,7 @@ data:
             },
             {
               "exemplar": true,
-              "expr": "sum(kube_pod_container_resource_requests{exported_pod=~\"$api_name.+\", resource=\"memory\"}) / 1024^2",
+              "expr": "sum(kube_pod_container_resource_requests{pod=~\"$api_name.+\", resource=\"memory\"}) / 1024^2",
               "hide": false,
               "interval": "",
               "legendFormat": "Total Memory Request",
@@ -734,14 +734,14 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"$api_name.+\"}) / 100",
+              "expr": "sum(DCGM_FI_DEV_GPU_UTIL{pod=~\"$api_name.+\"}) / 100",
               "hide": false,
               "interval": "",
               "legendFormat": "Total GPU Usage",
               "refId": "GPU Usage"
             },
             {
-              "expr": "count(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"$api_name.+\"})",
+              "expr": "count(DCGM_FI_DEV_GPU_UTIL{pod=~\"$api_name.+\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Total GPU Capacity",
@@ -837,7 +837,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(DCGM_FI_DEV_FB_USED{exported_pod=~\"$api_name.+\"})",
+              "expr": "sum(DCGM_FI_DEV_FB_USED{pod=~\"$api_name.+\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Total Used GPU Memory",
@@ -845,7 +845,7 @@ data:
             },
             {
               "exemplar": false,
-              "expr": "sum(DCGM_FI_DEV_FB_FREE{exported_pod=~\"$api_name.+\"}) + sum(DCGM_FI_DEV_FB_USED{exported_pod=~\"$api_name.+\"})",
+              "expr": "sum(DCGM_FI_DEV_FB_FREE{pod=~\"$api_name.+\"}) + sum(DCGM_FI_DEV_FB_USED{pod=~\"$api_name.+\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -963,7 +963,7 @@ data:
           "targets": [
             {
               "exemplar": false,
-              "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"$api_name.+\", container!=\"POD\", name!=\"\"}[1m]))\n/\nsum(kube_pod_info{exported_pod=~\"$api_name.+\"})",
+              "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"$api_name.+\"}[1m]))\n/\nsum(kube_pod_info{pod=~\"$api_name.+\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -972,7 +972,7 @@ data:
             },
             {
               "exemplar": true,
-              "expr": "sum(kube_pod_container_resource_requests{exported_pod=~\"$api_name.+\", resource=\"cpu\"})\n/\nsum(kube_pod_info{exported_pod=~\"$api_name.+\"})",
+              "expr": "sum(kube_pod_container_resource_requests{pod=~\"$api_name.+\", resource=\"cpu\"})\n/\nsum(kube_pod_info{pod=~\"$api_name.+\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Avg CPU Request",
@@ -1071,7 +1071,7 @@ data:
           "targets": [
             {
               "exemplar": false,
-              "expr": "sum(sum_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container!=\"POD\"}[1m]))\n/\navg(count_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container=\"api\"}[1m])) / 1024^2\n/\nsum(kube_pod_info{exported_pod=~\"$api_name.+\"})",
+              "expr": "sum(sum_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\"}[1m]))\n/\navg(count_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container=\"api\"}[1m])) / 1024^2\n/\nsum(kube_pod_info{pod=~\"$api_name.+\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -1080,7 +1080,7 @@ data:
             },
             {
               "exemplar": true,
-              "expr": "sum(kube_pod_container_resource{exported_pod=~\"$api_name.+\", resource=\"memory\"}) / 1024^2\n/\nsum(kube_pod_info{exported_pod=~\"$api_name.+\"})",
+              "expr": "sum(kube_pod_container_resource{pod=~\"$api_name.+\", resource=\"memory\"}) / 1024^2\n/\nsum(kube_pod_info{pod=~\"$api_name.+\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Avg Memory Request",
@@ -1179,7 +1179,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"$api_name.+\"}) / 100\n/\ncount(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"$api_name.+\"})",
+              "expr": "sum(DCGM_FI_DEV_GPU_UTIL{pod=~\"$api_name.+\"}) / 100\n/\ncount(DCGM_FI_DEV_GPU_UTIL{pod=~\"$api_name.+\"})",
               "hide": false,
               "instant": false,
               "interval": "",
@@ -1187,7 +1187,7 @@ data:
               "refId": "GPU Usage"
             },
             {
-              "expr": "count(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"$api_name.+\"})\n/\ncount(count(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"$api_name.+\"}) by (exported_pod))",
+              "expr": "count(DCGM_FI_DEV_GPU_UTIL{pod=~\"$api_name.+\"})\n/\ncount(count(DCGM_FI_DEV_GPU_UTIL{pod=~\"$api_name.+\"}) by (pod))",
               "hide": false,
               "instant": false,
               "interval": "",
@@ -1286,7 +1286,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(DCGM_FI_DEV_FB_USED{exported_pod=~\"$api_name.+\"})\n/\ncount(DCGM_FI_DEV_FB_USED{exported_pod=~\"$api_name.+\"})",
+              "expr": "sum(DCGM_FI_DEV_FB_USED{pod=~\"$api_name.+\"})\n/\ncount(DCGM_FI_DEV_FB_USED{pod=~\"$api_name.+\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Avg Used GPU Memory",
@@ -1294,7 +1294,7 @@ data:
             },
             {
               "exemplar": false,
-              "expr": "(sum(DCGM_FI_DEV_FB_FREE{exported_pod=~\"$api_name.+\"}) + sum(DCGM_FI_DEV_FB_USED{exported_pod=~\"$api_name.+\"}))\n/\ncount(DCGM_FI_DEV_FB_USED{exported_pod=~\"$api_name.+\"})",
+              "expr": "(sum(DCGM_FI_DEV_FB_FREE{pod=~\"$api_name.+\"}) + sum(DCGM_FI_DEV_FB_USED{pod=~\"$api_name.+\"}))\n/\ncount(DCGM_FI_DEV_FB_USED{pod=~\"$api_name.+\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
