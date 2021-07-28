@@ -128,7 +128,7 @@ spec:
       - action: labelkeep
         regex: (__name__|pod)
       relabelings:
-      - sourceLabels: 
+      - sourceLabels:
         - exported_pod
         action: replace
         targetLabel: pod

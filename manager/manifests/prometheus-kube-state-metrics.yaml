@@ -272,7 +272,7 @@ spec:
         sourceLabels:
         - pod
       relabelings:
-      - sourceLabels: 
+      - sourceLabels:
         - exported_pod
         action: replace
         targetLabel: pod
