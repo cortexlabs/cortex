@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"go.uber.org/zap"
 )
@@ -40,6 +41,7 @@ type SQSDequeuerConfig struct {
 	Region           string
 	QueueURL         string
 	StopIfNoMessages bool
+	Workers          int
 }
 
 type SQSDequeuer struct {
@@ -96,12 +98,37 @@ func (d *SQSDequeuer) ReceiveMessage() (*sqs.Message, error) {
 }
 
 func (d *SQSDequeuer) Start(messageHandler MessageHandler, readinessProbeFunc func() bool) error {
+	numWorkers := math.MaxInt(d.config.Workers, 1)
+
+	d.log.Infof("Starting %d workers", numWorkers)
+	errCh := make(chan error)
+	doneChs := make([]chan struct{}, d.config.Workers)
+	for i := 0; i < numWorkers; i++ {
+		doneChs[i] = make(chan struct{})
+		go func(i int) {
+			errCh <- d.worker(messageHandler, readinessProbeFunc, doneChs[i])
+		}(i)
+	}
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-d.done:
+		for _, doneCh := range doneChs {
+			doneCh <- struct{}{}
+		}
+	}
+
+	return <-errCh
+}
+
+func (d SQSDequeuer) worker(messageHandler MessageHandler, readinessProbeFunc func() bool, workerDone chan struct{}) error {
 	noMessagesInPreviousIteration := false
 
 loop:
 	for {
 		select {
-		case <-d.done:
+		case <-workerDone:
 			break loop
 		default:
 			if !readinessProbeFunc() {
@@ -134,8 +161,8 @@ loop:
 
 			noMessagesInPreviousIteration = false
 			receiptHandle := *message.ReceiptHandle
-			done := d.StartMessageRenewer(receiptHandle)
-			err = d.handleMessage(message, messageHandler, done)
+			renewerDone := d.StartMessageRenewer(receiptHandle)
+			err = d.handleMessage(message, messageHandler, renewerDone)
 			if err != nil {
 				d.log.Error(err)
 				telemetry.Error(err)
@@ -196,7 +223,7 @@ func (d *SQSDequeuer) StartMessageRenewer(receiptHandle string) chan struct{} {
 	startTime := time.Now()
 	go func() {
 		defer ticker.Stop()
-		for true {
+		for {
 			select {
 			case <-done:
 				return

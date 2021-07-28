@@ -158,7 +158,7 @@ func (h *BatchMessageHandler) handleBatch(message *sqs.Message) error {
 		return nil
 	}
 
-	endTime := time.Now().Sub(startTime)
+	endTime := time.Since(startTime)
 
 	err = h.recordSuccess()
 	if err != nil {
