@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istionetworking "istio.io/api/networking/v1beta1"
@@ -63,39 +62,17 @@ func (r *RealtimeAPIReconciler) updateStatus(ctx context.Context, api *serverles
 		return errors.Wrap(err, "failed to get api endpoint")
 	}
 
-	apiPods, err := r.getAPIPods(ctx, api)
-	if err != nil {
-		return err
-	}
-	api.Status.ReplicaCounts = getReplicaCounts(apiPods, deployment)
+	if deployment != nil {
+		api.Status.Ready = deployment.Status.ReadyReplicas
+		api.Status.Requested = deployment.Status.Replicas
+		api.Status.UpToDate = deployment.Status.UpdatedReplicas
 
-	isUpdating, err := isAPIUpdating(deployment, api.Status.ReplicaCounts)
-	if err != nil {
-		return err
-	}
-	api.Status.IsUpdating = isUpdating
-
-	api.Status.Ready = deployment.Status.ReadyReplicas
-	api.Status.Requested = deployment.Status.Replicas
-	api.Status.UpToDate = deployment.Status.UpdatedReplicas
-
-	if err = r.Status().Update(ctx, api); err != nil {
-		return err
+		if err = r.Status().Update(ctx, api); err != nil {
+			return err
+		}
 	}
 
 	return nil
-}
-
-func (r *RealtimeAPIReconciler) getAPIPods(ctx context.Context, api *serverless.RealtimeAPI) ([]kcore.Pod, error) {
-	var podList kcore.PodList
-	if err := r.List(ctx, &podList, client.MatchingLabels{
-		"apiName":      api.Name,
-		"apiKind":      userconfig.RealtimeAPIKind.String(),
-		"deploymentID": api.Annotations["cortex.dev/deployment-id"],
-	}); err != nil {
-		return nil, err
-	}
-	return podList.Items, nil
 }
 
 func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, api serverless.RealtimeAPI) (controllerutil.OperationResult, error) {
@@ -218,6 +195,7 @@ func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) ka
 				"apiName":        api.Name,
 				"apiKind":        userconfig.RealtimeAPIKind.String(),
 				"deploymentID":   api.Annotations["cortex.dev/deployment-id"],
+				"apiID":          api.Annotations["cortex.dev/api-id"],
 				"cortex.dev/api": "true",
 			},
 			Annotations: map[string]string{
@@ -468,88 +446,4 @@ func (r *RealtimeAPIReconciler) generateAPIAnnotations(api serverless.RealtimeAP
 		userconfig.DownscaleToleranceAnnotationKey:           api.Spec.Autoscaling.DownscaleTolerance,
 		userconfig.UpscaleToleranceAnnotationKey:             api.Spec.Autoscaling.UpscaleTolerance,
 	}
-}
-
-func getReplicaCounts(pods []kcore.Pod, deployment *kapps.Deployment) status.ReplicaCounts {
-	counts := status.ReplicaCounts{}
-	counts.Requested = *deployment.Spec.Replicas
-
-	for i := range pods {
-		pod := pods[i]
-		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
-			continue
-		}
-		addPodToReplicaCounts(&pods[i], deployment, &counts)
-	}
-
-	return counts
-}
-
-func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts *status.ReplicaCounts) {
-	latest := false
-	if isPodSpecLatest(deployment, pod) {
-		latest = true
-	}
-
-	isPodReady := k8s.IsPodReady(pod)
-	if latest && isPodReady {
-		counts.Ready++
-		return
-	} else if !latest && isPodReady {
-		counts.ReadyOutOfDate++
-		return
-	}
-
-	podStatus := k8s.GetPodStatus(pod)
-
-	if podStatus == k8s.PodStatusTerminating {
-		counts.Terminating++
-		return
-	}
-
-	if !latest {
-		return
-	}
-
-	switch podStatus {
-	case k8s.PodStatusPending:
-		counts.Pending++
-	case k8s.PodStatusStalled:
-		counts.Stalled++
-	case k8s.PodStatusCreating:
-		counts.Creating++
-	case k8s.PodStatusReady:
-		counts.Ready++
-	case k8s.PodStatusNotReady:
-		counts.NotReady++
-	case k8s.PodStatusErrImagePull:
-		counts.ErrImagePull++
-	case k8s.PodStatusFailed:
-		counts.Failed++
-	case k8s.PodStatusKilled:
-		counts.Killed++
-	case k8s.PodStatusKilledOOM:
-		counts.KilledOOM++
-	case k8s.PodStatusUnknown:
-		counts.Unknown++
-	}
-}
-
-func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	return deployment.Spec.Template.Labels["podID"] == pod.Labels["podID"] &&
-		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
-}
-
-// returns true if min_replicas are not ready and no updated replicas have errored
-func isAPIUpdating(deployment *kapps.Deployment, replicaCounts status.ReplicaCounts) (bool, error) {
-	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
-	if err != nil {
-		return false, err
-	}
-
-	if replicaCounts.Ready < autoscalingSpec.MinReplicas && replicaCounts.TotalFailed() == 0 {
-		return true, nil
-	}
-
-	return false, nil
 }

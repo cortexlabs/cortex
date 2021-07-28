@@ -379,7 +379,6 @@ func DescribeAPIByName(deployedResource *operator.DeployedResource) ([]schema.AP
 	if err != nil {
 		return nil, err
 	}
-	apiStatus.ReplicaCounts = GetReplicaCounts(apiDeployment, apiPods)
 
 	apiEndpoint, err := operator.APIEndpointFromResource(deployedResource)
 	if err != nil {
@@ -390,10 +389,10 @@ func DescribeAPIByName(deployedResource *operator.DeployedResource) ([]schema.AP
 
 	return []schema.APIResponse{
 		{
-			Metadata:     apiMetadata,
-			Status:       apiStatus,
-			Endpoint:     &apiEndpoint,
-			DashboardURL: dashboardURL,
+			Metadata:      apiMetadata,
+			ReplicaCounts: GetReplicaCounts(apiStatus, apiDeployment, apiPods),
+			Endpoint:      &apiEndpoint,
+			DashboardURL:  dashboardURL,
 		},
 	}, nil
 }
@@ -642,7 +641,7 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 		return false, err
 	}
 
-	replicaCounts := GetReplicaCounts(deployment, pods)
+	replicaCounts := GetReplicaCounts(nil, deployment, pods)
 
 	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
 	if err != nil {

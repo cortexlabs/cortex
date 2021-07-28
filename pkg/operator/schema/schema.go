@@ -59,6 +59,7 @@ type APIResponse struct {
 	Spec                      *spec.API               `json:"spec,omitempty" yaml:"spec,omitempty"`
 	Metadata                  *spec.Metadata          `json:"metadata,omitempty"  yaml:"metadata,omitempty"`
 	Status                    *status.Status          `json:"status,omitempty"  yaml:"status,omitempty"`
+	ReplicaCounts             *status.ReplicaCounts   `json:"replica_counts,omitempty"  yaml:"replica_counts,omitempty"`
 	NumTrafficSplitterTargets *int32                  `json:"num_traffic_splitter_targets,omitempty" yaml:"num_traffic_splitter_targets,omitempty"`
 	Endpoint                  *string                 `json:"endpoint,omitempty"  yaml:"endpoint,omitempty"`
 	DashboardURL              *string                 `json:"dashboard_url,omitempty"  yaml:"dashboard_url,omitempty"`

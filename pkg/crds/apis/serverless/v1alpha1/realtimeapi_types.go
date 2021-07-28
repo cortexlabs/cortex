@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -217,20 +216,25 @@ type NetworkingSpec struct {
 
 // RealtimeAPIStatus defines the observed state of RealtimeAPI
 type RealtimeAPIStatus struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Type=integer
+	Ready int32 `json:"ready"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Type=integer
+	Requested int32 `json:"requested"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Type=integer
+	UpToDate int32 `json:"up_to_date"`
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Type=string
-	Ready         int32                `json:"ready"`
-	Requested     int32                `json:"requested"`
-	UpToDate      int32                `json:"up_to_date"`
-	IsUpdating    bool                 `json:"is_updating"`
-	ReplicaCounts status.ReplicaCounts `json:"replica_counts"`
-	Endpoint      string               `json:"endpoint,omitempty"`
+	Endpoint string `json:"endpoint,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:JSONPath=".spec.pod.replicas",name="Replicas",type="integer"
-//+kubebuilder:printcolumn:JSONPath=".status.replica_counts.updated.ready",name="Ready",type="integer"
-//+kubebuilder:printcolumn:JSONPath=".status.status",name="Status",type="string"
+//+kubebuilder:printcolumn:JSONPath=".status.ready",name="Ready",type="integer"
+//+kubebuilder:printcolumn:JSONPath=".status.requested",name="Requested",type="integer"
+//+kubebuilder:printcolumn:JSONPath=".status.up_to_date",name="Up-To-Date",type="integer"
 //+kubebuilder:printcolumn:JSONPath=".status.endpoint",name="Endpoint",type="string"
 
 // RealtimeAPI is the Schema for the realtimeapis API

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -183,22 +184,21 @@ func GetAllAPIs() ([]schema.APIResponse, error) {
 	}
 
 	apiNames := make([]string, len(apis.Items))
-	apiIDs := make([]string, len(apis.Items))
 	for i, api := range apis.Items {
 		apiNames[i] = api.Name
-		apiIDs[i] = api.Annotations["cortex.dev/api-id"]
 	}
 
 	realtimeAPIs := make([]schema.APIResponse, len(apis.Items))
+	mappedRealtimeAPIs := make(map[string]schema.APIResponse, 0)
 	for i := range apis.Items {
 		api := apis.Items[i]
 
-		metadata, err := metadataFromServerless(&api)
+		metadata, err := metadataFromRealtimeAPI(&api)
 		if err != nil {
 			return nil, err
 		}
 
-		realtimeAPIs[i] = schema.APIResponse{
+		mappedRealtimeAPIs[api.Name] = schema.APIResponse{
 			Metadata: metadata,
 			Status: &status.Status{
 				Ready:     api.Status.Ready,
@@ -208,7 +208,10 @@ func GetAllAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	// TODO check if we need to sort the APIs
+	sort.Strings(apiNames)
+	for i, apiName := range apiNames {
+		realtimeAPIs[i] = mappedRealtimeAPIs[apiName]
+	}
 
 	return realtimeAPIs, nil
 }
@@ -222,7 +225,7 @@ func GetAPIByName(apiName string) ([]schema.APIResponse, error) {
 		return nil, errors.Wrap(err, "failed to get realtime api resource")
 	}
 
-	metadata, err := metadataFromServerless(&api)
+	metadata, err := metadataFromRealtimeAPI(&api)
 	if err != nil {
 		return nil, err
 	}
@@ -258,24 +261,31 @@ func DescribeAPIByName(apiName string) ([]schema.APIResponse, error) {
 		return nil, errors.Wrap(err, "failed to get realtime api resource")
 	}
 
-	metadata, err := metadataFromServerless(&api)
+	metadata, err := metadataFromRealtimeAPI(&api)
 	if err != nil {
 		return nil, err
 	}
+
+	var podList kcore.PodList
+	if err := config.K8s.List(ctx, &podList, client.MatchingLabels{
+		"apiName": metadata.Name,
+		"apiKind": userconfig.RealtimeAPIKind.String(),
+	}); err != nil {
+		return nil, err
+	}
+
+	replicaCounts := getReplicaCounts(podList.Items, metadata)
+	replicaCounts.Requested = api.Status.Requested
+	replicaCounts.UpToDate = api.Status.UpToDate
 
 	dashboardURL := pointer.String(getDashboardURL(api.Name))
 
 	return []schema.APIResponse{
 		{
-			Metadata: metadata,
-			Status: &status.Status{
-				Ready:         api.Status.Ready,
-				Requested:     api.Status.Requested,
-				UpToDate:      api.Status.UpToDate,
-				ReplicaCounts: &api.Status.ReplicaCounts,
-			},
-			Endpoint:     &api.Status.Endpoint,
-			DashboardURL: dashboardURL,
+			Metadata:      metadata,
+			ReplicaCounts: &replicaCounts,
+			Endpoint:      &api.Status.Endpoint,
+			DashboardURL:  dashboardURL,
 		},
 	}, nil
 }
@@ -395,18 +405,86 @@ func deleteBucketResources(apiName string) error {
 	return config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true)
 }
 
-func metadataFromServerless(sv *serverless.RealtimeAPI) (*spec.Metadata, error) {
-	lastUpdated, err := spec.TimeFromAPIID(sv.Labels["apiID"])
+func metadataFromRealtimeAPI(sv *serverless.RealtimeAPI) (*spec.Metadata, error) {
+	lastUpdated, err := spec.TimeFromAPIID(sv.Annotations["cortex.dev/api-id"])
 	if err != nil {
 		return nil, err
 	}
 	return &spec.Metadata{
 		Resource: &userconfig.Resource{
 			Name: sv.Name,
-			Kind: userconfig.KindFromString(sv.Kind),
+			Kind: userconfig.RealtimeAPIKind,
 		},
 		APIID:        sv.Annotations["cortex.dev/api-id"],
 		DeploymentID: sv.Annotations["cortex.dev/deployment-id"],
 		LastUpdated:  lastUpdated.Unix(),
 	}, nil
+}
+
+func getReplicaCounts(pods []kcore.Pod, metadata *spec.Metadata) status.ReplicaCounts {
+	counts := status.ReplicaCounts{}
+
+	for i := range pods {
+		pod := pods[i]
+		if pod.Labels["apiName"] != metadata.Name {
+			continue
+		}
+		addPodToReplicaCounts(&pods[i], metadata, &counts)
+	}
+
+	return counts
+}
+
+func addPodToReplicaCounts(pod *kcore.Pod, metadata *spec.Metadata, counts *status.ReplicaCounts) {
+	latest := false
+	if isPodSpecLatest(pod, metadata) {
+		latest = true
+	}
+
+	isPodReady := k8s.IsPodReady(pod)
+	if latest && isPodReady {
+		counts.Ready++
+		return
+	} else if !latest && isPodReady {
+		counts.ReadyOutOfDate++
+		return
+	}
+
+	podStatus := k8s.GetPodStatus(pod)
+
+	if podStatus == k8s.PodStatusTerminating {
+		counts.Terminating++
+		return
+	}
+
+	if !latest {
+		return
+	}
+
+	switch podStatus {
+	case k8s.PodStatusPending:
+		counts.Pending++
+	case k8s.PodStatusStalled:
+		counts.Stalled++
+	case k8s.PodStatusCreating:
+		counts.Creating++
+	case k8s.PodStatusReady:
+		counts.Ready++
+	case k8s.PodStatusNotReady:
+		counts.NotReady++
+	case k8s.PodStatusErrImagePull:
+		counts.ErrImagePull++
+	case k8s.PodStatusFailed:
+		counts.Failed++
+	case k8s.PodStatusKilled:
+		counts.Killed++
+	case k8s.PodStatusKilledOOM:
+		counts.KilledOOM++
+	case k8s.PodStatusUnknown:
+		counts.Unknown++
+	}
+}
+
+func isPodSpecLatest(pod *kcore.Pod, metadata *spec.Metadata) bool {
+	return metadata.APIID == pod.Labels["apiID"]
 }

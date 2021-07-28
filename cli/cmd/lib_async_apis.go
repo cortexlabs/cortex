@@ -60,8 +60,8 @@ func asyncDescribeAPITable(asyncAPI schema.APIResponse, env cliconfig.Environmen
 		return "", errors.ErrorUnexpected("missing metadata from operator response")
 	}
 
-	if asyncAPI.Status == nil {
-		return "", errors.ErrorUnexpected(fmt.Sprintf("missing status for %s api", asyncAPI.Metadata.Name))
+	if asyncAPI.ReplicaCounts == nil {
+		return "", errors.ErrorUnexpected(fmt.Sprintf("missing replica counts for %s api", asyncAPI.Metadata.Name))
 	}
 
 	t := asyncAPIsTable([]schema.APIResponse{asyncAPI}, []string{env.Name})
@@ -75,7 +75,7 @@ func asyncDescribeAPITable(asyncAPI schema.APIResponse, env cliconfig.Environmen
 		out += "\n" + console.Bold("endpoint: ") + *asyncAPI.Endpoint + "\n"
 	}
 
-	t = replicaCountTable(asyncAPI.Status.ReplicaCounts)
+	t = replicaCountTable(asyncAPI.ReplicaCounts)
 	out += "\n" + t.MustFormat()
 
 	return out, nil
@@ -85,15 +85,27 @@ func asyncAPIsTable(asyncAPIs []schema.APIResponse, envNames []string) table.Tab
 	rows := make([][]interface{}, 0, len(asyncAPIs))
 
 	for i, asyncAPI := range asyncAPIs {
-		if asyncAPI.Metadata == nil || asyncAPI.Status == nil {
+		if asyncAPI.Metadata == nil || (asyncAPI.Status == nil && asyncAPI.ReplicaCounts == nil) {
 			continue
 		}
+
+		var ready, requested, upToDate int32
+		if asyncAPI.Status != nil {
+			ready = asyncAPI.Status.Ready
+			requested = asyncAPI.Status.Requested
+			upToDate = asyncAPI.Status.UpToDate
+		} else {
+			ready = asyncAPI.ReplicaCounts.Ready
+			requested = asyncAPI.ReplicaCounts.Requested
+			upToDate = asyncAPI.ReplicaCounts.UpToDate
+		}
+
 		lastUpdated := time.Unix(asyncAPI.Metadata.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
 			asyncAPI.Metadata.Name,
-			fmt.Sprintf("%d/%d", asyncAPI.Status.Ready, asyncAPI.Status.Requested),
-			asyncAPI.Status.UpToDate,
+			fmt.Sprintf("%d/%d", ready, requested),
+			upToDate,
 			libtime.SinceStr(&lastUpdated),
 		})
 	}
