@@ -36,7 +36,6 @@ from e2e.generator import load_generator
 from e2e.utils import (
     apis_ready,
     api_updated,
-    api_requests,
     wait_on_event,
     wait_on_futures,
     endpoint_ready,
@@ -845,7 +844,6 @@ def test_long_running_realtime(
     assert len(api_specs) == 1
 
     time_to_run = long_running_config["time_to_run"]
-    status_code_timeout = long_running_config["status_code_timeout"]
 
     if len(node_groups) > 0:
         api_specs[0]["node_groups"] = node_groups
@@ -880,11 +878,6 @@ def test_long_running_realtime(
                 assert_response_expectations(response, expectations["response"])
 
             counter += 1
-
-        printer("verifying number of processed requests using the client")
-        assert api_requests(
-            client, api_name, counter, timeout=status_code_timeout
-        ), f"the number of 2xx response codes for api {api_name} doesn't match the expected number {counter}"
 
     except:
         # best effort
