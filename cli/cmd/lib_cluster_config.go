@@ -290,16 +290,10 @@ func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChang
 		fmt.Printf("￮ %s will be updated\n", fieldToUpdate)
 	}
 
-	for _, ngName := range configureChanges.NodeGroupsToScale {
+	for _, ngName := range configureChanges.NodeGroupsToUpdate {
 		ngOld := oldCc.GetNodeGroupByName(ngName)
-		ngScaled := newCc.GetNodeGroupByName(ngName)
-		if ngOld.MinInstances != ngScaled.MinInstances && ngOld.MaxInstances != ngScaled.MaxInstances {
-			fmt.Printf("￮ nodegroup %s will update %s from %d to %d and %s from %d to %d\n", ngName, clusterconfig.MinInstancesKey, ngOld.MinInstances, ngScaled.MinInstances, clusterconfig.MaxInstancesKey, ngOld.MaxInstances, ngScaled.MaxInstances)
-		} else if ngOld.MinInstances == ngScaled.MinInstances && ngOld.MaxInstances != ngScaled.MaxInstances {
-			fmt.Printf("￮ nodegroup %s will update %s from %d to %d\n", ngName, clusterconfig.MaxInstancesKey, ngOld.MaxInstances, ngScaled.MaxInstances)
-		} else if ngOld.MinInstances != ngScaled.MinInstances && ngOld.MaxInstances == ngScaled.MaxInstances {
-			fmt.Printf("￮ nodegroup %s will update %s from %d to %d\n", ngName, clusterconfig.MinInstancesKey, ngOld.MinInstances, ngScaled.MinInstances)
-		}
+		ngNew := newCc.GetNodeGroupByName(ngName)
+		fmt.Printf("￮ %s\n", ngNew.UpdatePlan(ngOld))
 	}
 
 	for _, ngName := range configureChanges.NodeGroupsToAdd {
