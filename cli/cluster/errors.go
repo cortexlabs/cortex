@@ -64,7 +64,6 @@ func ErrorFailedToConnectOperator(originalError error, envName string, operatorU
 		msg += fmt.Sprintf("    → run `cortex cluster info --configure-env %s` to update your environment (include `--config <cluster.yaml>` if you have a cluster configuration file)\n", envName)
 		msg += fmt.Sprintf("    → if you set `operator_load_balancer_scheme: internal` in your cluster configuration file, your CLI must run from within a VPC that has access to your cluster's VPC (see https://docs.cortex.dev/v/%s/)\n", consts.CortexVersionMinor)
 		msg += fmt.Sprintf("    → confirm that the ip address of this machine falls within the CIDR ranges specified in `operator_load_balancer_cidr_whitelist`")
-
 	}
 
 	return errors.WithStack(&errors.Error{

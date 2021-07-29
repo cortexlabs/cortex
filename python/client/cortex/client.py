@@ -29,6 +29,8 @@ class Client:
     def __init__(self, env_config: Dict):
         """
         A client to deploy and manage APIs in the specified environment.
+        This constructor is not meant to be invoked directly.
+        Use `cortex.client()` and `cortex.new_client()` to initialize a new cortex client.
 
         Args:
             env_config: Environment config
