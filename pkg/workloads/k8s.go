@@ -216,6 +216,25 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 }
 
 func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
+	proxyHasTCPProbe := HasReadinessProbes(api.Pod.Containers)
+
+	var readinessProbe *kcore.Probe
+	if proxyHasTCPProbe {
+		readinessProbe = &kcore.Probe{
+			Handler: kcore.Handler{
+				HTTPGet: &kcore.HTTPGetAction{
+					Path: "/healthz",
+					Port: intstr.FromInt(int(consts.AdminPortInt32)),
+				},
+			},
+			InitialDelaySeconds: 1,
+			TimeoutSeconds:      3,
+			PeriodSeconds:       10,
+			SuccessThreshold:    1,
+			FailureThreshold:    3,
+		}
+	}
+
 	return kcore.Container{
 		Name:            ProxyContainerName,
 		Image:           config.ClusterConfig.ImageProxy,
@@ -233,6 +252,8 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 			s.Int32(int32(api.Pod.MaxConcurrency)),
 			"--max-queue-length",
 			s.Int32(int32(api.Pod.MaxQueueLength)),
+			"--has-tcp-probe",
+			s.Bool(proxyHasTCPProbe),
 		},
 		Ports: []kcore.ContainerPort{
 			{Name: consts.AdminPortName, ContainerPort: consts.AdminPortInt32},
@@ -249,19 +270,7 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 				kcore.ResourceMemory: consts.CortexProxyMem,
 			},
 		},
-		ReadinessProbe: &kcore.Probe{
-			Handler: kcore.Handler{
-				HTTPGet: &kcore.HTTPGetAction{
-					Path: "/healthz",
-					Port: intstr.FromInt(int(consts.AdminPortInt32)),
-				},
-			},
-			InitialDelaySeconds: 1,
-			TimeoutSeconds:      1,
-			PeriodSeconds:       10,
-			SuccessThreshold:    1,
-			FailureThreshold:    1,
-		},
+		ReadinessProbe: readinessProbe,
 	}, ClusterConfigVolume()
 }
 

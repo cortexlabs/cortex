@@ -48,6 +48,7 @@ func main() {
 		userContainerPort int
 		maxConcurrency    int
 		maxQueueLength    int
+		hasTCPProbe       bool
 		clusterConfigPath string
 	)
 
@@ -56,6 +57,7 @@ func main() {
 	flag.IntVar(&userContainerPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
 	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency allowed for user container")
 	flag.IntVar(&maxQueueLength, "max-queue-length", 0, "max request queue length for user container")
+	flag.BoolVar(&hasTCPProbe, "has-tcp-probe", false, "tcp probe to the user-provided container port")
 	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
 	flag.Parse()
 
@@ -142,7 +144,10 @@ func main() {
 
 	adminHandler := http.NewServeMux()
 	adminHandler.Handle("/metrics", promStats)
-	adminHandler.Handle("/healthz", readinessTCPHandler(userContainerPort, log))
+
+	if hasTCPProbe {
+		adminHandler.Handle("/healthz", readinessTCPHandler(userContainerPort, log))
+	}
 
 	servers := map[string]*http.Server{
 		"proxy": {

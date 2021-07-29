@@ -83,13 +83,25 @@ func GetReadinessProbesFromContainers(containers []*userconfig.Container) map[st
 		if container == nil {
 			continue
 		}
-
 		if container.ReadinessProbe != nil {
 			probes[container.Name] = *GetProbeSpec(container.ReadinessProbe)
 		}
 	}
 
 	return probes
+}
+
+func HasReadinessProbes(containers []*userconfig.Container) bool {
+	for _, container := range containers {
+		// this should never happen, it's just a precaution
+		if container == nil {
+			continue
+		}
+		if container.ReadinessProbe != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func BaseClusterEnvVars() []kcore.EnvFromSource {
