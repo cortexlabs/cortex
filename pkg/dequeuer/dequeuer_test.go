@@ -180,6 +180,7 @@ func TestSQSDequeuer_ReceiveMessage(t *testing.T) {
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
+			Workers:          1,
 		}, awsClient, logger,
 	)
 	require.NoError(t, err)
@@ -206,6 +207,7 @@ func TestSQSDequeuer_StartMessageRenewer(t *testing.T) {
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
+			Workers:          1,
 		}, awsClient, logger,
 	)
 	require.NoError(t, err)
@@ -254,6 +256,7 @@ func TestSQSDequeuerTerminationOnEmptyQueue(t *testing.T) {
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
+			Workers:          1,
 		}, awsClient, logger,
 	)
 	require.NoError(t, err)
@@ -304,6 +307,7 @@ func TestSQSDequeuer_Shutdown(t *testing.T) {
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
+			Workers:          1,
 		}, awsClient, logger,
 	)
 	require.NoError(t, err)
@@ -346,6 +350,7 @@ func TestSQSDequeuer_Start_HandlerError(t *testing.T) {
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
+			Workers:          1,
 		}, awsClient, logger,
 	)
 	require.NoError(t, err)
