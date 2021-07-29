@@ -29,6 +29,7 @@ const (
 	AcceleratorsPerInstanceKey             = "accelerators_per_instance"
 	MinInstancesKey                        = "min_instances"
 	MaxInstancesKey                        = "max_instances"
+	PriorityKey                            = "priority"
 	SpotKey                                = "spot"
 	SpotConfigKey                          = "spot_config"
 	InstanceDistributionKey                = "instance_distribution"
