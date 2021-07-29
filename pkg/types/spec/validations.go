@@ -189,6 +189,19 @@ func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 		)
 	}
 
+	if kind == userconfig.AsyncAPIKind {
+		validation.StructValidation.StructFieldValidations = append(validation.StructValidation.StructFieldValidations,
+			&cr.StructFieldValidation{
+				StructField: "MaxConcurrency",
+				Int64Validation: &cr.Int64Validation{
+					Default:           consts.DefaultMaxConcurrency,
+					GreaterThan:       pointer.Int64(0),
+					LessThanOrEqualTo: pointer.Int64(100),
+				},
+			},
+		)
+	}
+
 	return validation
 }
 
