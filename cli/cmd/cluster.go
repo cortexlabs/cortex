@@ -837,6 +837,7 @@ var _clusterHealthCmd = &cobra.Command{
 				{"prometheus", console.BoolColor(clusterHealth.Prometheus), clusterWarnings.Prometheus},
 				{"autoscaler", console.BoolColor(clusterHealth.Autoscaler), ""},
 				{"activator", console.BoolColor(clusterHealth.Activator), ""},
+				{"async gateway", console.BoolColor(clusterHealth.AsyncGateway), ""},
 				{"grafana", console.BoolColor(clusterHealth.Grafana), ""},
 				{"controller manager", console.BoolColor(clusterHealth.ControllerManager), ""},
 				{"apis gateway", console.BoolColor(clusterHealth.APIsGateway), ""},

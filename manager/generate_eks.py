@@ -319,7 +319,7 @@ def generate_eks(
         "ami": get_ami(ami_map, "t3.medium"),
         "name": "cx-operator",
         "instanceType": "t3.medium",
-        "minSize": 1,
+        "minSize": 2,
         "maxSize": 25,
         "desiredCapacity": 1,
         "volumeType": "gp3",

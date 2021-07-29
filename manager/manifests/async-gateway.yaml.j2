@@ -68,10 +68,9 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 100Mi
+              memory: 200Mi
             limits:
               cpu: 100m
-              memory: 100Mi
 ---
 apiVersion: v1
 kind: Service
@@ -89,7 +88,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: async-gateway
 spec:
-  maxReplicas: 100
+  maxReplicas: 20
   minReplicas: 1
   scaleTargetRef:
     apiVersion: apps/v1
@@ -101,10 +100,10 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 70
+          averageUtilization: 90
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 70
+          averageUtilization: 90
