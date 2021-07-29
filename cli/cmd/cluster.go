@@ -235,14 +235,14 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			out = filterEKSCTLOutput(out)
+			out = s.LastNChars(filterEKSCTLOutput(out), 8192) // get the last 8192 characters because that is the sentry message limit
 			eksCluster, err := awsClient.EKSClusterOrNil(clusterConfig.ClusterName)
 			if err != nil {
 				helpStr := "\ndebugging tips (may or may not apply to this error):"
 				helpStr += fmt.Sprintf("\n* if your cluster started spinning up but was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", clusterConfig.Region)
 				helpStr += "\n* if your cluster started spinning up, please run `cortex cluster down` to delete the cluster before trying to create this cluster again"
 				fmt.Println(helpStr)
-				exit.Error(ErrorClusterUp(out + helpStr))
+				exit.Error(ErrorClusterUp(out))
 			}
 
 			// the cluster never started spinning up
@@ -390,7 +390,7 @@ var _clusterConfigureCmd = &cobra.Command{
 		confirmConfigureClusterConfig(configureChanges, oldClusterConfig, *newClusterConfig, _flagClusterDisallowPrompt)
 
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --configure", newClusterConfig, awsClient, nil, nil, []string{
-			"CORTEX_NODEGROUP_NAMES_TO_SCALE=" + strings.Join(configureChanges.NodeGroupsToScale, " "),          // NodeGroupsToScale contain the cluster config node-group names
+			"CORTEX_NODEGROUP_NAMES_TO_UPDATE=" + strings.Join(configureChanges.NodeGroupsToUpdate, " "),        // NodeGroupsToUpdate contain the cluster config node-group names
 			"CORTEX_NODEGROUP_NAMES_TO_ADD=" + strings.Join(configureChanges.NodeGroupsToAdd, " "),              // NodeGroupsToAdd contain the cluster config node-group names
 			"CORTEX_EKS_NODEGROUP_NAMES_TO_REMOVE=" + strings.Join(configureChanges.EKSNodeGroupsToRemove, " "), // EKSNodeGroupsToRemove contain the EKS node-group names
 		})
@@ -398,6 +398,8 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
+			out = s.LastNChars(out, 8192) // get the last 8192 characters because that is the sentry message limit
+
 			helpStr := "\ndebugging tips (may or may not apply to this error):"
 			helpStr += fmt.Sprintf(
 				"\n* if your cluster was unable to provision/remove/scale some nodegroups, additional error information may be found in the description of your cloudformation stack (https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks)"+

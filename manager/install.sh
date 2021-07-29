@@ -287,7 +287,7 @@ function restart_controller_manager() {
 }
 
 function resize_nodegroups() {
-  if [ -z "$CORTEX_NODEGROUP_NAMES_TO_SCALE" ]; then
+  if [ -z "$CORTEX_NODEGROUP_NAMES_TO_UPDATE" ]; then
     return
   fi
 
@@ -295,7 +295,7 @@ function resize_nodegroups() {
   eks_ng_len=$(cat nodegroups.json | jq -r length)
   cfg_ng_len=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .node_groups | yq -r length)
 
-  for cfg_ng_name in $CORTEX_NODEGROUP_NAMES_TO_SCALE; do
+  for cfg_ng_name in $CORTEX_NODEGROUP_NAMES_TO_UPDATE; do
     has_ng="false"
     for eks_idx in $(seq 0 $(($eks_ng_len-1))); do
       stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
