@@ -76,8 +76,7 @@ var (
 	CortexProbeHeader         = "X-Cortex-Probe"
 	CortexOriginHeader        = "X-Cortex-Origin"
 
-	WaitForInitializingReplicasTimeout = 15 * time.Minute
-	WaitForReadyReplicasTimeout        = 20 * time.Minute
+	WaitForReadyReplicasTimeout = 20 * time.Minute
 )
 
 func DefaultRegistry() string {

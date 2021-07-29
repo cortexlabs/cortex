@@ -17,26 +17,22 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-)
-
-const (
-	_titleAsyncAPI = "async api"
 )
 
 func asyncAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (string, error) {
 	var out string
 
 	t := asyncAPIsTable([]schema.APIResponse{asyncAPI}, []string{env.Name})
-	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
-	t.FindHeaderByTitle(_titleAsyncAPI).Hidden = true
 
 	out += t.MustFormat()
 
@@ -44,7 +40,9 @@ func asyncAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (stri
 		out += "\n" + console.Bold("metrics dashboard: ") + *asyncAPI.DashboardURL + "\n"
 	}
 
-	out += "\n" + console.Bold("endpoint: ") + asyncAPI.Endpoint + "\n"
+	if asyncAPI.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *asyncAPI.Endpoint + "\n"
+	}
 
 	out += "\n" + apiHistoryTable(asyncAPI.APIVersions)
 
@@ -57,39 +55,68 @@ func asyncAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (stri
 	return out, nil
 }
 
+func asyncDescribeAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (string, error) {
+	if asyncAPI.Metadata == nil {
+		return "", errors.ErrorUnexpected("missing metadata from operator response")
+	}
+
+	if asyncAPI.ReplicaCounts == nil {
+		return "", errors.ErrorUnexpected(fmt.Sprintf("missing replica counts for %s api", asyncAPI.Metadata.Name))
+	}
+
+	t := asyncAPIsTable([]schema.APIResponse{asyncAPI}, []string{env.Name})
+	out := t.MustFormat()
+
+	if asyncAPI.DashboardURL != nil && *asyncAPI.DashboardURL != "" {
+		out += "\n" + console.Bold("metrics dashboard: ") + *asyncAPI.DashboardURL + "\n"
+	}
+
+	if asyncAPI.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *asyncAPI.Endpoint + "\n"
+	}
+
+	t = replicaCountTable(asyncAPI.ReplicaCounts)
+	out += "\n" + t.MustFormat()
+
+	return out, nil
+}
+
 func asyncAPIsTable(asyncAPIs []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(asyncAPIs))
 
-	var totalFailed int32
-	var totalStale int32
-
 	for i, asyncAPI := range asyncAPIs {
-		lastUpdated := time.Unix(asyncAPI.Spec.LastUpdated, 0)
+		if asyncAPI.Metadata == nil || (asyncAPI.Status == nil && asyncAPI.ReplicaCounts == nil) {
+			continue
+		}
+
+		var ready, requested, upToDate int32
+		if asyncAPI.Status != nil {
+			ready = asyncAPI.Status.Ready
+			requested = asyncAPI.Status.Requested
+			upToDate = asyncAPI.Status.UpToDate
+		} else {
+			ready = asyncAPI.ReplicaCounts.Ready
+			requested = asyncAPI.ReplicaCounts.Requested
+			upToDate = asyncAPI.ReplicaCounts.UpToDate
+		}
+
+		lastUpdated := time.Unix(asyncAPI.Metadata.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
-			asyncAPI.Spec.Name,
-			asyncAPI.Status.Message(),
-			asyncAPI.Status.Updated.Ready,
-			asyncAPI.Status.Stale.Ready,
-			asyncAPI.Status.Requested,
-			asyncAPI.Status.Updated.TotalFailed(),
+			asyncAPI.Metadata.Name,
+			fmt.Sprintf("%d/%d", ready, requested),
+			upToDate,
 			libtime.SinceStr(&lastUpdated),
 		})
-
-		totalFailed += asyncAPI.Status.Updated.TotalFailed()
-		totalStale += asyncAPI.Status.Stale.Ready
 	}
 
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
 			{Title: _titleAsyncAPI},
-			{Title: _titleStatus},
+			{Title: _titleLive},
 			{Title: _titleUpToDate},
-			{Title: _titleStale, Hidden: totalStale == 0},
-			{Title: _titleRequested},
-			{Title: _titleFailed, Hidden: totalFailed == 0},
-			{Title: _titleLastupdated},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}

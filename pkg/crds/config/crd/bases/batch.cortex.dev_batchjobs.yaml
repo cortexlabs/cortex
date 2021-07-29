@@ -251,22 +251,37 @@ spec:
               worker_counts:
                 description: Detailed worker counts with respective status
                 properties:
+                  creating:
+                    format: int32
+                    type: integer
+                  err_image_pull:
+                    format: int32
+                    type: integer
                   failed:
                     format: int32
                     type: integer
-                  initializing:
+                  killed:
+                    format: int32
+                    type: integer
+                  killed_oom:
+                    format: int32
+                    type: integer
+                  not_ready:
                     format: int32
                     type: integer
                   pending:
                     format: int32
                     type: integer
-                  running:
+                  ready:
                     format: int32
                     type: integer
                   stalled:
                     format: int32
                     type: integer
                   succeeded:
+                    format: int32
+                    type: integer
+                  terminating:
                     format: int32
                     type: integer
                   unknown:

@@ -112,6 +112,7 @@ func init() {
 	clusterInit()
 	completionInit()
 	deleteInit()
+	describeInit()
 	deployInit()
 	envInit()
 	getInit()
@@ -154,6 +155,7 @@ func Execute() {
 
 	_rootCmd.AddCommand(_deployCmd)
 	_rootCmd.AddCommand(_getCmd)
+	_rootCmd.AddCommand(_describeCmd)
 	_rootCmd.AddCommand(_logsCmd)
 	_rootCmd.AddCommand(_refreshCmd)
 	_rootCmd.AddCommand(_deleteCmd)

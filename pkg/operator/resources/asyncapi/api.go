@@ -19,6 +19,7 @@ package asyncapi
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -31,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -249,13 +251,71 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
+func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
+	asyncAPIs := make([]schema.APIResponse, 0)
+	mappedAsyncAPIs := make(map[string]schema.APIResponse, 0)
+	apiNames := make([]string, 0)
+
+	for i := range deployments {
+		if deployments[i].Labels["cortex.dev/async"] != "api" {
+			continue
+		}
+		apiName := deployments[i].Labels["apiName"]
+		apiNames = append(apiNames, apiName)
+
+		metadata, err := spec.MetadataFromDeployment(&deployments[i])
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
+		}
+		mappedAsyncAPIs[apiName] = schema.APIResponse{
+			Status:   status.FromDeployment(&deployments[i]),
+			Metadata: metadata,
+		}
+	}
+
+	sort.Strings(apiNames)
+	for _, apiName := range apiNames {
+		asyncAPIs = append(asyncAPIs, mappedAsyncAPIs[apiName])
+	}
+
+	return asyncAPIs, nil
+}
+
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
-	status, err := GetStatus(deployedResource.Name)
+	var apiDeployment *kapps.Deployment
+	var gatewayDeployment *kapps.Deployment
+
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			apiDeployment, err = config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
+			return err
+		},
+		func() error {
+			var err error
+			gatewayDeployment, err = config.K8s.GetDeployment(getGatewayK8sName(deployedResource.Name))
+			return err
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
+	if apiDeployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find api deployment", deployedResource.Name)
+	}
+
+	if gatewayDeployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find gateway deployment", deployedResource.Name)
+	}
+
+	apiStatus := status.FromDeployment(apiDeployment)
+	apiMetadata, err := spec.MetadataFromDeployment(apiDeployment)
+	if err != nil {
+		return nil, errors.ErrorUnexpected("unable to obtain metadata", deployedResource.Name)
+	}
+
+	api, err := operator.DownloadAPISpec(apiMetadata.Name, apiMetadata.APIID)
 	if err != nil {
 		return nil, err
 	}
@@ -269,43 +329,72 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	return []schema.APIResponse{
 		{
-			Spec:         *api,
-			Status:       status,
-			Endpoint:     apiEndpoint,
+			Spec:         api,
+			Metadata:     apiMetadata,
+			Status:       apiStatus,
+			Endpoint:     &apiEndpoint,
 			DashboardURL: dashboardURL,
 		},
 	}, nil
 }
 
-func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIResponse, error) {
-	statuses, err := GetAllStatuses(deployments, pods)
+func DescribeAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
+	var apiDeployment *kapps.Deployment
+	var gatewayDeployment *kapps.Deployment
+
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			apiDeployment, err = config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
+			return err
+		},
+		func() error {
+			var err error
+			gatewayDeployment, err = config.K8s.GetDeployment(getGatewayK8sName(deployedResource.Name))
+			return err
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
-	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
+	if apiDeployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find api deployment", deployedResource.Name)
+	}
+
+	if gatewayDeployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find gateway deployment", deployedResource.Name)
+	}
+
+	apiStatus := status.FromDeployment(apiDeployment)
+	apiMetadata, err := spec.MetadataFromDeployment(apiDeployment)
+	if err != nil {
+		return nil, errors.ErrorUnexpected("unable to obtain metadata", deployedResource.Name)
+	}
+
+	apiPods, err := config.K8s.ListPodsByLabels(map[string]string{
+		"apiName":          apiDeployment.Labels["apiName"],
+		"cortex.dev/async": "api",
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	asyncAPIs := make([]schema.APIResponse, len(apis))
-
-	for i := range apis {
-		api := apis[i]
-		endpoint, err := operator.APIEndpoint(&api)
-		if err != nil {
-			return nil, err
-		}
-
-		asyncAPIs[i] = schema.APIResponse{
-			Spec:     api,
-			Status:   &statuses[i],
-			Endpoint: endpoint,
-		}
+	apiEndpoint, err := operator.APIEndpointFromResource(deployedResource)
+	if err != nil {
+		return nil, err
 	}
 
-	return asyncAPIs, nil
+	dashboardURL := pointer.String(getDashboardURL(deployedResource.Name))
+
+	return []schema.APIResponse{
+		{
+			Metadata:      apiMetadata,
+			ReplicaCounts: GetReplicaCounts(apiStatus, apiDeployment, apiPods),
+			Endpoint:      &apiEndpoint,
+			DashboardURL:  dashboardURL,
+		},
+	}, nil
 }
 
 func UpdateAPIMetricsCron(apiDeployment *kapps.Deployment) error {
@@ -543,6 +632,33 @@ func deleteK8sResources(apiName string) error {
 	)
 
 	return err
+}
+
+// returns true if min_replicas are not ready and no updated replicas have errored
+func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
+	pods, err := config.K8s.ListPodsByLabel("apiName", deployment.Labels["apiName"])
+	if err != nil {
+		return false, err
+	}
+
+	replicaCounts := GetReplicaCounts(nil, deployment, pods)
+
+	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(deployment)
+	if err != nil {
+		return false, err
+	}
+
+	if replicaCounts.Ready < autoscalingSpec.MinReplicas && replicaCounts.TotalFailed() == 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
+	// Note: the gateway deployment/pods don't have "podID" or "deploymentID" labels, which is ok since it is always up-to-date
+	return deployment.Spec.Template.Labels["podID"] == pod.Labels["podID"] &&
+		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
 }
 
 func getDashboardURL(apiName string) string {

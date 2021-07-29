@@ -19,7 +19,6 @@ package serverlesscontroller
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
@@ -29,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istionetworking "istio.io/api/networking/v1beta1"
@@ -64,101 +62,19 @@ func (r *RealtimeAPIReconciler) updateStatus(ctx context.Context, api *serverles
 		return errors.Wrap(err, "failed to get api endpoint")
 	}
 
-	apiStatus := status.Pending
-	api.Status.ReplicaCounts = status.ReplicaCounts{}
 	if deployment != nil {
-		if deployment.Status.ReadyReplicas == api.Spec.Pod.Replicas {
-			apiStatus = status.Live
-			api.Status.ReplicaCounts.Updated.Ready = deployment.Status.ReadyReplicas
-			// TODO: handle out of date (?)
-		} else {
-			if err = r.getReplicaCounts(ctx, api); err != nil {
-				return err
-			}
-			apiStatus = r.getStatusCode(api)
-		}
-	}
-
-	api.Status.Status = apiStatus
-	if err = r.Status().Update(ctx, api); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *RealtimeAPIReconciler) getReplicaCounts(ctx context.Context, api *serverless.RealtimeAPI) error {
-	var podList kcore.PodList
-	if err := r.List(ctx, &podList, client.MatchingLabels{
-		"apiName":      api.Name,
-		"apiKind":      userconfig.RealtimeAPIKind.String(),
-		"deploymentID": api.Annotations["cortex.dev/deployment-id"],
-	}); err != nil {
-		return err
-	}
-	for i := range podList.Items {
-		pod := &podList.Items[i]
-		if k8s.IsPodReady(pod) {
-			api.Status.ReplicaCounts.Updated.Ready++
-			continue
+		api.Status.Ready = deployment.Status.ReadyReplicas
+		api.Status.UpToDate = deployment.Status.UpdatedReplicas
+		if deployment.Spec.Replicas != nil {
+			api.Status.Requested = *deployment.Spec.Replicas
 		}
 
-		switch k8s.GetPodStatus(pod) {
-		case k8s.PodStatusPending:
-			if time.Since(pod.CreationTimestamp.Time) > consts.WaitForInitializingReplicasTimeout {
-				api.Status.ReplicaCounts.Updated.Stalled++
-			} else {
-				api.Status.ReplicaCounts.Updated.Pending++
-			}
-		case k8s.PodStatusInitializing:
-			api.Status.ReplicaCounts.Updated.Initializing++
-		case k8s.PodStatusRunning:
-			api.Status.ReplicaCounts.Updated.Initializing++
-		case k8s.PodStatusErrImagePull:
-			api.Status.ReplicaCounts.Updated.ErrImagePull++
-		case k8s.PodStatusTerminating:
-			api.Status.ReplicaCounts.Updated.Terminating++
-		case k8s.PodStatusFailed:
-			api.Status.ReplicaCounts.Updated.Failed++
-		case k8s.PodStatusKilled:
-			api.Status.ReplicaCounts.Updated.Killed++
-		case k8s.PodStatusKilledOOM:
-			api.Status.ReplicaCounts.Updated.KilledOOM++
-		default:
-			api.Status.ReplicaCounts.Updated.Unknown++
+		if err = r.Status().Update(ctx, api); err != nil {
+			return err
 		}
 	}
 
 	return nil
-}
-
-func (r *RealtimeAPIReconciler) getStatusCode(api *serverless.RealtimeAPI) status.Code {
-	counts := api.Status.ReplicaCounts
-	if counts.Updated.Ready >= api.Spec.Pod.Replicas {
-		return status.Live
-	}
-
-	if counts.Updated.ErrImagePull > 0 {
-		return status.ErrorImagePull
-	}
-
-	if counts.Updated.Failed > 0 || counts.Updated.Killed > 0 {
-		return status.Error
-	}
-
-	if counts.Updated.KilledOOM > 0 {
-		return status.OOM
-	}
-
-	if counts.Updated.Stalled > 0 {
-		return status.Stalled
-	}
-
-	if counts.Updated.Ready >= api.Spec.Autoscaling.MinReplicas {
-		return status.Live
-	}
-
-	return status.Updating
 }
 
 func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, api serverless.RealtimeAPI) (controllerutil.OperationResult, error) {
@@ -281,6 +197,7 @@ func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) ka
 				"apiName":        api.Name,
 				"apiKind":        userconfig.RealtimeAPIKind.String(),
 				"deploymentID":   api.Annotations["cortex.dev/deployment-id"],
+				"apiID":          api.Annotations["cortex.dev/api-id"],
 				"cortex.dev/api": "true",
 			},
 			Annotations: map[string]string{
