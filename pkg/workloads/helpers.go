@@ -93,11 +93,7 @@ func GetReadinessProbesFromContainers(containers []*userconfig.Container) map[st
 
 func HasReadinessProbes(containers []*userconfig.Container) bool {
 	for _, container := range containers {
-		// this should never happen, it's just a precaution
-		if container == nil {
-			continue
-		}
-		if container.ReadinessProbe != nil {
+		if container != nil && container.ReadinessProbe != nil {
 			return true
 		}
 	}
