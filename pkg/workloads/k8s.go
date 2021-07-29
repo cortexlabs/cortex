@@ -133,6 +133,7 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 			"--statsd-address", _statsdAddress,
 			"--user-port", s.Int32(*api.Pod.Port),
 			"--admin-port", consts.AdminPortStr,
+			"--workers", s.Int64(api.Pod.MaxConcurrency),
 		},
 		Env:     BaseEnvVars,
 		EnvFrom: BaseClusterEnvVars(),
@@ -366,8 +367,8 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		ClientConfigMount(),
 	}
 
-	var containers []kcore.Container
-	for _, container := range api.Pod.Containers {
+	containers := make([]kcore.Container, len(api.Pod.Containers))
+	for i, container := range api.Pod.Containers {
 		containerResourceList := kcore.ResourceList{}
 		containerResourceLimitsList := kcore.ResourceList{}
 		securityContext := kcore.SecurityContext{
@@ -433,7 +434,7 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			})
 		}
 
-		containers = append(containers, kcore.Container{
+		containers[i] = kcore.Container{
 			Name:           container.Name,
 			Image:          container.Image,
 			Command:        container.Command,
@@ -448,7 +449,7 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			},
 			ImagePullPolicy: kcore.PullAlways,
 			SecurityContext: &securityContext,
-		})
+		}
 	}
 
 	return containers, volumes
@@ -498,10 +499,9 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 		nodeGroups = config.ClusterConfig.NodeGroups
 	}
 
-	var requiredNodeGroups []string
-	var preferredAffinities []kcore.PreferredSchedulingTerm
-
-	for _, nodeGroup := range nodeGroups {
+	requiredNodeGroups := make([]string, len(nodeGroups))
+	preferredAffinities := make([]kcore.PreferredSchedulingTerm, len(nodeGroups))
+	for i, nodeGroup := range nodeGroups {
 		var nodeGroupPrefix string
 		if nodeGroup.Spot {
 			nodeGroupPrefix = "cx-ws-"
@@ -509,7 +509,7 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 			nodeGroupPrefix = "cx-wd-"
 		}
 
-		preferredAffinities = append(preferredAffinities, kcore.PreferredSchedulingTerm{
+		preferredAffinities[i] = kcore.PreferredSchedulingTerm{
 			Weight: int32(nodeGroup.Priority),
 			Preference: kcore.NodeSelectorTerm{
 				MatchExpressions: []kcore.NodeSelectorRequirement{
@@ -520,8 +520,9 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 					},
 				},
 			},
-		})
-		requiredNodeGroups = append(requiredNodeGroups, nodeGroupPrefix+nodeGroup.Name)
+		}
+
+		requiredNodeGroups[i] = nodeGroupPrefix + nodeGroup.Name
 	}
 
 	var requiredNodeSelector *kcore.NodeSelector
