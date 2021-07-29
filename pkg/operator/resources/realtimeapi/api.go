@@ -52,7 +52,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			if kerrors.IsNotFound(err) {
-				api = K8sResourceFromAPIConfig(*apiConfig)
+				api = k8sResourceFromAPIConfig(*apiConfig, nil)
 				if err = config.K8s.Create(ctx, &api); err != nil {
 					return nil, "", errors.Wrap(err, "failed to create realtime api resource")
 				}
@@ -79,7 +79,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		return nil, "", errors.Wrap(err, "failed to get realtime api resource")
 	}
 
-	desiredAPI := K8sResourceFromAPIConfig(*apiConfig)
+	desiredAPI := k8sResourceFromAPIConfig(*apiConfig, &api)
 
 	apiSpec := &spec.API{
 		API:                   apiConfig,
@@ -256,7 +256,7 @@ func DescribeAPIByName(apiName string) ([]schema.APIResponse, error) {
 	}
 
 	var podList kcore.PodList
-	if err := config.K8s.List(ctx, &podList, client.MatchingLabels{
+	if err = config.K8s.List(ctx, &podList, client.MatchingLabels{
 		"apiName": metadata.Name,
 		"apiKind": userconfig.RealtimeAPIKind.String(),
 	}); err != nil {

@@ -556,18 +556,17 @@ spec:
                     description: Port to which requests will be sent to
                     format: int32
                     type: integer
-                  replicas:
-                    default: 1
-                    description: Number of desired replicas
-                    format: int32
-                    type: integer
                 required:
                 - containers
                 - max_concurrency
                 - max_queue_length
                 - port
-                - replicas
                 type: object
+              replicas:
+                default: 1
+                description: Number of desired replicas
+                format: int32
+                type: integer
               update_strategy:
                 default:
                   max_surge: 25%
@@ -598,6 +597,7 @@ spec:
             required:
             - networking
             - pod
+            - replicas
             type: object
           status:
             description: RealtimeAPIStatus defines the observed state of RealtimeAPI

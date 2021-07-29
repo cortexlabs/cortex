@@ -33,6 +33,11 @@ import (
 
 // RealtimeAPISpec defines the desired state of RealtimeAPI
 type RealtimeAPISpec struct {
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default=1
+	// Number of desired replicas
+	Replicas int32 `json:"replicas"`
+
 	// Pod configuration
 	// +kubebuilder:validation:Required
 	Pod PodSpec `json:"pod"`
@@ -72,11 +77,6 @@ type PodSpec struct {
 	// Maximum number of requests per replica which will be queued
 	// (beyond max_concurrency) before requests are rejected with error code 503
 	MaxQueueLength int32 `json:"max_queue_length"`
-
-	// +kubebuilder:validation:Required
-	// +kubebuilder:default=1
-	// Number of desired replicas
-	Replicas int32 `json:"replicas"`
 
 	// +kubebuilder:validation:Required
 	// Configurations for the containers to run

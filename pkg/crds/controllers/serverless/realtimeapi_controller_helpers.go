@@ -92,7 +92,6 @@ func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, ap
 		if err := ctrl.SetControllerReference(&api, &deployment, r.Scheme); err != nil {
 			return err
 		}
-
 		return nil
 	})
 	if err != nil {
@@ -177,7 +176,7 @@ func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) ka
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),
-		Replicas:       api.Spec.Pod.Replicas,
+		Replicas:       api.Spec.Replicas,
 		MaxSurge:       pointer.String(api.Spec.UpdateStrategy.MaxSurge.String()),
 		MaxUnavailable: pointer.String(api.Spec.UpdateStrategy.MaxUnavailable.String()),
 		Labels: map[string]string{
@@ -197,7 +196,6 @@ func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) ka
 				"apiName":        api.Name,
 				"apiKind":        userconfig.RealtimeAPIKind.String(),
 				"deploymentID":   api.Annotations["cortex.dev/deployment-id"],
-				"apiID":          api.Annotations["cortex.dev/api-id"],
 				"cortex.dev/api": "true",
 			},
 			Annotations: map[string]string{
@@ -248,7 +246,7 @@ func (r *RealtimeAPIReconciler) desiredService(api serverless.RealtimeAPI) kcore
 
 func (r *RealtimeAPIReconciler) desiredVirtualService(api serverless.RealtimeAPI) istioclientnetworking.VirtualService {
 	var activatorWeight int32
-	if api.Spec.Pod.Replicas == 0 {
+	if api.Spec.Replicas == 0 {
 		activatorWeight = 100
 	}
 
@@ -405,8 +403,15 @@ func (r *RealtimeAPIReconciler) proxyContainer(api serverless.RealtimeAPI) (kcor
 			s.Int32(api.Spec.Pod.MaxQueueLength),
 		},
 		Ports: []kcore.ContainerPort{
-			{Name: consts.AdminPortName, ContainerPort: consts.AdminPortInt32},
-			{ContainerPort: consts.ProxyPortInt32},
+			{
+				Name:          consts.AdminPortName,
+				ContainerPort: consts.AdminPortInt32,
+				Protocol:      kcore.ProtocolTCP,
+			},
+			{
+				ContainerPort: consts.ProxyPortInt32,
+				Protocol:      kcore.ProtocolTCP,
+			},
 		},
 		Env:     workloads.BaseEnvVars,
 		EnvFrom: workloads.BaseClusterEnvVars(),

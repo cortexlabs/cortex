@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
+	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -55,8 +56,8 @@ func getDashboardURL(apiName string) string {
 	return dashboardURL
 }
 
-// K8sResourceFromAPIConfig converts a cortex API config into a realtime API CRD resource
-func K8sResourceFromAPIConfig(apiConfig userconfig.API) v1alpha1.RealtimeAPI {
+// k8sResourceFromAPIConfig converts a cortex API config into a realtime API CRD resource
+func k8sResourceFromAPIConfig(apiConfig userconfig.API, prevAPI *serverless.RealtimeAPI) v1alpha1.RealtimeAPI {
 	containers := make([]v1alpha1.ContainerSpec, len(apiConfig.Pod.Containers))
 	for i := range apiConfig.Pod.Containers {
 		container := apiConfig.Pod.Containers[i]
@@ -110,11 +111,11 @@ func K8sResourceFromAPIConfig(apiConfig userconfig.API) v1alpha1.RealtimeAPI {
 			Namespace: consts.DefaultNamespace,
 		},
 		Spec: v1alpha1.RealtimeAPISpec{
+			Replicas: apiConfig.Autoscaling.InitReplicas,
 			Pod: v1alpha1.PodSpec{
 				Port:           *apiConfig.Pod.Port,
 				MaxConcurrency: int32(apiConfig.Pod.MaxConcurrency),
 				MaxQueueLength: int32(apiConfig.Pod.MaxQueueLength),
-				Replicas:       apiConfig.Autoscaling.InitReplicas,
 				Containers:     containers,
 			},
 			Autoscaling: v1alpha1.AutoscalingSpec{
@@ -146,6 +147,14 @@ func K8sResourceFromAPIConfig(apiConfig userconfig.API) v1alpha1.RealtimeAPI {
 		"cortex.dev/spec-id":       specID,
 		"cortex.dev/pod-id":        podID,
 		"cortex.dev/api-id":        apiID,
+	}
+
+	if prevAPI != nil {
+		// we should keep the existing number of replicas instead of init_replicas
+		api.Spec.Replicas = prevAPI.Spec.Replicas
+		if prevDeployID := prevAPI.Annotations["cortex.dev/deployment-id"]; prevDeployID != "" {
+			api.Annotations["cortex.dev/deployment-id"] = prevDeployID
+		}
 	}
 
 	return api
