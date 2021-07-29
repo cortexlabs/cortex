@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -208,10 +209,11 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 
 func readinessTCPHandler(port int, logger *zap.SugaredLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		timeout := time.Duration(1) * time.Second
-		address := net.JoinHostPort("localhost", strconv.FormatInt(int64(port), 10))
+		ctx := r.Context()
+		address := net.JoinHostPort("localhost", fmt.Sprintf("%d", port))
 
-		conn, err := net.DialTimeout("tcp", address, timeout)
+		var d net.Dialer
+		conn, err := d.DialContext(ctx, "tcp", address)
 		if err != nil {
 			logger.Warn(errors.Wrap(err, "TCP probe to user-provided container port failed"))
 			w.WriteHeader(http.StatusInternalServerError)
