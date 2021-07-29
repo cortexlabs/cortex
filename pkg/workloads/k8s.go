@@ -64,56 +64,11 @@ const (
 )
 
 var (
-	_asyncGatewayCPURequest = kresource.MustParse("100m")
-	_asyncGatewayMemRequest = kresource.MustParse("100Mi")
-
 	_statsdAddress = fmt.Sprintf("prometheus-statsd-exporter.%s:9125", consts.PrometheusNamespace)
 
 	// each Inferentia chip requires 128 HugePages with each HugePage having a size of 2Mi
 	_hugePagesMemPerInf = int64(128 * 2 * 1024 * 1024) // bytes
 )
-
-func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.VolumeMount) kcore.Container {
-	return kcore.Container{
-		Name:            GatewayContainerName,
-		Image:           config.ClusterConfig.ImageAsyncGateway,
-		ImagePullPolicy: kcore.PullAlways,
-		Args: []string{
-			"--cluster-config", consts.DefaultInClusterConfigPath,
-			"--port", s.Int32(consts.ProxyPortInt32),
-			"--queue", queueURL,
-			api.Name,
-		},
-		Ports: []kcore.ContainerPort{
-			{ContainerPort: consts.ProxyPortInt32},
-		},
-		Env:     BaseEnvVars,
-		EnvFrom: BaseClusterEnvVars(),
-		Resources: kcore.ResourceRequirements{
-			Requests: kcore.ResourceList{
-				kcore.ResourceCPU:    _asyncGatewayCPURequest,
-				kcore.ResourceMemory: _asyncGatewayMemRequest,
-			},
-		},
-		LivenessProbe: &kcore.Probe{
-			Handler: kcore.Handler{
-				HTTPGet: &kcore.HTTPGetAction{
-					Path: "/healthz",
-					Port: intstr.FromInt(8888),
-				},
-			},
-		},
-		ReadinessProbe: &kcore.Probe{
-			Handler: kcore.Handler{
-				HTTPGet: &kcore.HTTPGetAction{
-					Path: "/healthz",
-					Port: intstr.FromInt(8888),
-				},
-			},
-		},
-		VolumeMounts: volumeMounts,
-	}
-}
 
 func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container, kcore.Volume) {
 	return kcore.Container{

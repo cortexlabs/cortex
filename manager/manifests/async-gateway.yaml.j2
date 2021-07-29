@@ -1,0 +1,110 @@
+# Copyright 2021 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: async-gateway
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: async-gateway
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: async-gateway
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      name: async-gateway
+      labels:
+        app: async-gateway
+    spec:
+      serviceAccountName: async-gateway
+      containers:
+        - name: gateway
+          image: {{ config["image_async_gateway"] }}
+          imagePullPolicy: Always
+          args:
+            - --port
+            - "8888"
+            - --cluster-uid
+            - "{{ config["cluster_uid"] }}"
+            - --bucket
+            - "{{ config["bucket"] }}"
+          envFrom:
+            - configMapRef:
+                name: env-vars
+          ports:
+            - containerPort: 8888
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8888
+              scheme: HTTP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8888
+              scheme: HTTP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: async-gateway
+spec:
+  type: ClusterIP
+  selector:
+    app: async-gateway
+  ports:
+    - port: 8888
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: async-gateway
+spec:
+  maxReplicas: 100
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: async-gateway
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70

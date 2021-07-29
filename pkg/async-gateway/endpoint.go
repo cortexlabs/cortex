@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types/async"
@@ -50,14 +51,28 @@ func (e *Endpoint) CreateWorkload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	apiName := r.Header.Get(consts.CortexAPINameHeader)
+	if requestID == "" {
+		respondPlainText(w, http.StatusBadRequest, fmt.Sprintf("error: missing %s key in request header", consts.CortexAPINameHeader))
+		return
+	}
+	r.Header.Del(consts.CortexAPINameHeader)
+
+	queueURL := r.Header.Get(consts.CortexQueueURLHeader)
+	if queueURL == "" {
+		respondPlainText(w, http.StatusBadRequest, fmt.Sprintf("error: missing %s key in request header", consts.CortexQueueURLHeader))
+		return
+	}
+	r.Header.Del(consts.CortexQueueURLHeader)
+
 	body := r.Body
 	defer func() {
 		_ = r.Body.Close()
 	}()
 
-	log := e.logger.With(zap.String("id", requestID))
+	log := e.logger.With(zap.String("id", requestID), zap.String("apiName", apiName))
 
-	id, err := e.service.CreateWorkload(requestID, body, r.Header)
+	id, err := e.service.CreateWorkload(requestID, apiName, queueURL, body, r.Header)
 	if err != nil {
 		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
 		logErrorWithTelemetry(log, errors.Wrap(err, "failed to create workload"))
@@ -79,9 +94,16 @@ func (e *Endpoint) GetWorkload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log := e.logger.With(zap.String("id", id))
+	apiName := r.Header.Get(consts.CortexAPINameHeader)
+	if apiName == "" {
+		respondPlainText(w, http.StatusBadRequest, fmt.Sprintf("error: missing %s key in request header", consts.CortexAPINameHeader))
+		return
+	}
+	r.Header.Del(consts.CortexAPINameHeader)
 
-	res, err := e.service.GetWorkload(id)
+	log := e.logger.With(zap.String("id", id), zap.String("apiName", apiName))
+
+	res, err := e.service.GetWorkload(id, apiName)
 	if err != nil {
 		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
 		logErrorWithTelemetry(log, errors.Wrap(err, "failed to get workload"))

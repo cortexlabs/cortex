@@ -45,6 +45,7 @@ type ClusterHealth struct {
 	Prometheus           bool `json:"prometheus"`
 	Autoscaler           bool `json:"autoscaler"`
 	Activator            bool `json:"activator"`
+	AsyncGateway         bool `json:"async_gateway"`
 	Grafana              bool `json:"grafana"`
 	OperatorGateway      bool `json:"operator_gateway"`
 	APIsGateway          bool `json:"apis_gateway"`
@@ -91,6 +92,7 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 		prometheusHealth           bool
 		autoscalerHealth           bool
 		activatorHealth            bool
+		asyncGatewayHealth         bool
 		grafanaHealth              bool
 		operatorGatewayHealth      bool
 		apisGatewayHealth          bool
@@ -129,6 +131,11 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 		func() error {
 			var err error
 			activatorHealth, err = getDeploymentReadiness(k8sClient, "activator", consts.DefaultNamespace)
+			return err
+		},
+		func() error {
+			var err error
+			asyncGatewayHealth, err = getDeploymentReadiness(k8sClient, "async-gateway", consts.DefaultNamespace)
 			return err
 		},
 		func() error {
@@ -201,6 +208,7 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 		Prometheus:           prometheusHealth,
 		Autoscaler:           autoscalerHealth,
 		Activator:            activatorHealth,
+		AsyncGateway:         asyncGatewayHealth,
 		Grafana:              grafanaHealth,
 		OperatorGateway:      operatorGatewayHealth,
 		APIsGateway:          apisGatewayHealth,
