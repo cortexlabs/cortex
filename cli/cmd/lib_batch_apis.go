@@ -31,6 +31,7 @@ import (
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/yaml"
 )
 
 const (
@@ -43,7 +44,10 @@ func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Tab
 	rows := make([][]interface{}, 0, len(batchAPIs))
 
 	for i, batchAPI := range batchAPIs {
-		lastAPIUpdated := time.Unix(batchAPI.Spec.LastUpdated, 0)
+		if batchAPI.Metadata == nil {
+			continue
+		}
+		lastAPIUpdated := time.Unix(batchAPI.Metadata.LastUpdated, 0)
 		latestStartTime := time.Time{}
 		latestJobID := "-"
 		runningJobs := 0
@@ -61,7 +65,7 @@ func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Tab
 
 		rows = append(rows, []interface{}{
 			envNames[i],
-			batchAPI.Spec.Name,
+			batchAPI.Metadata.Name,
 			runningJobs,
 			latestJobID,
 			libtime.SinceStr(&lastAPIUpdated),
@@ -74,7 +78,7 @@ func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Tab
 			{Title: _titleBatchAPI},
 			{Title: _titleJobCount},
 			{Title: _titleLatestJobID},
-			{Title: _titleLastupdated},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}
@@ -123,7 +127,9 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 		out += "\n" + console.Bold("metrics dashboard: ") + *batchAPI.DashboardURL + "\n"
 	}
 
-	out += "\n" + console.Bold("endpoint: ") + batchAPI.Endpoint + "\n"
+	if batchAPI.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *batchAPI.Endpoint + "\n"
+	}
 
 	out += "\n" + apiHistoryTable(batchAPI.APIVersions)
 
@@ -142,11 +148,16 @@ func getBatchJob(env cliconfig.Environment, apiName string, jobID string) (strin
 		return "", err
 	}
 
+	var bytes []byte
 	if _flagOutput == flags.JSONOutputType {
-		bytes, err := libjson.Marshal(resp)
-		if err != nil {
-			return "", err
-		}
+		bytes, err = libjson.Marshal(resp)
+	} else if _flagOutput == flags.YAMLOutputType {
+		bytes, err = yaml.Marshal(resp)
+	}
+	if err != nil {
+		return "", err
+	}
+	if _flagOutput == flags.JSONOutputType || _flagOutput == flags.YAMLOutputType {
 		return string(bytes), nil
 	}
 
@@ -216,22 +227,34 @@ func getBatchJob(env cliconfig.Environment, apiName string, jobID string) (strin
 		if job.WorkerCounts != nil {
 			t := table.Table{
 				Headers: []table.Header{
-					{Title: "requested"},
-					{Title: "pending", Hidden: job.WorkerCounts.Pending == 0},
-					{Title: "initializing", Hidden: job.WorkerCounts.Initializing == 0},
-					{Title: "stalled", Hidden: job.WorkerCounts.Stalled == 0},
-					{Title: "running"},
-					{Title: "failed", Hidden: job.WorkerCounts.Failed == 0},
-					{Title: "succeeded"},
+					{Title: "Requested"},
+					{Title: "Pending"},
+					{Title: "Creating"},
+					{Title: "Ready"},
+					{Title: "NotReady"},
+					{Title: "ErrImagePull", Hidden: job.WorkerCounts.ErrImagePull == 0},
+					{Title: "Terminating", Hidden: job.WorkerCounts.Terminating == 0},
+					{Title: "Failed", Hidden: job.WorkerCounts.Failed == 0},
+					{Title: "Killed", Hidden: job.WorkerCounts.Killed == 0},
+					{Title: "KilledOOM", Hidden: job.WorkerCounts.KilledOOM == 0},
+					{Title: "Stalled", Hidden: job.WorkerCounts.Stalled == 0},
+					{Title: "Unknown", Hidden: job.WorkerCounts.Unknown == 0},
+					{Title: "Succeeded"},
 				},
 				Rows: [][]interface{}{
 					{
 						job.Workers,
 						job.WorkerCounts.Pending,
-						job.WorkerCounts.Initializing,
-						job.WorkerCounts.Stalled,
-						job.WorkerCounts.Running,
+						job.WorkerCounts.Creating,
+						job.WorkerCounts.Ready,
+						job.WorkerCounts.NotReady,
+						job.WorkerCounts.ErrImagePull,
+						job.WorkerCounts.Terminating,
 						job.WorkerCounts.Failed,
+						job.WorkerCounts.Killed,
+						job.WorkerCounts.KilledOOM,
+						job.WorkerCounts.Stalled,
+						job.WorkerCounts.Unknown,
 						job.WorkerCounts.Succeeded,
 					},
 				},

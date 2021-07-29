@@ -32,6 +32,20 @@ Flags:
   -h, --help            help for get
 ```
 
+## describe
+
+```text
+describe an api
+
+Usage:
+  cortex describe [API_NAME] [flags]
+
+Flags:
+  -e, --env string   environment to use
+  -w, --watch        re-run the command every 2 seconds
+  -h, --help         help for describe
+```
+
 ## logs
 
 ```text

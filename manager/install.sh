@@ -103,6 +103,8 @@ function cluster_configure() {
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 | kubectl apply -f - >/dev/null
   echo "✓"
 
+  restart_controller_manager
+
   restart_operator
 
   validate_cortex
@@ -276,8 +278,16 @@ function start_controller_manager() {
   echo "✓"
 }
 
+function restart_controller_manager() {
+  echo -n "￮ restarting controller manager "
+
+  kubectl rollout restart deployments/operator-controller-manager >/dev/null
+
+  echo "✓"
+}
+
 function resize_nodegroups() {
-  if [ -z "$CORTEX_NODEGROUP_NAMES_TO_SCALE" ]; then
+  if [ -z "$CORTEX_NODEGROUP_NAMES_TO_UPDATE" ]; then
     return
   fi
 
@@ -285,7 +295,7 @@ function resize_nodegroups() {
   eks_ng_len=$(cat nodegroups.json | jq -r length)
   cfg_ng_len=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .node_groups | yq -r length)
 
-  for cfg_ng_name in $CORTEX_NODEGROUP_NAMES_TO_SCALE; do
+  for cfg_ng_name in $CORTEX_NODEGROUP_NAMES_TO_UPDATE; do
     has_ng="false"
     for eks_idx in $(seq 0 $(($eks_ng_len-1))); do
       stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)

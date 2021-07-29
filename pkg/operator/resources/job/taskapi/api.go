@@ -146,21 +146,15 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		}
 	}
 
-	for _, virtualService := range virtualServices {
-		apiName := virtualService.Labels["apiName"]
-		apiID := virtualService.Labels["apiID"]
+	for i := range virtualServices {
+		apiName := virtualServices[i].Labels["apiName"]
 
-		api, err := operator.DownloadAPISpec(apiName, apiID)
+		metadata, err := spec.MetadataFromVirtualService(&virtualServices[i])
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
 
-		endpoint, err := operator.APIEndpoint(api)
-		if err != nil {
-			return nil, err
-		}
-
-		jobStates, err := job.GetMostRecentlySubmittedJobStates(apiName, 1, userconfig.TaskAPIKind)
+		jobStates, err := job.GetMostRecentlySubmittedJobStates(metadata.Name, 1, userconfig.TaskAPIKind)
 
 		jobStatuses := []status.TaskJobStatus{}
 		if len(jobStates) > 0 {
@@ -172,9 +166,8 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 			jobStatuses = append(jobStatuses, *jobStatus)
 		}
 
-		taskAPIsMap[apiName] = &schema.APIResponse{
-			Spec:            *api,
-			Endpoint:        endpoint,
+		taskAPIsMap[metadata.Name] = &schema.APIResponse{
+			Metadata:        metadata,
 			TaskJobStatuses: jobStatuses,
 		}
 	}
@@ -209,8 +202,8 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 	taskAPIList := make([]schema.APIResponse, 0, len(taskAPIsMap))
 
-	for _, batchAPI := range taskAPIsMap {
-		taskAPIList = append(taskAPIList, *batchAPI)
+	for _, taskAPI := range taskAPIsMap {
+		taskAPIList = append(taskAPIList, *taskAPI)
 	}
 
 	return taskAPIList, nil
@@ -218,10 +211,12 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 // GetAPIByName returns a single task API and its most recently submitted job along with all running task jobs
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
-	virtualService := deployedResource.VirtualService
+	metadata, err := spec.MetadataFromVirtualService(deployedResource.VirtualService)
+	if err != nil {
+		return nil, err
+	}
 
-	apiID := virtualService.Labels["apiID"]
-	api, err := operator.DownloadAPISpec(deployedResource.Name, apiID)
+	api, err := operator.DownloadAPISpec(deployedResource.Name, metadata.APIID)
 	if err != nil {
 		return nil, err
 	}
@@ -295,9 +290,10 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	return []schema.APIResponse{
 		{
-			Spec:            *api,
+			Spec:            api,
+			Metadata:        metadata,
 			TaskJobStatuses: jobStatuses,
-			Endpoint:        endpoint,
+			Endpoint:        &endpoint,
 			DashboardURL:    dashboardURL,
 		},
 	}, nil

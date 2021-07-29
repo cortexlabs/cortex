@@ -84,7 +84,6 @@ spec:
             - "--port=8000"
             - "--prometheus-url=http://prometheus.prometheus:9090"
             - "--namespace=default"
-            - "--cluster-config=/configs/cluster/cluster.yaml"
           ports:
             - containerPort: 8000
           livenessProbe:
@@ -102,16 +101,6 @@ spec:
           envFrom:
           - configMapRef:
               name: env-vars
-          volumeMounts:
-          - mountPath: /configs/cluster/cluster.yaml
-            name: cluster-config
-            subPath: cluster.yaml
-      volumes:
-      - configMap:
-          defaultMode: 420
-          name: cluster-config
-        name: cluster-config
-
 ---
 
 apiVersion: v1

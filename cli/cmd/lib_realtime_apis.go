@@ -17,11 +17,13 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -31,16 +33,15 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 	var out string
 
 	t := realtimeAPIsTable([]schema.APIResponse{realtimeAPI}, []string{env.Name})
-	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
-	t.FindHeaderByTitle(_titleRealtimeAPI).Hidden = true
-
 	out += t.MustFormat()
 
 	if realtimeAPI.DashboardURL != nil && *realtimeAPI.DashboardURL != "" {
 		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
 	}
 
-	out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint + "\n"
+	if realtimeAPI.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *realtimeAPI.Endpoint + "\n"
+	}
 
 	out += "\n" + apiHistoryTable(realtimeAPI.APIVersions)
 
@@ -53,39 +54,56 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 	return out, nil
 }
 
+func realtimeDescribeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment) (string, error) {
+	if realtimeAPI.Metadata == nil {
+		return "", errors.ErrorUnexpected("missing metadata from operator response")
+	}
+
+	if realtimeAPI.Status == nil {
+		return "", errors.ErrorUnexpected(fmt.Sprintf("missing status for %s api", realtimeAPI.Metadata.Name))
+	}
+
+	t := realtimeAPIsTable([]schema.APIResponse{realtimeAPI}, []string{env.Name})
+	out := t.MustFormat()
+
+	if realtimeAPI.DashboardURL != nil && *realtimeAPI.DashboardURL != "" {
+		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
+	}
+
+	if realtimeAPI.Endpoint != nil {
+		out += "\n" + console.Bold("endpoint: ") + *realtimeAPI.Endpoint + "\n"
+	}
+
+	t = replicaCountTable(realtimeAPI.Status.ReplicaCounts)
+	out += "\n" + t.MustFormat()
+
+	return out, nil
+}
+
 func realtimeAPIsTable(realtimeAPIs []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(realtimeAPIs))
 
-	var totalFailed int32
-	var totalStale int32
-
 	for i, realtimeAPI := range realtimeAPIs {
-		lastUpdated := time.Unix(realtimeAPI.Spec.LastUpdated, 0)
+		if realtimeAPI.Metadata == nil || realtimeAPI.Status == nil {
+			continue
+		}
+		lastUpdated := time.Unix(realtimeAPI.Metadata.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
-			realtimeAPI.Spec.Name,
-			realtimeAPI.Status.Message(),
-			realtimeAPI.Status.Updated.Ready,
-			realtimeAPI.Status.Stale.Ready,
-			realtimeAPI.Status.Requested,
-			realtimeAPI.Status.Updated.TotalFailed(),
+			realtimeAPI.Metadata.Name,
+			fmt.Sprintf("%d/%d", realtimeAPI.Status.Ready, realtimeAPI.Status.Requested),
+			realtimeAPI.Status.UpToDate,
 			libtime.SinceStr(&lastUpdated),
 		})
-
-		totalFailed += realtimeAPI.Status.Updated.TotalFailed()
-		totalStale += realtimeAPI.Status.Stale.Ready
 	}
 
 	return table.Table{
 		Headers: []table.Header{
 			{Title: _titleEnvironment},
 			{Title: _titleRealtimeAPI},
-			{Title: _titleStatus},
+			{Title: _titleLive},
 			{Title: _titleUpToDate},
-			{Title: _titleStale, Hidden: totalStale == 0},
-			{Title: _titleRequested},
-			{Title: _titleFailed, Hidden: totalFailed == 0},
-			{Title: _titleLastupdated},
+			{Title: _titleLastUpdated},
 		},
 		Rows: rows,
 	}

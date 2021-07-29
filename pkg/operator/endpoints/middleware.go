@@ -64,7 +64,7 @@ func AWSAuthMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get(consts.AuthHeader)
 
 		if authHeader == "" {
-			respondError(w, r, ErrorHeaderMissing(consts.AuthHeader))
+			respondError(w, r, ErrorAuthHeaderMissing(consts.AuthHeader, r.Host, r.RequestURI))
 			return
 		}
 
