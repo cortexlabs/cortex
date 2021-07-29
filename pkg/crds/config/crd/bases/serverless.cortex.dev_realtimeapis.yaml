@@ -603,14 +603,18 @@ spec:
             description: RealtimeAPIStatus defines the observed state of RealtimeAPI
             properties:
               endpoint:
+                description: URL of the deployed API
                 type: string
               ready:
+                description: Number of ready pods
                 format: int32
                 type: integer
               requested:
+                description: Number of requested pods
                 format: int32
                 type: integer
               up_to_date:
+                description: Number of pods with the last requested spec
                 format: int32
                 type: integer
             type: object

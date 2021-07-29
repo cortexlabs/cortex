@@ -217,16 +217,19 @@ type NetworkingSpec struct {
 // RealtimeAPIStatus defines the observed state of RealtimeAPI
 type RealtimeAPIStatus struct {
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Type=integer
+	// Number of ready pods
 	Ready int32 `json:"ready"`
+
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Type=integer
+	// Number of requested pods
 	Requested int32 `json:"requested"`
+
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Type=integer
+	// Number of pods with the last requested spec
 	UpToDate int32 `json:"up_to_date"`
+
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Type=string
+	// URL of the deployed API
 	Endpoint string `json:"endpoint,omitempty"`
 }
 
