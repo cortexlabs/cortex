@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -74,7 +75,7 @@ func updateQueueLengthMetricsFn(apiName, queueURL string) func() error {
 
 		output, err := sqsClient.GetQueueAttributesWithContext(ctx, input)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		visibleMessagesStr := output.Attributes["ApproximateNumberOfMessages"]
@@ -82,12 +83,12 @@ func updateQueueLengthMetricsFn(apiName, queueURL string) func() error {
 
 		visibleMessages, err := strconv.ParseFloat(*visibleMessagesStr, 64)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		invisibleMessages, err := strconv.ParseFloat(*invisibleMessagesStr, 64)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 
 		activeGauge.WithLabelValues(apiName).Set(invisibleMessages)
