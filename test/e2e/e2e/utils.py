@@ -38,10 +38,11 @@ def wait_for(fn: Callable[[], bool], timeout=None) -> bool:
 
 
 def apis_ready(client: cx.Client, api_names: List[str], timeout: Optional[int] = None) -> bool:
+    def _check_liveness(status):
+        return status["requested"] == status["ready"] == status["up_to_date"]
+
     def _is_ready():
-        return all(
-            [client.get_api(name)["status"]["status_code"] == "status_live" for name in api_names]
-        )
+        return all([_check_liveness(client.get_api(name)["status"]) for name in api_names])
 
     return wait_for(_is_ready, timeout=timeout)
 
@@ -49,16 +50,7 @@ def apis_ready(client: cx.Client, api_names: List[str], timeout: Optional[int] =
 def api_updated(client: cx.Client, api_name: str, timeout: Optional[int] = None) -> bool:
     def _is_ready():
         status = client.get_api(api_name)["status"]
-        return status["replica_counts"]["requested"] == status["replica_counts"]["updated"]["ready"]
-
-    return wait_for(_is_ready, timeout=timeout)
-
-
-def api_requests(
-    client: cx.Client, api_name: str, target_requests: int, timeout: Optional[int] = None
-) -> bool:
-    def _is_ready():
-        return client.get_api(api_name)["metrics"]["network_stats"]["code_2xx"] == target_requests
+        return status["requested"] == status["ready"]
 
     return wait_for(_is_ready, timeout=timeout)
 
