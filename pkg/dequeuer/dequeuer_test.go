@@ -443,13 +443,8 @@ func TestSQSDequeuer_MultipleWorkers(t *testing.T) {
 	for i := 0; i < numMessages; i++ {
 		receivedMessages[i] = <-msgCh
 	}
-	dq.Shutdown()
 
-	// timeout test after 10 seconds
-	time.AfterFunc(10*time.Second, func() {
-		close(msgCh)
-		errCh <- errors.New("test timed out")
-	})
+	dq.Shutdown()
 
 	require.Len(t, receivedMessages, numMessages)
 
