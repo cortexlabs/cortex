@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/types/async"
 	"go.uber.org/zap"
@@ -31,33 +32,31 @@ import (
 
 // Service provides an interface to the async-gateway business logic
 type Service interface {
-	CreateWorkload(id string, payload io.Reader, headers http.Header) (string, error)
-	GetWorkload(id string) (GetWorkloadResponse, error)
+	CreateWorkload(id string, apiName string, queueURL string, payload io.Reader, headers http.Header) (string, error)
+	GetWorkload(id string, apiName string) (GetWorkloadResponse, error)
 }
 
 type service struct {
 	logger     *zap.SugaredLogger
-	queue      Queue
 	storage    Storage
 	clusterUID string
-	apiName    string
+	session    session.Session
 }
 
 // NewService creates a new async-gateway service
-func NewService(clusterUID, apiName string, queue Queue, storage Storage, logger *zap.SugaredLogger) Service {
+func NewService(clusterUID string, storage Storage, logger *zap.SugaredLogger, session session.Session) Service {
 	return &service{
 		logger:     logger,
-		queue:      queue,
 		storage:    storage,
 		clusterUID: clusterUID,
-		apiName:    apiName,
+		session:    session,
 	}
 }
 
 // CreateWorkload enqueues an async workload request and uploads the request payload to S3
-func (s *service) CreateWorkload(id string, payload io.Reader, headers http.Header) (string, error) {
-	prefix := async.StoragePath(s.clusterUID, s.apiName)
-	log := s.logger.With(zap.String("id", id))
+func (s *service) CreateWorkload(id string, apiName string, queueURL string, payload io.Reader, headers http.Header) (string, error) {
+	prefix := async.StoragePath(s.clusterUID, apiName)
+	log := s.logger.With(zap.String("id", id), zap.String("apiName", apiName))
 
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(headers); err != nil {
@@ -78,7 +77,8 @@ func (s *service) CreateWorkload(id string, payload io.Reader, headers http.Head
 	}
 
 	log.Debug("sending message to queue")
-	if err := s.queue.SendMessage(id, id); err != nil {
+	queue := NewSQS(queueURL, &s.session)
+	if err := queue.SendMessage(id, id); err != nil {
 		return "", errors.Wrap(err, "failed to send message to queue")
 	}
 
@@ -92,10 +92,10 @@ func (s *service) CreateWorkload(id string, payload io.Reader, headers http.Head
 }
 
 // GetWorkload retrieves the status and result, if available, of a given workload
-func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
-	log := s.logger.With(zap.String("id", id))
+func (s *service) GetWorkload(id string, apiName string) (GetWorkloadResponse, error) {
+	log := s.logger.With(zap.String("id", id), zap.String("apiName", apiName))
 
-	st, err := s.getStatus(id)
+	st, err := s.getStatus(id, apiName)
 	if err != nil {
 		return GetWorkloadResponse{}, err
 	}
@@ -108,7 +108,7 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 	}
 
 	// attempt to download user result
-	prefix := async.StoragePath(s.clusterUID, s.apiName)
+	prefix := async.StoragePath(s.clusterUID, apiName)
 	resultPath := async.ResultPath(prefix, id)
 	log.Debug("downloading user result", zap.String("path", resultPath))
 	resultBuf, err := s.storage.Download(resultPath)
@@ -135,8 +135,8 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 	}, nil
 }
 
-func (s *service) getStatus(id string) (async.Status, error) {
-	prefix := async.StoragePath(s.clusterUID, s.apiName)
+func (s *service) getStatus(id string, apiName string) (async.Status, error) {
+	prefix := async.StoragePath(s.clusterUID, apiName)
 	log := s.logger.With(zap.String("id", id))
 
 	// download workload status

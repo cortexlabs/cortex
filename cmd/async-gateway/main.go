@@ -20,13 +20,13 @@ import (
 	"flag"
 	"net/http"
 	"os"
+	"strings"
 
 	gateway "github.com/cortexlabs/cortex/pkg/async-gateway"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -37,7 +37,7 @@ const (
 	_defaultPort = "8080"
 )
 
-// usage: ./gateway -bucket <bucket> -region <region> -port <port> -queue queue <apiName>
+// usage: ./gateway -bucket <bucket> -region <region> -port <port>
 func main() {
 	log := logging.GetLogger()
 	defer func() {
@@ -45,30 +45,20 @@ func main() {
 	}()
 
 	var (
-		clusterConfigPath = flag.String("cluster-config", "", "cluster config path")
-		port              = flag.String("port", _defaultPort, "port on which the gateway server runs on")
-		queueURL          = flag.String("queue", "", "SQS queue URL")
+		bucket     = flag.String("bucket", "", "bucket")
+		clusterUID = flag.String("cluster-uid", "", "cluster uid")
+		port       = flag.String("port", _defaultPort, "port on which the gateway server runs on")
 	)
 	flag.Parse()
 
 	switch {
-	case *queueURL == "":
-		log.Fatal("missing required option: -queue")
-	case *clusterConfigPath == "":
-		log.Fatal("missing required option: -cluster-config")
+	case *bucket == "":
+		log.Fatal("missing required option: -bucket")
+	case *clusterUID == "":
+		log.Fatal("missing required option: -cluster-uid")
 	}
 
-	apiName := flag.Arg(0)
-	if apiName == "" {
-		log.Fatal("apiName argument was not provided")
-	}
-
-	clusterConfig, err := clusterconfig.NewForFile(*clusterConfigPath)
-	if err != nil {
-		exit(log, err)
-	}
-
-	awsClient, err := aws.NewForRegion(clusterConfig.Region)
+	awsClient, err := aws.New()
 	if err != nil {
 		exit(log, err)
 	}
@@ -78,8 +68,9 @@ func main() {
 		exit(log, err)
 	}
 
+	telemetryEnabled := strings.ToLower(os.Getenv("CORTEX_TELEMETRY_DISABLE")) != "true"
 	err = telemetry.Init(telemetry.Config{
-		Enabled: clusterConfig.Telemetry,
+		Enabled: telemetryEnabled,
 		UserID:  userID,
 		Properties: map[string]string{
 			"kind":       userconfig.AsyncAPIKind.String(),
@@ -95,10 +86,9 @@ func main() {
 	defer telemetry.Close()
 
 	sess := awsClient.Session()
-	s3Storage := gateway.NewS3(sess, clusterConfig.Bucket)
-	sqsQueue := gateway.NewSQS(*queueURL, sess)
+	s3Storage := gateway.NewS3(sess, *bucket)
 
-	svc := gateway.NewService(clusterConfig.ClusterUID, apiName, sqsQueue, s3Storage, log)
+	svc := gateway.NewService(*clusterUID, s3Storage, log, *sess)
 	ep := gateway.NewEndpoint(svc, log)
 
 	router := mux.NewRouter()

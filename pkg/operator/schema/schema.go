@@ -33,13 +33,12 @@ type InfoResponse struct {
 
 type WorkerNodeInfo struct {
 	NodeInfo
-	Name                    string             `json:"name" yaml:"name"`
-	NumReplicas             int                `json:"num_replicas" yaml:"num_replicas"`
-	NumAsyncGatewayReplicas int                `json:"num_async_gateway_replicas" yaml:"num_async_gateway_replicas"`
-	NumEnqueuerReplicas     int                `json:"num_enqueuer_replicas" yaml:"num_enqueuer_replicas"`
-	ComputeUserCapacity     userconfig.Compute `json:"compute_user_capacity" yaml:"compute_user_capacity"`   // the total resources available to the user on a node
-	ComputeAvailable        userconfig.Compute `json:"compute_available" yaml:"compute_unavailable"`         // unused resources on a node
-	ComputeUserRequested    userconfig.Compute `json:"compute_user_requested" yaml:"compute_user_requested"` // total resources requested by user on a node
+	Name                 string             `json:"name" yaml:"name"`
+	NumReplicas          int                `json:"num_replicas" yaml:"num_replicas"`
+	NumEnqueuerReplicas  int                `json:"num_enqueuer_replicas" yaml:"num_enqueuer_replicas"`
+	ComputeUserCapacity  userconfig.Compute `json:"compute_user_capacity" yaml:"compute_user_capacity"`   // the total resources available to the user on a node
+	ComputeAvailable     userconfig.Compute `json:"compute_available" yaml:"compute_unavailable"`         // unused resources on a node
+	ComputeUserRequested userconfig.Compute `json:"compute_user_requested" yaml:"compute_user_requested"` // total resources requested by user on a node
 }
 
 type NodeInfo struct {

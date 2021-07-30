@@ -75,6 +75,7 @@ var (
 	CortexTargetServiceHeader = "X-Cortex-Target-Service"
 	CortexProbeHeader         = "X-Cortex-Probe"
 	CortexOriginHeader        = "X-Cortex-Origin"
+	CortexQueueURLHeader      = "X-Cortex-Queue-URL"
 
 	WaitForReadyReplicasTimeout = 20 * time.Minute
 )

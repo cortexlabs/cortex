@@ -837,6 +837,7 @@ var _clusterHealthCmd = &cobra.Command{
 				{"prometheus", console.BoolColor(clusterHealth.Prometheus), clusterWarnings.Prometheus},
 				{"autoscaler", console.BoolColor(clusterHealth.Autoscaler), ""},
 				{"activator", console.BoolColor(clusterHealth.Activator), ""},
+				{"async gateway", console.BoolColor(clusterHealth.AsyncGateway), ""},
 				{"grafana", console.BoolColor(clusterHealth.Grafana), ""},
 				{"controller manager", console.BoolColor(clusterHealth.ControllerManager), ""},
 				{"apis gateway", console.BoolColor(clusterHealth.APIsGateway), ""},
@@ -1057,7 +1058,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	numAPIInstances := len(infoResponse.WorkerNodeInfos)
 
 	var totalReplicas int
-	var doesClusterHaveGPUs, doesClusterHaveInfs, doesClusterHaveAsyncGateways, doesClusterHaveEnqueuers bool
+	var doesClusterHaveGPUs, doesClusterHaveInfs, doesClusterHaveEnqueuers bool
 	for _, nodeInfo := range infoResponse.WorkerNodeInfos {
 		totalReplicas += nodeInfo.NumReplicas
 		if nodeInfo.ComputeUserCapacity.GPU > 0 {
@@ -1065,9 +1066,6 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		}
 		if nodeInfo.ComputeUserCapacity.Inf > 0 {
 			doesClusterHaveInfs = true
-		}
-		if nodeInfo.NumAsyncGatewayReplicas > 0 {
-			doesClusterHaveAsyncGateways = true
 		}
 		if nodeInfo.NumEnqueuerReplicas > 0 {
 			doesClusterHaveEnqueuers = true
@@ -1089,7 +1087,6 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		{Title: "instance type"},
 		{Title: "lifecycle"},
 		{Title: "replicas"},
-		{Title: "async gateway replicas", Hidden: !doesClusterHaveAsyncGateways},
 		{Title: "batch enqueuer replicas", Hidden: !doesClusterHaveEnqueuers},
 		{Title: "CPU (requested / total allocatable)"},
 		{Title: "memory (requested / total allocatable)"},
@@ -1108,7 +1105,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		memStr := nodeInfo.ComputeUserRequested.Mem.String() + " / " + nodeInfo.ComputeUserCapacity.Mem.String()
 		gpuStr := s.Int64(nodeInfo.ComputeUserRequested.GPU) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.GPU)
 		infStr := s.Int64(nodeInfo.ComputeUserRequested.Inf) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.Inf)
-		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, nodeInfo.NumAsyncGatewayReplicas, nodeInfo.NumEnqueuerReplicas, cpuStr, memStr, gpuStr, infStr})
+		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, nodeInfo.NumEnqueuerReplicas, cpuStr, memStr, gpuStr, infStr})
 	}
 
 	t := table.Table{
