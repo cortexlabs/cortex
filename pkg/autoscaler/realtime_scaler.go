@@ -24,7 +24,6 @@ import (
 	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	libstrings "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -120,44 +119,7 @@ func (s *RealtimeScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autosca
 		return nil, err
 	}
 
-	targetInFlight, ok := libstrings.ParseFloat64(api.Spec.Autoscaling.TargetInFlight)
-	if !ok {
-		return nil, errors.ErrorUnexpected("failed to parse target-in-flight requests from autoscaling spec")
-	}
-
-	maxDownscaleFactor, ok := libstrings.ParseFloat64(api.Spec.Autoscaling.MaxDownscaleFactor)
-	if !ok {
-		return nil, errors.ErrorUnexpected("failed to parse max downscale factor from autoscaling spec")
-	}
-
-	maxUpscaleFactor, ok := libstrings.ParseFloat64(api.Spec.Autoscaling.MaxUpscaleFactor)
-	if !ok {
-		return nil, errors.ErrorUnexpected("failed to parse max upscale factor from autoscaling spec")
-	}
-
-	downscaleTolerance, ok := libstrings.ParseFloat64(api.Spec.Autoscaling.DownscaleTolerance)
-	if !ok {
-		return nil, errors.ErrorUnexpected("failed to parse downscale tolerance from autoscaling spec")
-	}
-
-	upscaleTolerance, ok := libstrings.ParseFloat64(api.Spec.Autoscaling.UpscaleTolerance)
-	if !ok {
-		return nil, errors.ErrorUnexpected("failed to parse upscale tolerance from autoscaling spec")
-	}
-
-	return &userconfig.Autoscaling{
-		MinReplicas:                  api.Spec.Autoscaling.MinReplicas,
-		MaxReplicas:                  api.Spec.Autoscaling.MaxReplicas,
-		InitReplicas:                 api.Spec.Autoscaling.InitReplicas,
-		TargetInFlight:               &targetInFlight,
-		Window:                       api.Spec.Autoscaling.Window.Duration,
-		DownscaleStabilizationPeriod: api.Spec.Autoscaling.DownscaleStabilizationPeriod.Duration,
-		UpscaleStabilizationPeriod:   api.Spec.Autoscaling.UpscaleStabilizationPeriod.Duration,
-		MaxDownscaleFactor:           maxDownscaleFactor,
-		MaxUpscaleFactor:             maxUpscaleFactor,
-		DownscaleTolerance:           downscaleTolerance,
-		UpscaleTolerance:             upscaleTolerance,
-	}, nil
+	return generateAutoscalingFromServerlessRealtimeAPI(api)
 }
 
 func (s *RealtimeScaler) CurrentRequestedReplicas(apiName string) (int32, error) {
