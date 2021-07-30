@@ -117,12 +117,6 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Step 4: Create or Update Resources
-	deployOp, err := r.createOrUpdateDeployment(ctx, api)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	log.V(1).Info(fmt.Sprintf("deployment %s", deployOp))
-
 	svcOp, err := r.createOrUpdateService(ctx, api)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -134,6 +128,12 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 	log.V(1).Info(fmt.Sprintf("virtual service %s", vsOp))
+
+	deployOp, err := r.createOrUpdateDeployment(ctx, api)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	log.V(1).Info(fmt.Sprintf("deployment %s", deployOp))
 
 	return ctrl.Result{}, nil
 }

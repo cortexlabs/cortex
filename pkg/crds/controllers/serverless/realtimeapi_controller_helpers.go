@@ -246,7 +246,7 @@ func (r *RealtimeAPIReconciler) desiredService(api serverless.RealtimeAPI) kcore
 
 func (r *RealtimeAPIReconciler) desiredVirtualService(api serverless.RealtimeAPI) istioclientnetworking.VirtualService {
 	var activatorWeight int32
-	if api.Spec.Replicas == 0 {
+	if api.Spec.Replicas == 0 || api.Status.Ready == 0 {
 		activatorWeight = 100
 	}
 

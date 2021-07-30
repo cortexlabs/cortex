@@ -34,7 +34,6 @@ import (
 // RealtimeAPISpec defines the desired state of RealtimeAPI
 type RealtimeAPISpec struct {
 	// +kubebuilder:validation:Required
-	// +kubebuilder:default=1
 	// Number of desired replicas
 	Replicas int32 `json:"replicas"`
 
@@ -43,7 +42,6 @@ type RealtimeAPISpec struct {
 	Pod PodSpec `json:"pod"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default={"min_replicas": 1}
 	// Autoscaling configuration
 	Autoscaling AutoscalingSpec `json:"autoscaling"`
 
@@ -52,7 +50,6 @@ type RealtimeAPISpec struct {
 	NodeGroups []string `json:"node_groups"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default={"max_surge": "25%", "max_unavailable": "25%"}
 	// Deployment strategy to use when replacing existing replicas with new ones
 	UpdateStrategy UpdateStrategySpec `json:"update_strategy"`
 
@@ -63,17 +60,14 @@ type RealtimeAPISpec struct {
 
 type PodSpec struct {
 	// +kubebuilder:validation:Required
-	// +kubebuilder:default=8080
 	// Port to which requests will be sent to
 	Port int32 `json:"port"`
 
 	// +kubebuilder:validation:Required
-	// +kubebuilder:default=1
 	// Maximum number of requests that will be concurrently sent into the container
 	MaxConcurrency int32 `json:"max_concurrency"`
 
 	// +kubebuilder:validation:Required
-	// +kubebuilder:default=100
 	// Maximum number of requests per replica which will be queued
 	// (beyond max_concurrency) before requests are rejected with error code 503
 	MaxQueueLength int32 `json:"max_queue_length"`
@@ -143,11 +137,12 @@ type ComputeSpec struct {
 }
 
 type AutoscalingSpec struct {
-	// +kubebuilder:default=1
+	// Init number of replicas
+	InitReplicas int32 `json:"init_replicas,omitempty"`
+
 	// Minimum number of replicas
 	MinReplicas int32 `json:"min_replicas,omitempty"`
 
-	// +kubebuilder:default=100
 	// Maximum number of replicas
 	MaxReplicas int32 `json:"max_replicas,omitempty"`
 
@@ -157,52 +152,43 @@ type AutoscalingSpec struct {
 	TargetInFlight string `json:"target_in_flight,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="60s"
 	// Duration over which to average the API's in-flight requests per replica
 	Window kmeta.Duration `json:"window,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="5m"
 	// The API will not scale below the highest recommendation made during this period
 	DownscaleStabilizationPeriod kmeta.Duration `json:"downscale_stabilization_period,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="1m"
 	// The API will not scale above the lowest recommendation made during this period
 	UpscaleStabilizationPeriod kmeta.Duration `json:"upscale_stabilization_period,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="0.75"
 	// Maximum factor by which to scale down the API on a single scaling event
 	MaxDownscaleFactor string `json:"max_downscale_factor,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="1.5"
 	// Maximum factor by which to scale up the API on a single scaling event
 	MaxUpscaleFactor string `json:"max_upscale_factor,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="0.5"
 	// Any recommendation falling within this factor below the current number of replicas will not trigger a
 	// scale down event
 	DownscaleTolerance string `json:"downscale_tolerance,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="0.5"
 	// Any recommendation falling within this factor above the current number of replicas will not trigger a scale up event
 	UpscaleTolerance string `json:"upscale_tolerance,omitempty"`
 }
 
 type UpdateStrategySpec struct {
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="25%"
 	// Maximum number of replicas that can be scheduled above the desired number of replicas during an update;
 	// can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 	// (set to 0 to disable rolling updates)
 	MaxSurge intstr.IntOrString `json:"max_surge"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="25%"
 	// maximum number of replicas that can be unavailable during an update; can be an absolute number,
 	// e.g. 5, or a percentage of desired replicas, e.g. 10%
 	MaxUnavailable intstr.IntOrString `json:"max_unavailable"`

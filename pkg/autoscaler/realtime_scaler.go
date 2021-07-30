@@ -49,23 +49,24 @@ func NewRealtimeScaler(k8sClient *k8s.Client, promClient promv1.API, logger *zap
 func (s *RealtimeScaler) Scale(apiName string, request int32) error {
 	ctx := context.Background()
 
-	var api serverless.RealtimeAPI
-	if err := s.k8s.Get(ctx, ctrlclient.ObjectKey{
+	// we use the controller-runtime client to make use of the cache mechanism
+	var realtimeAPI serverless.RealtimeAPI
+	err := s.k8s.Get(ctx, ctrlclient.ObjectKey{
 		Namespace: s.k8s.Namespace,
-		Name:      apiName},
-		&api,
-	); err != nil {
-		return err
+		Name:      apiName,
+	}, &realtimeAPI)
+	if err != nil {
+		return errors.Wrap(err, "failed to get realtimeapi")
 	}
 
-	current := api.Spec.Replicas
+	current := realtimeAPI.Spec.Replicas
 	if current == request {
 		return nil
 	}
+	realtimeAPI.Spec.Replicas = request
 
-	api.Spec.Replicas = request
-	if err := s.k8s.Update(ctx, &api); err != nil {
-		return errors.Wrap(err, "failed to update deployment")
+	if err = s.k8s.Update(ctx, &realtimeAPI); err != nil {
+		return errors.Wrap(err, "failed to update realtimeapi")
 	}
 
 	return nil
@@ -147,7 +148,7 @@ func (s *RealtimeScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autosca
 	return &userconfig.Autoscaling{
 		MinReplicas:                  api.Spec.Autoscaling.MinReplicas,
 		MaxReplicas:                  api.Spec.Autoscaling.MaxReplicas,
-		InitReplicas:                 api.Spec.Autoscaling.MinReplicas, // FIXME: either add init replicas to the CRD autoscaling spec or remove init_replicas (?)
+		InitReplicas:                 api.Spec.Autoscaling.InitReplicas,
 		TargetInFlight:               &targetInFlight,
 		Window:                       api.Spec.Autoscaling.Window.Duration,
 		DownscaleStabilizationPeriod: api.Spec.Autoscaling.DownscaleStabilizationPeriod.Duration,
@@ -173,97 +174,3 @@ func (s *RealtimeScaler) CurrentRequestedReplicas(apiName string) (int32, error)
 
 	return api.Spec.Replicas, nil
 }
-
-//func (s *RealtimeScaler) routeToService(deployment *kapps.Deployment) error {
-//	ctx := context.Background()
-//	vs, err := s.k8s.GetVirtualService(deployment.Name)
-//	if err != nil {
-//		return errors.Wrap(err, "failed to get virtual service")
-//	}
-//
-//	if len(vs.Spec.Http) < 1 {
-//		return errors.ErrorUnexpected("virtual service does not have any http entries")
-//	}
-//
-//	if err = s.waitForReadyReplicas(ctx, deployment); err != nil {
-//		return errors.Wrap(err, "no ready replicas available")
-//	}
-//
-//	for i := range vs.Spec.Http {
-//		if len(vs.Spec.Http[i].Route) != 2 {
-//			return errors.ErrorUnexpected("virtual service does not have the required number of 2 http routes")
-//		}
-//
-//		vs.Spec.Http[i].Route[0].Weight = 100 // service traffic
-//		vs.Spec.Http[i].Route[1].Weight = 0   // activator traffic
-//	}
-//
-//	vsClient := s.k8s.IstioClientSet().NetworkingV1beta1().VirtualServices(s.k8s.Namespace)
-//	if _, err = vsClient.Update(ctx, vs, kmeta.UpdateOptions{}); err != nil {
-//		return errors.Wrap(err, "failed to update virtual service")
-//	}
-//
-//	return nil
-//}
-//
-//func (s *RealtimeScaler) routeToActivator(deployment *kapps.Deployment) error {
-//	ctx := context.Background()
-//	vs, err := s.k8s.GetVirtualService(deployment.Name)
-//	if err != nil {
-//		return errors.Wrap(err, "failed to get virtual service")
-//	}
-//
-//	if len(vs.Spec.Http) < 1 {
-//		return errors.ErrorUnexpected("virtual service does not have any http entries")
-//	}
-//
-//	for i := range vs.Spec.Http {
-//		if len(vs.Spec.Http[i].Route) != 2 {
-//			return errors.ErrorUnexpected("virtual service does not have the required number of 2 http routes")
-//		}
-//
-//		vs.Spec.Http[i].Route[0].Weight = 0   // service traffic
-//		vs.Spec.Http[i].Route[1].Weight = 100 // activator traffic
-//	}
-//
-//	vsClient := s.k8s.IstioClientSet().NetworkingV1beta1().VirtualServices(s.k8s.Namespace)
-//	if _, err = vsClient.Update(ctx, vs, kmeta.UpdateOptions{}); err != nil {
-//		return errors.Wrap(err, "failed to update virtual service")
-//	}
-//
-//	return nil
-//}
-//
-//func (s *RealtimeScaler) waitForReadyReplicas(ctx context.Context, deployment *kapps.Deployment) error {
-//	watcher, err := s.k8s.ClientSet().AppsV1().Deployments(s.k8s.Namespace).Watch(
-//		ctx,
-//		kmeta.ListOptions{
-//			FieldSelector: fmt.Sprintf("metadata.name=%s", deployment.Name),
-//			Watch:         true,
-//		},
-//	)
-//	if err != nil {
-//		return errors.Wrap(err, "could not create deployment watcher")
-//	}
-//
-//	defer watcher.Stop()
-//
-//	ctx, cancel := context.WithTimeout(ctx, consts.WaitForReadyReplicasTimeout)
-//	defer cancel()
-//
-//	for {
-//		select {
-//		case event := <-watcher.ResultChan():
-//			deploy, ok := event.Object.(*kapps.Deployment)
-//			if !ok {
-//				continue
-//			}
-//
-//			if deploy.Status.ReadyReplicas > 0 {
-//				return nil
-//			}
-//		case <-ctx.Done():
-//			return ctx.Err()
-//		}
-//	}
-//}

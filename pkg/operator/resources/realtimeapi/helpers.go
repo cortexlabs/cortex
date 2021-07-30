@@ -30,7 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -119,6 +119,7 @@ func k8sResourceFromAPIConfig(apiConfig userconfig.API, prevAPI *serverless.Real
 				Containers:     containers,
 			},
 			Autoscaling: v1alpha1.AutoscalingSpec{
+				InitReplicas:                 apiConfig.Autoscaling.InitReplicas,
 				MinReplicas:                  apiConfig.Autoscaling.MinReplicas,
 				MaxReplicas:                  apiConfig.Autoscaling.MaxReplicas,
 				TargetInFlight:               fmt.Sprintf("%f", *apiConfig.Autoscaling.TargetInFlight),
