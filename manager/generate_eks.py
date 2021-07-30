@@ -321,7 +321,7 @@ def generate_eks(
         "instanceType": "t3.medium",
         "minSize": 2,
         "maxSize": 25,
-        "desiredCapacity": 1,
+        "desiredCapacity": 2,
         "volumeType": "gp3",
         "volumeSize": 20,
         "volumeIOPS": 3000,
