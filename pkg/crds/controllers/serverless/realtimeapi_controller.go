@@ -86,6 +86,7 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Step 3: Get or create deployment and API ids
 	deploymentID, podID, specID, apiID := api.GetOrCreateAPIIDs()
+
 	idsOutdated := api.Annotations["cortex.dev/deployment-id"] != deploymentID ||
 		api.Annotations["cortex.dev/spec-id"] != specID ||
 		api.Annotations["cortex.dev/api-id"] != apiID

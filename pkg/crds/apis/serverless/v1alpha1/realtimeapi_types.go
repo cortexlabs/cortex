@@ -137,12 +137,15 @@ type ComputeSpec struct {
 }
 
 type AutoscalingSpec struct {
+	// +kubebuilder:validation:Optional
 	// Init number of replicas
 	InitReplicas int32 `json:"init_replicas,omitempty"`
 
+	// +kubebuilder:validation:Optional
 	// Minimum number of replicas
 	MinReplicas int32 `json:"min_replicas,omitempty"`
 
+	// +kubebuilder:validation:Optional
 	// Maximum number of replicas
 	MaxReplicas int32 `json:"max_replicas,omitempty"`
 
@@ -244,7 +247,6 @@ func (api RealtimeAPI) GetOrCreateAPIIDs() (deploymentID, podID, specID, apiID s
 
 	var buf bytes.Buffer
 
-	buf.WriteString(api.Name)
 	buf.WriteString(api.Name)
 	buf.WriteString(userconfig.RealtimeAPIKind.String())
 	buf.WriteString(s.Obj(api.Spec.Pod))

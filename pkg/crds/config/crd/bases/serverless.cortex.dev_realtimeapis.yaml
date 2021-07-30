@@ -50,38 +50,30 @@ spec:
             description: RealtimeAPISpec defines the desired state of RealtimeAPI
             properties:
               autoscaling:
-                default:
-                  min_replicas: 1
                 description: Autoscaling configuration
                 properties:
                   downscale_stabilization_period:
-                    default: 5m
                     description: The API will not scale below the highest recommendation
                       made during this period
                     type: string
                   downscale_tolerance:
-                    default: "0.5"
                     description: Any recommendation falling within this factor below
                       the current number of replicas will not trigger a scale down
                       event
                     type: string
                   max_downscale_factor:
-                    default: "0.75"
                     description: Maximum factor by which to scale down the API on
                       a single scaling event
                     type: string
                   max_replicas:
-                    default: 100
                     description: Maximum number of replicas
                     format: int32
                     type: integer
                   max_upscale_factor:
-                    default: "1.5"
                     description: Maximum factor by which to scale up the API on a
                       single scaling event
                     type: string
                   min_replicas:
-                    default: 1
                     description: Minimum number of replicas
                     format: int32
                     type: integer
@@ -91,17 +83,14 @@ spec:
                       which the autoscaler tries to maintain
                     type: string
                   upscale_stabilization_period:
-                    default: 1m
                     description: The API will not scale above the lowest recommendation
                       made during this period
                     type: string
                   upscale_tolerance:
-                    default: "0.5"
                     description: Any recommendation falling within this factor above
                       the current number of replicas will not trigger a scale up event
                     type: string
                   window:
-                    default: 60s
                     description: Duration over which to average the API's in-flight
                       requests per replica
                     type: string
@@ -539,20 +528,17 @@ spec:
                       type: object
                     type: array
                   max_concurrency:
-                    default: 1
                     description: Maximum number of requests that will be concurrently
                       sent into the container
                     format: int32
                     type: integer
                   max_queue_length:
-                    default: 100
                     description: Maximum number of requests per replica which will
                       be queued (beyond max_concurrency) before requests are rejected
                       with error code 503
                     format: int32
                     type: integer
                   port:
-                    default: 8080
                     description: Port to which requests will be sent to
                     format: int32
                     type: integer
@@ -563,14 +549,10 @@ spec:
                 - port
                 type: object
               replicas:
-                default: 1
                 description: Number of desired replicas
                 format: int32
                 type: integer
               update_strategy:
-                default:
-                  max_surge: 25%
-                  max_unavailable: 25%
                 description: Deployment strategy to use when replacing existing replicas
                   with new ones
                 properties:
@@ -578,7 +560,6 @@ spec:
                     anyOf:
                     - type: integer
                     - type: string
-                    default: 25%
                     description: 'Maximum number of replicas that can be scheduled
                       above the desired number of replicas during an update; can be
                       an absolute number, e.g. 5, or a percentage of desired replicas,
@@ -588,7 +569,6 @@ spec:
                     anyOf:
                     - type: integer
                     - type: string
-                    default: 25%
                     description: maximum number of replicas that can be unavailable
                       during an update; can be an absolute number, e.g. 5, or a percentage
                       of desired replicas, e.g. 10%

@@ -452,5 +452,7 @@ func (r *RealtimeAPIReconciler) generateAPIAnnotations(api serverless.RealtimeAP
 		userconfig.MaxUpscaleFactorAnnotationKey:             api.Spec.Autoscaling.MaxUpscaleFactor,
 		userconfig.DownscaleToleranceAnnotationKey:           api.Spec.Autoscaling.DownscaleTolerance,
 		userconfig.UpscaleToleranceAnnotationKey:             api.Spec.Autoscaling.UpscaleTolerance,
+		userconfig.MaxQueueLengthAnnotationKey:               s.Int32(api.Spec.Pod.MaxQueueLength),
+		userconfig.MaxConcurrencyAnnotationKey:               s.Int32(api.Spec.Pod.MaxConcurrency),
 	}
 }
