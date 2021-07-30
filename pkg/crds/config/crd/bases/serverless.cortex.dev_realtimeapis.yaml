@@ -61,6 +61,10 @@ spec:
                       the current number of replicas will not trigger a scale down
                       event
                     type: string
+                  init_replicas:
+                    description: Initial number of replicas
+                    format: int32
+                    type: integer
                   max_downscale_factor:
                     description: Maximum factor by which to scale down the API on
                       a single scaling event

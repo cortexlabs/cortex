@@ -138,7 +138,7 @@ type ComputeSpec struct {
 
 type AutoscalingSpec struct {
 	// +kubebuilder:validation:Optional
-	// Init number of replicas
+	// Initial number of replicas
 	InitReplicas int32 `json:"init_replicas,omitempty"`
 
 	// +kubebuilder:validation:Optional
