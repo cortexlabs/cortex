@@ -297,12 +297,9 @@ func TestAutoscaler_Awake(t *testing.T) {
 
 	ticker := time.NewTicker(250 * time.Millisecond)
 	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				err := autoscaleFn()
-				require.NoError(t, err)
-			}
+		for range ticker.C {
+			err := autoscaleFn()
+			require.NoError(t, err)
 		}
 	}()
 
@@ -372,12 +369,9 @@ func TestAutoscaler_MinReplicas(t *testing.T) {
 
 	ticker := time.NewTicker(250 * time.Millisecond)
 	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				err := autoscaleFn()
-				require.NoError(t, err)
-			}
+		for range ticker.C {
+			err := autoscaleFn()
+			require.NoError(t, err)
 		}
 	}()
 
@@ -444,12 +438,9 @@ func TestAutoscaler_MaxReplicas(t *testing.T) {
 
 	ticker := time.NewTicker(250 * time.Millisecond)
 	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				err := autoscaleFn()
-				require.NoError(t, err)
-			}
+		for range ticker.C {
+			err := autoscaleFn()
+			require.NoError(t, err)
 		}
 	}()
 
