@@ -164,6 +164,10 @@ func (api *API) ToK8sAnnotations() map[string]string {
 		annotations[MaxQueueLengthAnnotationKey] = s.Int64(api.Pod.MaxQueueLength)
 	}
 
+	if api.Pod != nil && api.Kind == AsyncAPIKind {
+		annotations[MaxConcurrencyAnnotationKey] = s.Int64(api.Pod.MaxConcurrency)
+	}
+
 	if api.Networking != nil {
 		annotations[EndpointAnnotationKey] = *api.Networking.Endpoint
 	}
@@ -337,6 +341,10 @@ func (pod *Pod) UserStr(kind Kind) string {
 	if kind == RealtimeAPIKind {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxConcurrencyKey, s.Int64(pod.MaxConcurrency)))
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxQueueLengthKey, s.Int64(pod.MaxQueueLength)))
+	}
+
+	if kind == AsyncAPIKind {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxConcurrencyKey, s.Int64(pod.MaxConcurrency)))
 	}
 
 	sb.WriteString(fmt.Sprintf("%s:\n", ContainersKey))

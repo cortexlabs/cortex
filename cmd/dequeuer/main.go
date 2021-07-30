@@ -50,6 +50,7 @@ func main() {
 		statsdAddress     string
 		apiKind           string
 		adminPort         int
+		workers           int
 	)
 	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
 	flag.StringVar(&clusterUID, "cluster-uid", "", "cluster unique identifier")
@@ -61,6 +62,7 @@ func main() {
 	flag.StringVar(&statsdAddress, "statsd-address", "", "address to push statsd metrics")
 	flag.IntVar(&userContainerPort, "user-port", 8080, "target port to which the dequeued messages will be sent to")
 	flag.IntVar(&adminPort, "admin-port", 0, "port where the admin server (for the probes) will be exposed")
+	flag.IntVar(&workers, "workers", 1, "number of workers pulling from the queue")
 
 	flag.Parse()
 
@@ -166,6 +168,7 @@ func main() {
 			Region:           clusterConfig.Region,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
+			Workers:          workers,
 		}
 
 	case userconfig.AsyncAPIKind.String():
@@ -186,6 +189,7 @@ func main() {
 			Region:           clusterConfig.Region,
 			QueueURL:         queueURL,
 			StopIfNoMessages: false,
+			Workers:          workers,
 		}
 
 		// report prometheus metrics for async api kinds
