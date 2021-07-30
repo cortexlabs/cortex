@@ -158,7 +158,7 @@ func (h *BatchMessageHandler) handleBatch(message *sqs.Message) error {
 		return nil
 	}
 
-	endTime := time.Now().Sub(startTime)
+	endTime := time.Since(startTime)
 
 	err = h.recordSuccess()
 	if err != nil {
@@ -175,7 +175,7 @@ func (h *BatchMessageHandler) handleBatch(message *sqs.Message) error {
 func (h *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 	shouldRunOnJobComplete := false
 	h.log.Info("received job_complete message")
-	for true {
+	for {
 		queueAttributes, err := GetQueueAttributes(h.aws, h.config.QueueURL)
 		if err != nil {
 			return err
@@ -223,8 +223,6 @@ func (h *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 
 		time.Sleep(h.jobCompleteMessageDelay)
 	}
-
-	return nil
 }
 
 func isOnJobCompleteMessage(message *sqs.Message) bool {

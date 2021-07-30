@@ -189,6 +189,19 @@ func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 		)
 	}
 
+	if kind == userconfig.AsyncAPIKind {
+		validation.StructValidation.StructFieldValidations = append(validation.StructValidation.StructFieldValidations,
+			&cr.StructFieldValidation{
+				StructField: "MaxConcurrency",
+				Int64Validation: &cr.Int64Validation{
+					Default:           consts.DefaultMaxConcurrency,
+					GreaterThan:       pointer.Int64(0),
+					LessThanOrEqualTo: pointer.Int64(100),
+				},
+			},
+		)
+	}
+
 	return validation
 }
 
@@ -818,7 +831,7 @@ func validateAutoscaling(api *userconfig.API) error {
 
 	if api.Kind == userconfig.AsyncAPIKind {
 		if autoscaling.TargetInFlight == nil {
-			autoscaling.TargetInFlight = pointer.Float64(1)
+			autoscaling.TargetInFlight = pointer.Float64(float64(pod.MaxConcurrency))
 		}
 	}
 
