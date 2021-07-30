@@ -831,7 +831,7 @@ func validateAutoscaling(api *userconfig.API) error {
 
 	if api.Kind == userconfig.AsyncAPIKind {
 		if autoscaling.TargetInFlight == nil {
-			autoscaling.TargetInFlight = pointer.Float64(1)
+			autoscaling.TargetInFlight = pointer.Float64(float64(pod.MaxConcurrency))
 		}
 	}
 

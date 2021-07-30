@@ -46,7 +46,7 @@
     min_replicas: <int>  # minimum number of replicas (default: 1; min value: 0)
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
-    target_in_flight: <float>  # desired number of in-flight requests per replica (including requests actively being processed as well as queued), which the autoscaler tries to maintain (default: 1)
+    target_in_flight: <float>  # desired number of in-flight requests per replica (including requests actively being processed as well as queued), which the autoscaler tries to maintain (default: <max_concurrency>)
     window: <duration>  # duration over which to average the API's in-flight requests per replica (default: 60s)
     downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m)
     upscale_stabilization_period: <duration>  # the API will not scale above the lowest recommendation made during this period (default: 1m)
