@@ -119,7 +119,7 @@ func (d *SQSDequeuer) Start(messageHandler MessageHandler, readinessProbeFunc fu
 		}
 	}
 
-	return <-errCh
+	return nil
 }
 
 func (d SQSDequeuer) worker(messageHandler MessageHandler, readinessProbeFunc func() bool, workerDone chan struct{}) error {
