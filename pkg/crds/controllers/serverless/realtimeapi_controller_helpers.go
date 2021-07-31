@@ -77,6 +77,22 @@ func (r *RealtimeAPIReconciler) updateStatus(ctx context.Context, api *serverles
 	return nil
 }
 
+func (r *RealtimeAPIReconciler) ensureDesiredReplicasRange(ctx context.Context, api *serverless.RealtimeAPI) bool {
+	replicasFieldChanged := false
+	desiredReplicas := api.Spec.Replicas
+
+	if desiredReplicas < api.Spec.Autoscaling.MinReplicas {
+		desiredReplicas = api.Spec.Autoscaling.MinReplicas
+		replicasFieldChanged = true
+	} else if desiredReplicas > api.Spec.Autoscaling.MaxReplicas {
+		desiredReplicas = api.Spec.Autoscaling.MaxReplicas
+		replicasFieldChanged = true
+	}
+
+	api.Spec.Replicas = desiredReplicas
+	return replicasFieldChanged
+}
+
 func (r *RealtimeAPIReconciler) createOrUpdateDeployment(ctx context.Context, api serverless.RealtimeAPI) (controllerutil.OperationResult, error) {
 	deployment := kapps.Deployment{
 		ObjectMeta: kmeta.ObjectMeta{

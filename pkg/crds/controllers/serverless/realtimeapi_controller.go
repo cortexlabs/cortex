@@ -85,6 +85,7 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Step 3: Get or create deployment and API ids
+	desiredReplicasChanged := r.ensureDesiredReplicasRange(ctx, &api)
 	deploymentID, podID, specID, apiID := api.GetOrCreateAPIIDs()
 
 	idsOutdated := api.Annotations["cortex.dev/deployment-id"] != deploymentID ||
@@ -111,7 +112,7 @@ func (r *RealtimeAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		api.Annotations["cortex.dev/api-id"] = apiID
 	}
 
-	if idsOutdated {
+	if idsOutdated || desiredReplicasChanged {
 		if err = r.Update(ctx, &api); err != nil {
 			return ctrl.Result{}, err
 		}
