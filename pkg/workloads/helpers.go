@@ -91,9 +91,15 @@ func GetReadinessProbesFromContainers(containers []*userconfig.Container) map[st
 	return probes
 }
 
-func HasReadinessProbes(containers []*userconfig.Container) bool {
+func HasReadinessProbesTargetingPort(containers []*userconfig.Container, targetPort int32) bool {
 	for _, container := range containers {
-		if container != nil && container.ReadinessProbe != nil {
+		if container == nil || container.ReadinessProbe == nil {
+			continue
+		}
+
+		probe := container.ReadinessProbe
+		if (probe.TCPSocket != nil && probe.TCPSocket.Port == targetPort) ||
+			probe.HTTPGet != nil && probe.HTTPGet.Port == targetPort {
 			return true
 		}
 	}

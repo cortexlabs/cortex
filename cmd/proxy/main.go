@@ -145,10 +145,7 @@ func main() {
 
 	adminHandler := http.NewServeMux()
 	adminHandler.Handle("/metrics", promStats)
-
-	if hasTCPProbe {
-		adminHandler.Handle("/healthz", readinessTCPHandler(userContainerPort, log))
-	}
+	adminHandler.Handle("/healthz", readinessTCPHandler(userContainerPort, hasTCPProbe, log))
 
 	servers := map[string]*http.Server{
 		"proxy": {
@@ -207,20 +204,22 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 	os.Exit(1)
 }
 
-func readinessTCPHandler(port int, logger *zap.SugaredLogger) http.HandlerFunc {
+func readinessTCPHandler(port int, enableTCPProbe bool, logger *zap.SugaredLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		address := net.JoinHostPort("localhost", fmt.Sprintf("%d", port))
+		if enableTCPProbe {
+			ctx := r.Context()
+			address := net.JoinHostPort("localhost", fmt.Sprintf("%d", port))
 
-		var d net.Dialer
-		conn, err := d.DialContext(ctx, "tcp", address)
-		if err != nil {
-			logger.Warn(errors.Wrap(err, "TCP probe to user-provided container port failed"))
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("unhealthy"))
-			return
+			var d net.Dialer
+			conn, err := d.DialContext(ctx, "tcp", address)
+			if err != nil {
+				logger.Warn(errors.Wrap(err, "TCP probe to user-provided container port failed"))
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte("unhealthy"))
+				return
+			}
+			_ = conn.Close()
 		}
-		_ = conn.Close()
 
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("healthy"))
