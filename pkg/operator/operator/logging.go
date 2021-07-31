@@ -101,40 +101,6 @@ func initializeLogger(key string, level userconfig.LogLevel, fields map[string]i
 	return sugarLogger, nil
 }
 
-func GetRealtimeAPILogger(apiName string, apiID string) (*zap.SugaredLogger, error) {
-	loggerCacheKey := fmt.Sprintf("apiName=%s,apiID=%s", apiName, apiID)
-	logger := getFromCacheOrNil(loggerCacheKey)
-
-	if logger != nil {
-		return logger, nil
-	}
-
-	apiSpec, err := DownloadAPISpec(apiName, apiID)
-	if err != nil {
-		return nil, err
-	}
-
-	return initializeLogger(loggerCacheKey, userconfig.InfoLogLevel, map[string]interface{}{
-		"apiName": apiSpec.Name,
-		"apiKind": apiSpec.Kind.String(),
-		"apiID":   apiSpec.ID,
-	})
-}
-
-func GetRealtimeAPILoggerFromSpec(apiSpec *spec.API) (*zap.SugaredLogger, error) {
-	loggerCacheKey := fmt.Sprintf("apiName=%s,apiID=%s", apiSpec.Name, apiSpec.ID)
-	logger := getFromCacheOrNil(loggerCacheKey)
-	if logger != nil {
-		return logger, nil
-	}
-
-	return initializeLogger(loggerCacheKey, userconfig.InfoLogLevel, map[string]interface{}{
-		"apiName": apiSpec.Name,
-		"apiKind": apiSpec.Kind.String(),
-		"apiID":   apiSpec.ID,
-	})
-}
-
 func GetJobLogger(jobKey spec.JobKey) (*zap.SugaredLogger, error) {
 	loggerCacheKey := fmt.Sprintf("apiName=%s,jobID=%s", jobKey.APIName, jobKey.ID)
 	logger := getFromCacheOrNil(loggerCacheKey)

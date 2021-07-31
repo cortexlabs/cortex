@@ -39,7 +39,6 @@ import (
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktypes "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -116,19 +115,35 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 
 func RefreshAPI(apiName string) (string, error) {
 	ctx := context.Background()
-	api := serverless.RealtimeAPI{
-		ObjectMeta: kmeta.ObjectMeta{
-			Namespace: consts.DefaultNamespace,
-			Name:      apiName,
-		},
+	var api serverless.RealtimeAPI
+	key := client.ObjectKey{Namespace: consts.DefaultNamespace, Name: apiName}
+
+	err := config.K8s.Get(ctx, key, &api)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get realtime api resource")
 	}
 
-	// slashes are encoded as ~1 in the json patch
-	patch := []byte(fmt.Sprintf(
-		"[{\"op\": \"replace\", \"path\": \"/metadata/annotations/cortex.dev~1deployment-id\", \"value\": \"%s\" }]",
-		generateDeploymentID()))
-	if err := config.K8s.Patch(ctx, &api, client.RawPatch(ktypes.JSONPatchType, patch)); err != nil {
-		return "", errors.Wrap(err, "failed to get realtime api resource")
+	apiSpec, err := operator.DownloadAPISpec(api.Name, api.Annotations["cortex.dev/api-id"])
+	if err != nil {
+		return "", err
+	}
+
+	// generate a new api-id
+	// the deployment-id and spec-id components of the api-id remain unchanged
+	api.Annotations["cortex.dev/api-id"] = ""
+	_, _, _, apiID := api.GetOrCreateAPIIDs()
+	api.Annotations["cortex.dev/api-id"] = apiID
+
+	err = config.K8s.Update(ctx, &api)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to update realtime api resource")
+	}
+
+	apiSpec.ID = apiID
+	apiSpec.Key = spec.Key(apiName, apiID, config.ClusterConfig.ClusterUID)
+
+	if err := config.AWS.UploadJSONToS3(apiSpec, config.ClusterConfig.Bucket, apiSpec.Key); err != nil {
+		return "", errors.Wrap(err, "failed to upload api spec")
 	}
 
 	apiResource := userconfig.Resource{

@@ -142,20 +142,22 @@ func k8sResourceFromAPIConfig(apiConfig userconfig.API, prevAPI *serverless.Real
 		},
 	}
 
+	if prevAPI != nil {
+		// we should keep the existing number of replicas instead of init_replicas
+		api.Spec.Replicas = prevAPI.Spec.Replicas
+		if prevDeployID := prevAPI.Annotations["cortex.dev/deployment-id"]; prevDeployID != "" {
+			api.Annotations = map[string]string{
+				"cortex.dev/deployment-id": prevDeployID,
+			}
+		}
+	}
+
 	deploymentID, podID, specID, apiID := api.GetOrCreateAPIIDs()
 	api.Annotations = map[string]string{
 		"cortex.dev/deployment-id": deploymentID,
 		"cortex.dev/spec-id":       specID,
 		"cortex.dev/pod-id":        podID,
 		"cortex.dev/api-id":        apiID,
-	}
-
-	if prevAPI != nil {
-		// we should keep the existing number of replicas instead of init_replicas
-		api.Spec.Replicas = prevAPI.Spec.Replicas
-		if prevDeployID := prevAPI.Annotations["cortex.dev/deployment-id"]; prevDeployID != "" {
-			api.Annotations["cortex.dev/deployment-id"] = prevDeployID
-		}
 	}
 
 	return api
@@ -178,6 +180,7 @@ func metadataFromRealtimeAPI(sv *v1alpha1.RealtimeAPI) (*spec.Metadata, error) {
 		},
 		APIID:        sv.Annotations["cortex.dev/api-id"],
 		DeploymentID: sv.Annotations["cortex.dev/deployment-id"],
+		PodID:        sv.Annotations["cortex.dev/pod-id"],
 		LastUpdated:  lastUpdated.Unix(),
 	}, nil
 }
@@ -247,5 +250,6 @@ func addPodToReplicaCounts(pod *v1.Pod, metadata *spec.Metadata, counts *status.
 }
 
 func isPodSpecLatest(pod *v1.Pod, metadata *spec.Metadata) bool {
-	return metadata.APIID == pod.Labels["apiID"]
+	return metadata.DeploymentID == pod.Labels["deploymentID"] &&
+		metadata.PodID == pod.Labels["podID"]
 }

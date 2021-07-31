@@ -266,8 +266,7 @@ func (api RealtimeAPI) GetOrCreateAPIIDs() (deploymentID, podID, specID, apiID s
 		api.Annotations["cortex.dev/spec-id"] != specID {
 		apiID = fmt.Sprintf("%s-%s-%s", spec.MonotonicallyDecreasingID(), deploymentID, specID)
 	}
-
-	return deploymentID, podID, specID, apiID
+	return
 }
 
 //+kubebuilder:object:root=true
