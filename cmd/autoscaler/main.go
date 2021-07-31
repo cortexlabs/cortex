@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/autoscaler"
+	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -107,6 +108,9 @@ func main() {
 	defer telemetry.Close()
 
 	scheme := runtime.NewScheme()
+	if err := serverless.AddToScheme(scheme); err != nil {
+		exit(log, err, "failed to add k8s serverless to scheme")
+	}
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
 		exit(log, err, "failed to add k8s client-go-scheme to scheme")
 	}
