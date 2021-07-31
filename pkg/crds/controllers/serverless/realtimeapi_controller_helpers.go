@@ -195,6 +195,7 @@ func (r *RealtimeAPIReconciler) desiredDeployment(api serverless.RealtimeAPI) ka
 			Labels: map[string]string{
 				"apiName":        api.Name,
 				"apiKind":        userconfig.RealtimeAPIKind.String(),
+				"apiID":          api.Annotations["cortex.dev/api-id"],
 				"deploymentID":   api.Annotations["cortex.dev/deployment-id"],
 				"cortex.dev/api": "true",
 			},
