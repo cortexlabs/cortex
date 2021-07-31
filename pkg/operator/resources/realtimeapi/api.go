@@ -128,11 +128,10 @@ func RefreshAPI(apiName string) (string, error) {
 		return "", err
 	}
 
-	// generate a new api-id
-	// the deployment-id and spec-id components of the api-id remain unchanged
-	api.Annotations["cortex.dev/api-id"] = ""
-	_, _, _, apiID := api.GetOrCreateAPIIDs()
-	api.Annotations["cortex.dev/api-id"] = apiID
+	// create new deployment
+	api.Annotations["cortex.dev/deployment-id"] = ""
+	deploymentID, _, _, apiID := api.GetOrCreateAPIIDs()
+	api.Annotations["cortex.dev/deployment-id"] = deploymentID
 
 	err = config.K8s.Update(ctx, &api)
 	if err != nil {
