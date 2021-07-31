@@ -66,9 +66,6 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 
 	labels := map[string]string{"apiName": apiName, "deploymentID": deploymentID, "podID": podID}
 
-	if deployedResource.Kind == userconfig.AsyncAPIKind {
-		labels["cortex.dev/async"] = "api"
-	}
 	operator.StreamLogsFromRandomPod(labels, socket)
 }
 

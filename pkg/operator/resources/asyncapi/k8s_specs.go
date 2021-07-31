@@ -23,130 +23,33 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/workloads"
+	istionetworking "istio.io/api/networking/v1beta1"
 	"istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
-	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 )
 
-var _terminationGracePeriodSeconds int64 = 60  // seconds
-var _gatewayHPATargetCPUUtilization int32 = 80 // percentage
-var _gatewayHPATargetMemUtilization int32 = 80 // percentage
+var _terminationGracePeriodSeconds int64 = 60 // seconds
 
-func gatewayDeploymentSpec(api spec.API, queueURL string) kapps.Deployment {
-	volumeMounts := []kcore.VolumeMount{
-		{
-			Name:      "cluster-config",
-			MountPath: "/configs/cluster",
-		},
-	}
-	volumes := []kcore.Volume{
-		{
-			Name: "cluster-config",
-			VolumeSource: kcore.VolumeSource{
-				ConfigMap: &kcore.ConfigMapVolumeSource{
-					LocalObjectReference: kcore.LocalObjectReference{
-						Name: "cluster-config",
+func apiVirtualServiceSpec(api spec.API, queueURL string) v1beta1.VirtualService {
+	return *k8s.VirtualService(&k8s.VirtualServiceSpec{
+		Name:     workloads.K8sName(api.Name),
+		Gateways: []string{"apis-gateway"},
+		Destinations: []k8s.Destination{
+			{
+				ServiceName: "async-gateway",
+				Weight:      100,
+				Port:        uint32(consts.ProxyPortInt32),
+				Headers: &istionetworking.Headers{
+					Request: &istionetworking.Headers_HeaderOperations{
+						Set: map[string]string{
+							consts.CortexAPINameHeader:  api.Name,
+							consts.CortexQueueURLHeader: queueURL,
+						},
 					},
 				},
 			},
 		},
-	}
-	container := workloads.AsyncGatewayContainer(api, queueURL, volumeMounts)
-
-	return *k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           getGatewayK8sName(api.Name),
-		Replicas:       1,
-		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
-		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
-		Selector: map[string]string{
-			"apiName":          api.Name,
-			"apiKind":          api.Kind.String(),
-			"cortex.dev/async": "gateway",
-		},
-		Labels: map[string]string{
-			"apiName":          api.Name,
-			"apiKind":          api.Kind.String(),
-			"cortex.dev/api":   "true",
-			"cortex.dev/async": "gateway",
-		},
-		PodSpec: k8s.PodSpec{
-			Labels: map[string]string{
-				// ID labels are omitted to avoid restarting the gateway on update/refresh
-				"apiName":          api.Name,
-				"apiKind":          api.Kind.String(),
-				"cortex.dev/api":   "true",
-				"cortex.dev/async": "gateway",
-			},
-			K8sPodSpec: kcore.PodSpec{
-				RestartPolicy:                 "Always",
-				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
-				Containers:                    []kcore.Container{container},
-				NodeSelector:                  workloads.NodeSelectors(),
-				Tolerations:                   workloads.GenerateResourceTolerations(),
-				Affinity:                      workloads.GenerateNodeAffinities(api.NodeGroups),
-				Volumes:                       volumes,
-				ServiceAccountName:            workloads.ServiceAccountName,
-			},
-		},
-	})
-}
-
-func gatewayHPASpec(api spec.API) (kautoscaling.HorizontalPodAutoscaler, error) {
-	var maxReplicas int32 = 1
-	if api.Autoscaling != nil {
-		maxReplicas = api.Autoscaling.MaxReplicas
-	}
-	hpa, err := k8s.HPA(&k8s.HPASpec{
-		DeploymentName:       getGatewayK8sName(api.Name),
-		MinReplicas:          1,
-		MaxReplicas:          maxReplicas,
-		TargetCPUUtilization: _gatewayHPATargetCPUUtilization,
-		TargetMemUtilization: _gatewayHPATargetMemUtilization,
-		Labels: map[string]string{
-			"apiName":          api.Name,
-			"apiKind":          api.Kind.String(),
-			"cortex.dev/api":   "true",
-			"cortex.dev/async": "hpa",
-		},
-	})
-
-	if err != nil {
-		return kautoscaling.HorizontalPodAutoscaler{}, err
-	}
-	return *hpa, nil
-}
-
-func gatewayServiceSpec(api spec.API) kcore.Service {
-	return *k8s.Service(&k8s.ServiceSpec{
-		Name:        workloads.K8sName(api.Name),
-		PortName:    "http",
-		Port:        consts.ProxyPortInt32,
-		TargetPort:  consts.ProxyPortInt32,
-		Annotations: api.ToK8sAnnotations(),
-		Labels: map[string]string{
-			"apiName":          api.Name,
-			"apiKind":          api.Kind.String(),
-			"cortex.dev/api":   "true",
-			"cortex.dev/async": "gateway",
-		},
-		Selector: map[string]string{
-			"apiName":          api.Name,
-			"apiKind":          api.Kind.String(),
-			"cortex.dev/async": "gateway",
-		},
-	})
-}
-
-func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
-	return *k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:     workloads.K8sName(api.Name),
-		Gateways: []string{"apis-gateway"},
-		Destinations: []k8s.Destination{{
-			ServiceName: workloads.K8sName(api.Name),
-			Weight:      100,
-			Port:        uint32(consts.ProxyPortInt32),
-		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String("/"),
 		Annotations: api.ToK8sAnnotations(),
@@ -159,7 +62,6 @@ func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 			"deploymentID":          api.DeploymentID,
 			"podID":                 api.PodID,
 			"cortex.dev/api":        "true",
-			"cortex.dev/async":      "gateway",
 		},
 	})
 }
@@ -207,13 +109,11 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 			"deploymentID":          api.DeploymentID,
 			"podID":                 api.PodID,
 			"cortex.dev/api":        "true",
-			"cortex.dev/async":      "api",
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
-			"apiName":          api.Name,
-			"apiKind":          api.Kind.String(),
-			"cortex.dev/async": "api",
+			"apiName": api.Name,
+			"apiKind": api.Kind.String(),
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
@@ -224,7 +124,6 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 				"deploymentID":          api.DeploymentID,
 				"podID":                 api.PodID,
 				"cortex.dev/api":        "true",
-				"cortex.dev/async":      "api",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy:                 "Always",

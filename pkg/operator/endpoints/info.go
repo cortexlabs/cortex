@@ -119,7 +119,6 @@ func getWorkerNodeInfos() ([]schema.WorkerNodeInfo, int, error) {
 		}
 
 		_, isAPIPod := pod.Labels["apiName"]
-		asyncPodType, isAsyncPod := pod.Labels["cortex.dev/async"]
 		batchPodType, isBatchPod := pod.Labels["cortex.dev/batch"]
 
 		if pod.Spec.NodeName == "" && isAPIPod {
@@ -133,9 +132,7 @@ func getWorkerNodeInfos() ([]schema.WorkerNodeInfo, int, error) {
 		}
 
 		if isAPIPod {
-			if isAsyncPod && asyncPodType == "gateway" {
-				node.NumAsyncGatewayReplicas++
-			} else if isBatchPod && batchPodType == "enqueuer" {
+			if isBatchPod && batchPodType == "enqueuer" {
 				node.NumEnqueuerReplicas++
 			} else {
 				node.NumReplicas++
