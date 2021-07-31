@@ -363,6 +363,10 @@ func (r *RealtimeAPIReconciler) userContainers(api serverless.RealtimeAPI) ([]kc
 
 		containerEnvVars := workloads.BaseEnvVars
 		containerEnvVars = append(containerEnvVars, workloads.ClientConfigEnvVar())
+		containerEnvVars = append(containerEnvVars, kcore.EnvVar{
+			Name:  "CORTEX_PORT",
+			Value: s.Int32(api.Spec.Pod.Port),
+		})
 		containerEnvVars = append(containerEnvVars, container.Env...)
 
 		containers[i] = kcore.Container{
