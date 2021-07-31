@@ -252,7 +252,6 @@ spec:
   selector:
     matchLabels:
       apiKind: AsyncAPI
-      cortex.dev/async: api
     matchExpressions:
       - { key: prometheus-ignore, operator: DoesNotExist }
   namespaceSelector:

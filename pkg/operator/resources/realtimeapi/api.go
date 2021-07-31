@@ -184,7 +184,7 @@ func GetAllAPIs() ([]schema.APIResponse, error) {
 
 		metadata, err := metadataFromRealtimeAPI(&api)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("api %s", api.Name))
 		}
 
 		mappedRealtimeAPIs[api.Name] = schema.APIResponse{
@@ -224,8 +224,6 @@ func GetAPIByName(apiName string) ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	dashboardURL := pointer.String(getDashboardURL(api.Name))
-
 	return []schema.APIResponse{
 		{
 			Spec:     apiSpec,
@@ -236,7 +234,7 @@ func GetAPIByName(apiName string) ([]schema.APIResponse, error) {
 				UpToDate:  api.Status.UpToDate,
 			},
 			Endpoint:     &api.Status.Endpoint,
-			DashboardURL: dashboardURL,
+			DashboardURL: pointer.String(getDashboardURL(apiName)),
 		},
 	}, nil
 }

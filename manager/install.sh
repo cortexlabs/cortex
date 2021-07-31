@@ -52,6 +52,10 @@ function cluster_up() {
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 | kubectl apply -f - >/dev/null
   echo "✓"
 
+  echo -n "￮ configuring async gateway "
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/async-gateway.yaml.j2 | kubectl apply -f - >/dev/null
+  echo "✓"
+
   echo -n "￮ configuring logging "
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 | kubectl apply -f - >/dev/null
   envsubst < manifests/event-exporter.yaml | kubectl apply -f - >/dev/null
@@ -287,7 +291,7 @@ function restart_controller_manager() {
 }
 
 function resize_nodegroups() {
-  if [ -z "$CORTEX_NODEGROUP_NAMES_TO_SCALE" ]; then
+  if [ -z "$CORTEX_NODEGROUP_NAMES_TO_UPDATE" ]; then
     return
   fi
 
@@ -295,7 +299,7 @@ function resize_nodegroups() {
   eks_ng_len=$(cat nodegroups.json | jq -r length)
   cfg_ng_len=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .node_groups | yq -r length)
 
-  for cfg_ng_name in $CORTEX_NODEGROUP_NAMES_TO_SCALE; do
+  for cfg_ng_name in $CORTEX_NODEGROUP_NAMES_TO_UPDATE; do
     has_ng="false"
     for eks_idx in $(seq 0 $(($eks_ng_len-1))); do
       stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)

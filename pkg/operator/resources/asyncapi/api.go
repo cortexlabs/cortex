@@ -37,7 +37,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
-	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 )
 
@@ -51,16 +50,9 @@ var (
 )
 
 type resources struct {
-	apiDeployment         *kapps.Deployment
-	apiConfigMap          *kcore.ConfigMap
-	gatewayDeployment     *kapps.Deployment
-	gatewayService        *kcore.Service
-	gatewayHPA            *kautoscaling.HorizontalPodAutoscaler
-	gatewayVirtualService *istioclientnetworking.VirtualService
-}
-
-func getGatewayK8sName(apiName string) string {
-	return "gateway-" + apiName
+	apiDeployment     *kapps.Deployment
+	apiConfigMap      *kcore.ConfigMap
+	apiVirtualService *istioclientnetworking.VirtualService
 }
 
 func generateDeploymentID() string {
@@ -75,19 +67,19 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 
 	initialDeploymentTime := time.Now().UnixNano()
 	deploymentID := generateDeploymentID()
-	if prevK8sResources.gatewayVirtualService != nil && prevK8sResources.gatewayVirtualService.Labels["initialDeploymentTime"] != "" {
+	if prevK8sResources.apiVirtualService != nil && prevK8sResources.apiVirtualService.Labels["initialDeploymentTime"] != "" {
 		var err error
-		initialDeploymentTime, err = k8s.ParseInt64Label(prevK8sResources.gatewayVirtualService, "initialDeploymentTime")
+		initialDeploymentTime, err = k8s.ParseInt64Label(prevK8sResources.apiVirtualService, "initialDeploymentTime")
 		if err != nil {
 			return nil, "", err
 		}
-		deploymentID = prevK8sResources.gatewayVirtualService.Labels["deploymentID"]
+		deploymentID = prevK8sResources.apiVirtualService.Labels["deploymentID"]
 	}
 
 	api := spec.GetAPISpec(&apiConfig, initialDeploymentTime, deploymentID, config.ClusterConfig.ClusterUID)
 
 	// resource creation
-	if prevK8sResources.gatewayVirtualService == nil {
+	if prevK8sResources.apiVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -119,7 +111,7 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 	}
 
 	// resource update
-	if prevK8sResources.gatewayVirtualService.Labels["specID"] != api.SpecID {
+	if prevK8sResources.apiVirtualService.Labels["specID"] != api.SpecID {
 		isUpdating, err := isAPIUpdating(prevK8sResources.apiDeployment)
 		if err != nil {
 			return nil, "", err
@@ -132,7 +124,7 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		initialDeploymentTime, err := k8s.ParseInt64Label(prevK8sResources.gatewayVirtualService, "initialDeploymentTime")
+		initialDeploymentTime, err := k8s.ParseInt64Label(prevK8sResources.apiVirtualService, "initialDeploymentTime")
 		if err != nil {
 			return nil, "", err
 		}
@@ -164,7 +156,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	prevK8sResources, err := getK8sResources(apiName)
 	if err != nil {
 		return "", err
-	} else if prevK8sResources.gatewayVirtualService == nil || prevK8sResources.apiDeployment == nil {
+	} else if prevK8sResources.apiVirtualService == nil || prevK8sResources.apiDeployment == nil {
 		return "", errors.ErrorUnexpected("unable to find deployment", apiName)
 	}
 
@@ -177,7 +169,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", ErrorAPIUpdating(apiName)
 	}
 
-	apiID, err := k8s.GetLabel(prevK8sResources.gatewayVirtualService, "apiID")
+	apiID, err := k8s.GetLabel(prevK8sResources.apiVirtualService, "apiID")
 	if err != nil {
 		return "", err
 	}
@@ -187,7 +179,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	initialDeploymentTime, err := k8s.ParseInt64Label(prevK8sResources.gatewayVirtualService, "initialDeploymentTime")
+	initialDeploymentTime, err := k8s.ParseInt64Label(prevK8sResources.apiVirtualService, "initialDeploymentTime")
 	if err != nil {
 		return "", err
 	}
@@ -257,9 +249,6 @@ func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
 	apiNames := make([]string, 0)
 
 	for i := range deployments {
-		if deployments[i].Labels["cortex.dev/async"] != "api" {
-			continue
-		}
 		apiName := deployments[i].Labels["apiName"]
 		apiNames = append(apiNames, apiName)
 
@@ -282,31 +271,13 @@ func GetAllAPIs(deployments []kapps.Deployment) ([]schema.APIResponse, error) {
 }
 
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
-	var apiDeployment *kapps.Deployment
-	var gatewayDeployment *kapps.Deployment
-
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			apiDeployment, err = config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
-			return err
-		},
-		func() error {
-			var err error
-			gatewayDeployment, err = config.K8s.GetDeployment(getGatewayK8sName(deployedResource.Name))
-			return err
-		},
-	)
+	apiDeployment, err := config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
 	if err != nil {
 		return nil, err
 	}
 
 	if apiDeployment == nil {
 		return nil, errors.ErrorUnexpected("unable to find api deployment", deployedResource.Name)
-	}
-
-	if gatewayDeployment == nil {
-		return nil, errors.ErrorUnexpected("unable to find gateway deployment", deployedResource.Name)
 	}
 
 	apiStatus := status.FromDeployment(apiDeployment)
@@ -340,30 +311,14 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 func DescribeAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
 	var apiDeployment *kapps.Deployment
-	var gatewayDeployment *kapps.Deployment
 
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			apiDeployment, err = config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
-			return err
-		},
-		func() error {
-			var err error
-			gatewayDeployment, err = config.K8s.GetDeployment(getGatewayK8sName(deployedResource.Name))
-			return err
-		},
-	)
+	apiDeployment, err := config.K8s.GetDeployment(workloads.K8sName(deployedResource.Name))
 	if err != nil {
 		return nil, err
 	}
 
 	if apiDeployment == nil {
 		return nil, errors.ErrorUnexpected("unable to find api deployment", deployedResource.Name)
-	}
-
-	if gatewayDeployment == nil {
-		return nil, errors.ErrorUnexpected("unable to find gateway deployment", deployedResource.Name)
 	}
 
 	apiStatus := status.FromDeployment(apiDeployment)
@@ -373,8 +328,7 @@ func DescribeAPIByName(deployedResource *operator.DeployedResource) ([]schema.AP
 	}
 
 	apiPods, err := config.K8s.ListPodsByLabels(map[string]string{
-		"apiName":          apiDeployment.Labels["apiName"],
-		"cortex.dev/async": "api",
+		"apiName": apiDeployment.Labels["apiName"],
 	})
 	if err != nil {
 		return nil, err
@@ -424,12 +378,8 @@ func UpdateAPIMetricsCron(apiDeployment *kapps.Deployment) error {
 func getK8sResources(apiName string) (resources, error) {
 	var deployment *kapps.Deployment
 	var apiConfigMap *kcore.ConfigMap
-	var gatewayDeployment *kapps.Deployment
-	var gatewayService *kcore.Service
-	var gatewayHPA *kautoscaling.HorizontalPodAutoscaler
-	var gatewayVirtualService *istioclientnetworking.VirtualService
+	var apiVirtualService *istioclientnetworking.VirtualService
 
-	gatewayK8sName := getGatewayK8sName(apiName)
 	apiK8sName := workloads.K8sName(apiName)
 
 	err := parallel.RunFirstErr(
@@ -445,33 +395,15 @@ func getK8sResources(apiName string) (resources, error) {
 		},
 		func() error {
 			var err error
-			gatewayDeployment, err = config.K8s.GetDeployment(gatewayK8sName)
-			return err
-		},
-		func() error {
-			var err error
-			gatewayService, err = config.K8s.GetService(apiK8sName)
-			return err
-		},
-		func() error {
-			var err error
-			gatewayHPA, err = config.K8s.GetHPA(gatewayK8sName)
-			return err
-		},
-		func() error {
-			var err error
-			gatewayVirtualService, err = config.K8s.GetVirtualService(apiK8sName)
+			apiVirtualService, err = config.K8s.GetVirtualService(apiK8sName)
 			return err
 		},
 	)
 
 	return resources{
-		apiDeployment:         deployment,
-		apiConfigMap:          apiConfigMap,
-		gatewayDeployment:     gatewayDeployment,
-		gatewayService:        gatewayService,
-		gatewayHPA:            gatewayHPA,
-		gatewayVirtualService: gatewayVirtualService,
+		apiDeployment:     deployment,
+		apiConfigMap:      apiConfigMap,
+		apiVirtualService: apiVirtualService,
 	}, err
 }
 
@@ -481,13 +413,8 @@ func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string
 	if err != nil {
 		return err
 	}
-	gatewayDeployment := gatewayDeploymentSpec(api, queueURL)
-	gatewayHPA, err := gatewayHPASpec(api)
-	if err != nil {
-		return err
-	}
-	gatewayService := gatewayServiceSpec(api)
-	gatewayVirtualService := gatewayVirtualServiceSpec(api)
+
+	apiVirtualService := apiVirtualServiceSpec(api, queueURL)
 
 	return parallel.RunFirstErr(
 		func() error {
@@ -506,16 +433,7 @@ func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string
 			return nil
 		},
 		func() error {
-			return applyK8sDeployment(prevK8sResources.gatewayDeployment, &gatewayDeployment)
-		},
-		func() error {
-			return applyK8sHPA(prevK8sResources.gatewayHPA, &gatewayHPA)
-		},
-		func() error {
-			return applyK8sService(prevK8sResources.gatewayService, &gatewayService)
-		},
-		func() error {
-			return applyK8sVirtualService(prevK8sResources.gatewayVirtualService, &gatewayVirtualService)
+			return applyK8sVirtualService(prevK8sResources.apiVirtualService, &apiVirtualService)
 		},
 	)
 }
@@ -557,29 +475,6 @@ func applyK8sDeployment(prevDeployment *kapps.Deployment, newDeployment *kapps.D
 	return nil
 }
 
-func applyK8sHPA(prevHPA *kautoscaling.HorizontalPodAutoscaler, newHPA *kautoscaling.HorizontalPodAutoscaler) error {
-	var err error
-	if prevHPA == nil {
-		_, err = config.K8s.CreateHPA(newHPA)
-	} else {
-		_, err = config.K8s.UpdateHPA(newHPA)
-	}
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func applyK8sService(prevService *kcore.Service, newService *kcore.Service) error {
-	if prevService == nil {
-		_, err := config.K8s.CreateService(newService)
-		return err
-	}
-
-	_, err := config.K8s.UpdateService(prevService, newService)
-	return err
-}
-
 func applyK8sVirtualService(prevVirtualService *istioclientnetworking.VirtualService, newVirtualService *istioclientnetworking.VirtualService) error {
 	if prevVirtualService == nil {
 		_, err := config.K8s.CreateVirtualService(newVirtualService)
@@ -597,7 +492,6 @@ func deleteBucketResources(apiName string) error {
 
 func deleteK8sResources(apiName string) error {
 	apiK8sName := workloads.K8sName(apiName)
-	gatewayK8sName := getGatewayK8sName(apiName)
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -611,18 +505,6 @@ func deleteK8sResources(apiName string) error {
 		},
 		func() error {
 			_, err := config.K8s.DeleteConfigMap(apiK8sName)
-			return err
-		},
-		func() error {
-			_, err := config.K8s.DeleteDeployment(gatewayK8sName)
-			return err
-		},
-		func() error {
-			_, err := config.K8s.DeleteHPA(gatewayK8sName)
-			return err
-		},
-		func() error {
-			_, err := config.K8s.DeleteService(apiK8sName)
 			return err
 		},
 		func() error {
@@ -656,7 +538,6 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 }
 
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	// Note: the gateway deployment/pods don't have "podID" or "deploymentID" labels, which is ok since it is always up-to-date
 	return deployment.Spec.Template.Labels["podID"] == pod.Labels["podID"] &&
 		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
 }
