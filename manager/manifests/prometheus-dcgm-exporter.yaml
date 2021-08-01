@@ -126,7 +126,12 @@ spec:
           FB_FREE\
           )"
       - action: labelkeep
-        regex: (__name__|exported_pod)
+        regex: (__name__|pod)
+      relabelings:
+      - sourceLabels:
+        - exported_pod
+        action: replace
+        targetLabel: pod
   namespaceSelector:
     any: true
   selector:

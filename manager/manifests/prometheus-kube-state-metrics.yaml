@@ -266,7 +266,16 @@ spec:
           job_status_active\
           )"
       - action: labelkeep
-        regex: (__name__|exported_pod|exported_container|job_name|resource|deployment)
+        regex: (__name__|pod|job_name|resource|deployment)
+      - action: drop
+        regex: (node-exporter|aws-node|fluent-bit|kube-proxy)-(.+)
+        sourceLabels:
+        - pod
+      relabelings:
+      - sourceLabels:
+        - exported_pod
+        action: replace
+        targetLabel: pod
   namespaceSelector:
     any: true
   selector:

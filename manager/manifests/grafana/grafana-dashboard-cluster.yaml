@@ -213,7 +213,7 @@ data:
           "targets": [
             {
               "exemplar": true,
-              "expr": "sum(kube_pod_info{exported_pod!~\"(aws-node|grafana|autoscaler|cluster-autoscaler|coredns|event-exporter|fluent-bit|kube-proxy|k8s-neuron-scheduler|kube-state-metrics|metrics-server|node-exporter|operator|operator-controller-manager|prometheus-operator|prometheus-prometheus|prometheus-statsd-exporter|dcgm-exporter|ingressgateway|istiod|activator|enqueuer|gateway|nvidia-device-plugin-daemonset|neuron-device-plugin-daemonset)-(.+)\"})",
+              "expr": "sum(kube_pod_info{pod!~\"(aws-node|grafana|autoscaler|cluster-autoscaler|coredns|event-exporter|fluent-bit|kube-proxy|k8s-neuron-scheduler|kube-state-metrics|metrics-server|node-exporter|operator|operator-controller-manager|prometheus-operator|prometheus-prometheus|prometheus-statsd-exporter|dcgm-exporter|ingressgateway|istiod|activator|enqueuer|gateway|nvidia-device-plugin-daemonset|neuron-device-plugin-daemonset)-(.+)\"})",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 2,
