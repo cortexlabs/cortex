@@ -353,9 +353,7 @@ func CostBreakdown() error {
 			maxPods := k8s.HowManyPodsFitOnNode(pod.Spec, node)
 			costPerPod := instancePrice / float64(maxPods)
 
-			if apiName, ok := pod.Labels["apiName"]; !ok {
-				continue
-			} else {
+			if apiName, ok := pod.Labels["apiName"]; ok {
 				if _, okMap := totalWorkloadComputeCostsByAPIName[apiName]; okMap {
 					totalWorkloadComputeCostsByAPIName[apiName] += costPerPod
 				} else {
@@ -363,9 +361,7 @@ func CostBreakdown() error {
 				}
 			}
 
-			if apiKind, ok := pod.Labels["apiKind"]; !ok {
-				continue
-			} else {
+			if apiKind, ok := pod.Labels["apiKind"]; ok {
 				if _, okMap := totalWorkloadComputeCostsByAPIName[apiKind]; okMap {
 					totalWorkloadComputeCostsByAPIKind[apiKind] += costPerPod
 				} else {
