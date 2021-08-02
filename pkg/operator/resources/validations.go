@@ -115,7 +115,8 @@ KubeProxy 100
 AWS cni 10
 Reserved (150 + 150) see generate_eks.py for details
 */
-var _cortexCPUReserve = kresource.MustParse("560m")
+var CortexCPUPodReserved = kresource.MustParse("260m")
+var CortexCPUK8sReserved = kresource.MustParse("300m")
 
 /*
 Memory Reservations:
@@ -124,7 +125,8 @@ FluentBit 150
 NodeExporter 200 (it has two containers)
 Reserved (300 + 300 + 200) see generate_eks.py for details
 */
-var _cortexMemReserve = kresource.MustParse("1150Mi")
+var CortexMemPodReserved = kresource.MustParse("350Mi")
+var CortexMemK8sReserved = kresource.MustParse("800Mi")
 
 var _nvidiaDevicePluginCPUReserve = kresource.MustParse("100m")
 var _nvidiaDevicePluginMemReserve = kresource.MustParse("100Mi")
@@ -174,10 +176,12 @@ func getNodeCapacity(instanceType string, maxMemMap map[string]kresource.Quantit
 	instanceMetadata := aws.InstanceMetadatas[config.ClusterConfig.Region][instanceType]
 
 	cpu := instanceMetadata.CPU.DeepCopy()
-	cpu.Sub(_cortexCPUReserve)
+	cpu.Sub(CortexCPUPodReserved)
+	cpu.Sub(CortexCPUK8sReserved)
 
 	mem := maxMemMap[instanceType].DeepCopy()
-	mem.Sub(_cortexMemReserve)
+	mem.Sub(CortexMemPodReserved)
+	mem.Sub(CortexMemK8sReserved)
 
 	gpu := instanceMetadata.GPU
 	if gpu > 0 {

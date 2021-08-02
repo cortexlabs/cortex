@@ -17,9 +17,11 @@ limitations under the License.
 package operator
 
 import (
+	"context"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -28,11 +30,19 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	v1 "k8s.io/api/core/v1"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var operatorLogger = logging.GetLogger()
 var previousListOfEvictedPods = strset.New()
+
+var CortexCPUPodReserved = kresource.MustParse("260m")
+var CortexMemPodReserved = kresource.MustParse("350Mi")
 
 func DeleteEvictedPods() error {
 	failedPods, err := config.K8s.ListPods(&kmeta.ListOptions{
@@ -90,10 +100,14 @@ func ClusterTelemetry() error {
 }
 
 func clusterTelemetryProperties() (map[string]interface{}, error) {
-	nodes, err := config.K8s.ListNodes(nil)
+	ctx := context.Background()
+	var nodeList v1.NodeList
+
+	err := config.K8s.List(ctx, &nodeList)
 	if err != nil {
 		return nil, err
 	}
+	nodes := nodeList.Items
 
 	instanceInfos := make(map[string]*instanceInfo)
 
@@ -128,12 +142,21 @@ func clusterTelemetryProperties() (map[string]interface{}, error) {
 			continue
 		}
 
+		spotPriceCache := make(map[string]float64) // instance type -> spot price
+
 		onDemandPrice := aws.InstanceMetadatas[config.ClusterConfig.Region][instanceType].Price
 		price := onDemandPrice
 		if isSpot {
-			spotPrice, err := config.AWS.SpotInstancePrice(instanceType)
-			if err == nil && spotPrice != 0 {
+			if spotPrice, ok := spotPriceCache[instanceType]; ok {
 				price = spotPrice
+			} else {
+				spotPrice, err := config.AWS.SpotInstancePrice(instanceType)
+				if err == nil && spotPrice != 0 {
+					price = spotPrice
+					spotPriceCache[instanceType] = spotPrice
+				} else {
+					spotPriceCache[instanceType] = price // the request failed, so no need to try again in the future
+				}
 			}
 		}
 
@@ -162,7 +185,7 @@ func clusterTelemetryProperties() (map[string]interface{}, error) {
 		totalInstancePriceIfOnDemand += info.OnDemandPrice
 	}
 
-	fixedPrice := clusterFixedPrice()
+	fixedPrice := clusterFixedPrice(true)
 
 	return map[string]interface{}{
 		"region":                      config.ClusterConfig.Region,
@@ -197,13 +220,16 @@ func getEBSPriceForNodeGroupInstance(ngs []*clusterconfig.NodeGroup, ngName stri
 			break
 		}
 	}
+
+	if ebsPrice == 0 && (ngName == "cx-operator" || ngName == "cx-prometheus") {
+		return aws.EBSMetadatas[config.ClusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
+	}
+
 	return ebsPrice
 }
 
-func clusterFixedPrice() float64 {
+func clusterFixedPrice(includeBaseCortexSystemNodes bool) float64 {
 	eksPrice := aws.EKSPrices[config.ClusterConfig.Region]
-	operatorInstancePrice := aws.InstanceMetadatas[config.ClusterConfig.Region]["t3.medium"].Price
-	operatorEBSPrice := aws.EBSMetadatas[config.ClusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
 	metricsEBSPrice := aws.EBSMetadatas[config.ClusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
 	nlbPrice := aws.NLBMetadatas[config.ClusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[config.ClusterConfig.Region].Price
@@ -215,7 +241,151 @@ func clusterFixedPrice() float64 {
 		natTotalPrice = natUnitPrice * float64(len(config.ClusterConfig.AvailabilityZones))
 	}
 
-	return eksPrice + 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	fixedCosts := eksPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	if !includeBaseCortexSystemNodes {
+		return fixedCosts
+	}
+
+	// not entirely correct as there could be more than just one operator instance
+	operatorInstancePrice := aws.InstanceMetadatas[config.ClusterConfig.Region]["t3.medium"].Price
+	operatorEBSPrice := aws.EBSMetadatas[config.ClusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
+
+	prometheusInstancePrice := aws.InstanceMetadatas[config.ClusterConfig.Region][config.ClusterConfig.PrometheusInstanceType].Price
+	prometheusEBSPrice := aws.EBSMetadatas[config.ClusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
+
+	return fixedCosts + 2*(operatorInstancePrice+operatorEBSPrice) + prometheusInstancePrice + prometheusEBSPrice
+}
+
+var clusterGauge = promauto.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "cortex_cluster_cost",
+		Help: "The cost breakdown of the cortex cluster",
+	}, []string{"api", "kind", "component"},
+)
+
+func CostBreakdown() error {
+	ctx := context.Background()
+
+	var nodeList v1.NodeList
+	err := config.K8s.List(ctx, &nodeList)
+	if err != nil {
+		return err
+	}
+	nodes := nodeList.Items
+
+	var podList v1.PodList
+	err = config.K8s.List(ctx, &podList,
+		client.InNamespace(consts.DefaultNamespace),
+		client.HasLabels{"apiName", "apiKind"},
+	)
+	if err != nil {
+		return err
+	}
+	pods := podList.Items
+
+	spotPriceCache := make(map[string]float64) // instance type -> spot price
+
+	// Total cluster costs = cortex system + cortex workloads + wasted compute
+	var totalClusterCosts float64 = clusterFixedPrice(false)
+	// Total cortex system costs = operator + prometheus node groups + workload daemonsets
+	var totalCortexSystemCosts float64 = clusterFixedPrice(false)
+	// Total workload compute costs by api name
+	totalWorkloadComputeCostsByAPIName := make(map[string]float64, 0)
+	// Total workload compute costs by kind
+	totalWorkloadComputeCostsByAPIKind := make(map[string]float64, 0)
+
+	for _, node := range nodes {
+		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		if instanceType == "" {
+			continue
+		}
+
+		workloadNode := false
+		if node.Labels["workload"] == "true" {
+			workloadNode = true
+		}
+
+		isSpot := false
+		if strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot") {
+			isSpot = true
+		}
+
+		var instanceComputePrice float64
+		if isSpot {
+			if spotPrice, ok := spotPriceCache[instanceType]; ok {
+				instanceComputePrice = spotPrice
+			} else {
+				spotPrice, err := config.AWS.SpotInstancePrice(instanceType)
+				if err == nil && spotPrice != 0 {
+					instanceComputePrice = spotPrice
+					spotPriceCache[instanceType] = spotPrice
+				} else {
+					instanceComputePrice = aws.InstanceMetadatas[config.ClusterConfig.Region][instanceType].Price // the request failed, so no need to try again in the future
+					spotPriceCache[instanceType] = instanceComputePrice
+				}
+			}
+		} else {
+			instanceComputePrice = aws.InstanceMetadatas[config.ClusterConfig.Region][instanceType].Price
+		}
+
+		ngName := node.Labels["alpha.eksctl.io/nodegroup-name"]
+		instanceEBSPrice := getEBSPriceForNodeGroupInstance(config.ClusterConfig.NodeGroups, ngName)
+
+		instancePrice := instanceComputePrice + instanceEBSPrice
+
+		totalClusterCosts += instancePrice
+		if !workloadNode {
+			totalCortexSystemCosts += instancePrice
+			continue
+		}
+
+		nodeCPUQty := node.Status.Allocatable[v1.ResourceCPU]
+		nodeMemoryQty := node.Status.Allocatable[v1.ResourceMemory]
+		nodeCPUQty.Sub(CortexCPUPodReserved)
+		nodeMemoryQty.Sub(CortexMemPodReserved)
+		node.Status.Allocatable[v1.ResourceCPU] = nodeCPUQty
+		node.Status.Allocatable[v1.ResourceMemory] = nodeMemoryQty
+
+		for _, pod := range pods {
+			if pod.Spec.NodeName != node.Name {
+				continue
+			}
+			maxPods := k8s.HowManyPodsFitOnNode(pod.Spec, node)
+			costPerPod := instancePrice / float64(maxPods)
+
+			if apiName, ok := pod.Labels["apiName"]; !ok {
+				continue
+			} else {
+				if _, okMap := totalWorkloadComputeCostsByAPIName[apiName]; okMap {
+					totalWorkloadComputeCostsByAPIName[apiName] += costPerPod
+				} else {
+					totalWorkloadComputeCostsByAPIName[apiName] = costPerPod
+				}
+			}
+
+			if apiKind, ok := pod.Labels["apiKind"]; !ok {
+				continue
+			} else {
+				if _, okMap := totalWorkloadComputeCostsByAPIName[apiKind]; okMap {
+					totalWorkloadComputeCostsByAPIKind[apiKind] += costPerPod
+				} else {
+					totalWorkloadComputeCostsByAPIKind[apiKind] = costPerPod
+				}
+			}
+		}
+	}
+
+	clusterGauge.WithLabelValues("false", "false", "cluster-costs").Set(totalClusterCosts)
+	clusterGauge.WithLabelValues("false", "false", "cortex-system-costs").Set(totalCortexSystemCosts)
+
+	for apiName := range totalWorkloadComputeCostsByAPIName {
+		clusterGauge.WithLabelValues("true", "false", apiName).Set(totalWorkloadComputeCostsByAPIName[apiName])
+	}
+	for apiKind := range totalWorkloadComputeCostsByAPIKind {
+		clusterGauge.WithLabelValues("false", "true", apiKind).Set(totalWorkloadComputeCostsByAPIKind[apiKind])
+	}
+
+	return nil
 }
 
 func ErrorHandler(cronName string) func(error) {

@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kcore "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
@@ -60,4 +61,37 @@ func (c *Client) ListNodesWithLabelKeys(labelKeys ...string) ([]kcore.Node, erro
 		LabelSelector: LabelExistsSelector(labelKeys...),
 	}
 	return c.ListNodes(opts)
+}
+
+func HowManyPodsFitOnNode(podSpec kcore.PodSpec, node kcore.Node) int64 {
+	cpuQty := node.Status.Allocatable[v1.ResourceCPU]
+	memoryQty := node.Status.Allocatable[v1.ResourceMemory]
+	gpuQty := node.Status.Allocatable["nvidia.com/gpu"]
+	infQty := node.Status.Allocatable["aws.amazon.com/neuron"]
+	podsQty := node.Status.Allocatable[v1.ResourcePods]
+
+	cpuInt64 := cpuQty.MilliValue()
+	memoryInt64 := memoryQty.MilliValue()
+	gpuInt64 := gpuQty.Value()
+	infInt64 := infQty.Value()
+	maxPodsInt64 := podsQty.Value()
+
+	cpuPodQty, memoryPodQty, podGPUInt64, podInfInt64 := TotalPodCompute(&podSpec)
+	podCPUInt64 := cpuPodQty.MilliValue()
+	podMemoryInt64 := memoryPodQty.MilliValue()
+
+	if float64(cpuInt64)/float64(podCPUInt64) < float64(maxPodsInt64) {
+		maxPodsInt64 = int64(float64(cpuInt64) / float64(podCPUInt64))
+	}
+	if float64(memoryInt64)/float64(podMemoryInt64) < float64(maxPodsInt64) {
+		maxPodsInt64 = int64(float64(memoryInt64) / float64(podMemoryInt64))
+	}
+	if float64(gpuInt64)/float64(podGPUInt64) < float64(maxPodsInt64) {
+		maxPodsInt64 = int64(float64(gpuInt64) / float64(podGPUInt64))
+	}
+	if float64(infInt64)/float64(podInfInt64) < float64(maxPodsInt64) {
+		maxPodsInt64 = int64(float64(infInt64) / float64(podInfInt64))
+	}
+
+	return maxPodsInt64
 }

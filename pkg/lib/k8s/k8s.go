@@ -17,11 +17,14 @@ limitations under the License.
 package k8s
 
 import (
+	"context"
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	istionetworkingclient "istio.io/client-go/pkg/clientset/versioned/typed/networking/v1beta1"
@@ -39,7 +42,8 @@ import (
 	kclientrest "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclienthomedir "k8s.io/client-go/util/homedir"
-	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcluster "sigs.k8s.io/controller-runtime/pkg/cluster"
 )
 
 var (
@@ -51,7 +55,7 @@ var (
 )
 
 type Client struct {
-	ctrl.Client
+	ctrlclient.Client
 	RestConfig           *kclientrest.Config
 	clientSet            *kclientset.Clientset
 	istioClientSet       *istioclient.Clientset
@@ -97,7 +101,27 @@ func New(namespace string, inCluster bool, restConfig *kclientrest.Config, schem
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
 
-	client.Client, err = ctrl.New(client.RestConfig, ctrl.Options{Scheme: scheme})
+	syncPeriod := 5 * time.Minute
+	cluster, err := ctrlcluster.New(client.RestConfig, func(opts *ctrlcluster.Options) {
+		opts = &ctrlcluster.Options{
+			Scheme:     scheme,
+			SyncPeriod: &syncPeriod,
+			Namespace:  namespace,
+		}
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "kubeconfig")
+	}
+	go func() {
+		// return an error channel instead
+		// and pass the context to the parent function
+		err := cluster.Start(context.Background())
+		if err != nil {
+			exit.Error(err, "cluster controller runtime")
+		}
+	}()
+	client.Client = cluster.GetClient()
+
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
