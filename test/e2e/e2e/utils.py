@@ -41,11 +41,11 @@ def apis_ready(
     client: cx.Client,
     api_names: List[str],
     timeout: Optional[int] = None,
-    greater_or_equal_than: int = 1,
+    greater_or_equal_to: int = 1,
 ) -> bool:
     def _check_liveness(status):
         return (
-            status["requested"] >= greater_or_equal_than
+            status["requested"] >= greater_or_equal_to
             and status["requested"] == status["ready"] == status["up_to_date"]
         )
 

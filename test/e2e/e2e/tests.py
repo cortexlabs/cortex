@@ -908,7 +908,7 @@ def test_realtime_scale_to_zero(
 
     try:
         assert apis_ready(
-            client=client, api_names=[api_name], timeout=timeout, greater_or_equal_than=0
+            client=client, api_names=[api_name], timeout=timeout, greater_or_equal_to=0
         ), f"apis {api_name} not ready"
 
         api_info = client.get_api(api_name)
