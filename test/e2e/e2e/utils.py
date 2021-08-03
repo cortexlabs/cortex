@@ -39,7 +39,10 @@ def wait_for(fn: Callable[[], bool], timeout=None) -> bool:
 
 def apis_ready(client: cx.Client, api_names: List[str], timeout: Optional[int] = None) -> bool:
     def _check_liveness(status):
-        return status["requested"] == status["ready"] == status["up_to_date"]
+        return (
+            status["requested"] > 0
+            and status["requested"] == status["ready"] == status["up_to_date"]
+        )
 
     def _is_ready():
         return all([_check_liveness(client.get_api(name)["status"]) for name in api_names])
