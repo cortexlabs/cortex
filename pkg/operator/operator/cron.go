@@ -381,6 +381,7 @@ func CostBreakdown() error {
 		apiKindRenormalizationRatio = totalWorkloadComputeCosts / totalWorkloadComputeCostsFromAPIKind
 	}
 
+	clusterGauge.Reset()
 	clusterGauge.WithLabelValues("false", "false", "cluster-costs").Set(totalClusterCosts)
 	clusterGauge.WithLabelValues("false", "false", "cortex-system-costs").Set(totalCortexSystemCosts)
 	for apiName := range totalWorkloadComputeCostsByAPIName {

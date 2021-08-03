@@ -406,7 +406,7 @@ data:
             },
             "overrides": []
           },
-          "fill": 10,
+          "fill": 0,
           "fillGradient": 0,
           "gridPos": {
             "h": 8,
@@ -426,8 +426,8 @@ data:
             "values": false
           },
           "lines": true,
-          "linewidth": 1,
-          "nullPointMode": "connected",
+          "linewidth": 2,
+          "nullPointMode": "null as zero",
           "options": {
             "alertThreshold": true
           },
@@ -438,7 +438,7 @@ data:
           "renderer": "flot",
           "seriesOverrides": [],
           "spaceLength": 10,
-          "stack": true,
+          "stack": false,
           "steppedLine": false,
           "targets": [
             {
@@ -508,7 +508,7 @@ data:
             },
             "overrides": []
           },
-          "fill": 10,
+          "fill": 2,
           "fillGradient": 0,
           "gridPos": {
             "h": 8,
@@ -528,8 +528,8 @@ data:
             "values": false
           },
           "lines": true,
-          "linewidth": 1,
-          "nullPointMode": "connected",
+          "linewidth": 2,
+          "nullPointMode": "null as zero",
           "options": {
             "alertThreshold": true
           },
@@ -540,7 +540,7 @@ data:
           "renderer": "flot",
           "seriesOverrides": [],
           "spaceLength": 10,
-          "stack": true,
+          "stack": false,
           "steppedLine": false,
           "targets": [
             {
@@ -559,7 +559,7 @@ data:
           "tooltip": {
             "shared": true,
             "sort": 2,
-            "value_type": "individual"
+            "value_type": "cumulative"
           },
           "type": "graph",
           "xaxis": {
@@ -1625,5 +1625,5 @@ data:
       "timezone": "",
       "title": "Cluster",
       "uid": "cluster",
-      "version": 3
+      "version": 4
     }
