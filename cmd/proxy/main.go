@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -48,6 +49,7 @@ func main() {
 		userContainerPort int
 		maxConcurrency    int
 		maxQueueLength    int
+		hasTCPProbe       bool
 		clusterConfigPath string
 	)
 
@@ -56,6 +58,7 @@ func main() {
 	flag.IntVar(&userContainerPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
 	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency allowed for user container")
 	flag.IntVar(&maxQueueLength, "max-queue-length", 0, "max request queue length for user container")
+	flag.BoolVar(&hasTCPProbe, "has-tcp-probe", false, "tcp probe to the user-provided container port")
 	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
 	flag.Parse()
 
@@ -142,7 +145,7 @@ func main() {
 
 	adminHandler := http.NewServeMux()
 	adminHandler.Handle("/metrics", promStats)
-	adminHandler.Handle("/healthz", readinessTCPHandler(userContainerPort, log))
+	adminHandler.Handle("/healthz", readinessTCPHandler(userContainerPort, hasTCPProbe, log))
 
 	servers := map[string]*http.Server{
 		"proxy": {
@@ -201,19 +204,22 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 	os.Exit(1)
 }
 
-func readinessTCPHandler(port int, logger *zap.SugaredLogger) http.HandlerFunc {
+func readinessTCPHandler(port int, enableTCPProbe bool, logger *zap.SugaredLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		timeout := time.Duration(1) * time.Second
-		address := net.JoinHostPort("localhost", strconv.FormatInt(int64(port), 10))
+		if enableTCPProbe {
+			ctx := r.Context()
+			address := net.JoinHostPort("localhost", fmt.Sprintf("%d", port))
 
-		conn, err := net.DialTimeout("tcp", address, timeout)
-		if err != nil {
-			logger.Warn(errors.Wrap(err, "TCP probe to user-provided container port failed"))
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("unhealthy"))
-			return
+			var d net.Dialer
+			conn, err := d.DialContext(ctx, "tcp", address)
+			if err != nil {
+				logger.Warn(errors.Wrap(err, "TCP probe to user-provided container port failed"))
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte("unhealthy"))
+				return
+			}
+			_ = conn.Close()
 		}
-		_ = conn.Close()
 
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("healthy"))

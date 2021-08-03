@@ -172,6 +172,8 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 }
 
 func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
+	proxyHasTCPProbe := !HasReadinessProbesTargetingPort(api.Pod.Containers, *api.Pod.Port)
+
 	return kcore.Container{
 		Name:            ProxyContainerName,
 		Image:           config.ClusterConfig.ImageProxy,
@@ -189,6 +191,8 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 			s.Int32(int32(api.Pod.MaxConcurrency)),
 			"--max-queue-length",
 			s.Int32(int32(api.Pod.MaxQueueLength)),
+			"--has-tcp-probe",
+			s.Bool(proxyHasTCPProbe),
 		},
 		Ports: []kcore.ContainerPort{
 			{Name: consts.AdminPortName, ContainerPort: consts.AdminPortInt32},
@@ -213,10 +217,10 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 				},
 			},
 			InitialDelaySeconds: 1,
-			TimeoutSeconds:      1,
+			TimeoutSeconds:      3,
 			PeriodSeconds:       10,
 			SuccessThreshold:    1,
-			FailureThreshold:    1,
+			FailureThreshold:    3,
 		},
 	}, ClusterConfigVolume()
 }
