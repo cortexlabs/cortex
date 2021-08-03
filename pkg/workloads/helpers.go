@@ -83,13 +83,27 @@ func GetReadinessProbesFromContainers(containers []*userconfig.Container) map[st
 		if container == nil {
 			continue
 		}
-
 		if container.ReadinessProbe != nil {
 			probes[container.Name] = *GetProbeSpec(container.ReadinessProbe)
 		}
 	}
 
 	return probes
+}
+
+func HasReadinessProbesTargetingPort(containers []*userconfig.Container, targetPort int32) bool {
+	for _, container := range containers {
+		if container == nil || container.ReadinessProbe == nil {
+			continue
+		}
+
+		probe := container.ReadinessProbe
+		if (probe.TCPSocket != nil && probe.TCPSocket.Port == targetPort) ||
+			probe.HTTPGet != nil && probe.HTTPGet.Port == targetPort {
+			return true
+		}
+	}
+	return false
 }
 
 func BaseClusterEnvVars() []kcore.EnvFromSource {
