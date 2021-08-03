@@ -39,12 +39,26 @@ data:
       "links": [],
       "panels": [
         {
+          "collapsed": false,
+          "datasource": null,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 0
+          },
+          "id": 23,
+          "panels": [],
+          "title": "Size",
+          "type": "row"
+        },
+        {
           "datasource": null,
           "gridPos": {
             "h": 2,
             "w": 24,
             "x": 0,
-            "y": 0
+            "y": 1
           },
           "id": 16,
           "options": {
@@ -56,20 +70,6 @@ data:
           "timeShift": null,
           "transparent": true,
           "type": "text"
-        },
-        {
-          "collapsed": false,
-          "datasource": null,
-          "gridPos": {
-            "h": 1,
-            "w": 24,
-            "x": 0,
-            "y": 2
-          },
-          "id": 18,
-          "panels": [],
-          "title": "Size",
-          "type": "row"
         },
         {
           "aliasColors": {},
@@ -213,7 +213,7 @@ data:
           "targets": [
             {
               "exemplar": true,
-              "expr": "sum(kube_pod_info{exported_pod!~\"(aws-node|grafana|autoscaler|cluster-autoscaler|coredns|event-exporter|fluent-bit|kube-proxy|k8s-neuron-scheduler|kube-state-metrics|metrics-server|node-exporter|operator|operator-controller-manager|prometheus-operator|prometheus-prometheus|prometheus-statsd-exporter|dcgm-exporter|ingressgateway|istiod|activator|enqueuer|gateway|nvidia-device-plugin-daemonset|neuron-device-plugin-daemonset)-(.+)\"})",
+              "expr": "sum(kube_pod_info{exported_pod!~\"(aws-node|grafana|autoscaler|cluster-autoscaler|coredns|event-exporter|fluent-bit|kube-proxy|k8s-neuron-scheduler|kube-state-metrics|metrics-server|node-exporter|operator|operator-controller-manager|prometheus-operator|prometheus-prometheus|prometheus-statsd-exporter|dcgm-exporter|ingressgateway|istiod|activator|enqueuer|gateway|nvidia-device-plugin-daemonset|neuron-device-plugin-daemonset|async-gateway)-(.+)\"})",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 2,
@@ -276,6 +276,333 @@ data:
             "x": 0,
             "y": 10
           },
+          "id": 18,
+          "panels": [],
+          "title": "Costs",
+          "type": "row"
+        },
+        {
+          "aliasColors": {
+            "Cortex System Costs": "light-red"
+          },
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "description": "Total cluster costs include the EKS control plane, the system/user nodes, and the EBS volumes.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD"
+            },
+            "overrides": []
+          },
+          "fill": 0,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 11
+          },
+          "hiddenSeries": false,
+          "id": 25,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "8.0.4",
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "cortex_cluster_cost{api=\"false\", kind=\"false\", component=\"cluster-costs\"}",
+              "interval": "",
+              "legendFormat": "Total Cluster Costs",
+              "refId": "Total Cluster Costs"
+            },
+            {
+              "exemplar": true,
+              "expr": "cortex_cluster_cost{api=\"false\", kind=\"false\", component=\"cortex-system-costs\"}",
+              "hide": false,
+              "instant": false,
+              "interval": "",
+              "legendFormat": "Cortex System Costs",
+              "refId": "Cortex System Costs"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Cluster Costs / hr",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:165",
+              "format": "currencyUSD",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": "0",
+              "show": true
+            },
+            {
+              "$$hashKey": "object:166",
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {
+            "Cortex System Costs": "light-red"
+          },
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "description": "Compute formula: for each \"API kind\" pod, see how many replicas of a given pod can fit on a specific node and then take the total cost of running the node (which can be on-demand or spot) and divide it by the maximum number of pods that can be run. Then, add the cost of each pod to an accumulator for each \"API kind\". Finally, once the cost for every \"API kind\" is computed, renormalize the sum of all API kinds to the actual cost of the cluster (minus the cortex system costs) so that all API kinds summed will give you the cost of the cluster.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD"
+            },
+            "overrides": []
+          },
+          "fill": 0,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 19
+          },
+          "hiddenSeries": false,
+          "id": 28,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "nullPointMode": "null as zero",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "8.0.4",
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "sum by (component) (cortex_cluster_cost{api=\"false\", kind=\"true\"})",
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "{{component}}",
+              "refId": "Workload Costs by API Kind"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Workload Costs by API Kind / hr",
+          "tooltip": {
+            "shared": true,
+            "sort": 2,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:165",
+              "format": "currencyUSD",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": "0",
+              "show": true
+            },
+            {
+              "$$hashKey": "object:166",
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {
+            "Cortex System Costs": "light-red"
+          },
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "description": "Compute formula: for each \"API name\" pod, see how many replicas of a given pod can fit on a specific node and then take the total cost of running the node (which can be on-demand or spot) and divide it by the maximum number of pods that can be run. Then, add the cost of each pod to an accumulator for each \"API name\". Finally, once the cost for every \"API name\" is computed, renormalize the sum of all API names to the actual cost of the cluster (minus the cortex system costs) so that all API names summed will give you the cost of the cluster.",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD"
+            },
+            "overrides": []
+          },
+          "fill": 2,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 19
+          },
+          "hiddenSeries": false,
+          "id": 26,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "nullPointMode": "null as zero",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "8.0.4",
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "sum by (component) (cortex_cluster_cost{api=\"true\", kind=\"false\"})",
+              "interval": "",
+              "legendFormat": "{{component}}",
+              "refId": "Workload Costs by API Name"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Workload Costs by API Name / hr",
+          "tooltip": {
+            "shared": true,
+            "sort": 2,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:165",
+              "format": "currencyUSD",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": "0",
+              "show": true
+            },
+            {
+              "$$hashKey": "object:166",
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "collapsed": false,
+          "datasource": null,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 27
+          },
           "id": 10,
           "panels": [],
           "repeat": null,
@@ -294,7 +621,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 11
+            "y": 28
           },
           "hiddenSeries": false,
           "id": 1,
@@ -391,7 +718,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 11
+            "y": 28
           },
           "hiddenSeries": false,
           "id": 2,
@@ -483,7 +810,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 18
+            "y": 35
           },
           "id": 11,
           "panels": [],
@@ -503,7 +830,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 19
+            "y": 36
           },
           "hiddenSeries": false,
           "id": 3,
@@ -600,7 +927,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 19
+            "y": 36
           },
           "hiddenSeries": false,
           "id": 4,
@@ -692,7 +1019,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 26
+            "y": 43
           },
           "id": 12,
           "panels": [],
@@ -712,7 +1039,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 27
+            "y": 44
           },
           "hiddenSeries": false,
           "id": 5,
@@ -831,7 +1158,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 27
+            "y": 44
           },
           "hiddenSeries": false,
           "id": 6,
@@ -944,7 +1271,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 34
+            "y": 51
           },
           "id": 13,
           "panels": [],
@@ -964,7 +1291,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 35
+            "y": 52
           },
           "hiddenSeries": false,
           "id": 7,
@@ -1061,7 +1388,7 @@ data:
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 35
+            "y": 52
           },
           "hiddenSeries": false,
           "id": 8,
@@ -1153,7 +1480,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 42
+            "y": 59
           },
           "id": 14,
           "panels": [],
@@ -1173,7 +1500,7 @@ data:
             "h": 7,
             "w": 24,
             "x": 0,
-            "y": 43
+            "y": 60
           },
           "hiddenSeries": false,
           "id": 9,
@@ -1298,5 +1625,5 @@ data:
       "timezone": "",
       "title": "Cluster",
       "uid": "cluster",
-      "version": 3
+      "version": 4
     }

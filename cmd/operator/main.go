@@ -49,6 +49,7 @@ func main() {
 
 	cron.Run(operator.DeleteEvictedPods, operator.ErrorHandler("delete evicted pods"), time.Hour)
 	cron.Run(operator.ClusterTelemetry, operator.ErrorHandler("instance telemetry"), 1*time.Hour)
+	cron.Run(operator.CostBreakdown, operator.ErrorHandler("cost breakdown metrics"), 5*time.Minute)
 
 	_, err := operator.UpdateMemoryCapacityConfigMap()
 	if err != nil {

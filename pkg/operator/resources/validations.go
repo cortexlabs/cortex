@@ -18,6 +18,7 @@ package resources
 
 import (
 	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -106,26 +107,6 @@ func ValidateClusterAPIs(apis []userconfig.API) error {
 	return nil
 }
 
-/*
-CPU Reservations:
-
-FluentBit 100
-NodeExporter 50 (it has two containers)
-KubeProxy 100
-AWS cni 10
-Reserved (150 + 150) see generate_eks.py for details
-*/
-var _cortexCPUReserve = kresource.MustParse("560m")
-
-/*
-Memory Reservations:
-
-FluentBit 150
-NodeExporter 200 (it has two containers)
-Reserved (300 + 300 + 200) see generate_eks.py for details
-*/
-var _cortexMemReserve = kresource.MustParse("1150Mi")
-
 var _nvidiaDevicePluginCPUReserve = kresource.MustParse("100m")
 var _nvidiaDevicePluginMemReserve = kresource.MustParse("100Mi")
 
@@ -174,10 +155,12 @@ func getNodeCapacity(instanceType string, maxMemMap map[string]kresource.Quantit
 	instanceMetadata := aws.InstanceMetadatas[config.ClusterConfig.Region][instanceType]
 
 	cpu := instanceMetadata.CPU.DeepCopy()
-	cpu.Sub(_cortexCPUReserve)
+	cpu.Sub(consts.CortexCPUPodReserved)
+	cpu.Sub(consts.CortexCPUK8sReserved)
 
 	mem := maxMemMap[instanceType].DeepCopy()
-	mem.Sub(_cortexMemReserve)
+	mem.Sub(consts.CortexMemPodReserved)
+	mem.Sub(consts.CortexMemK8sReserved)
 
 	gpu := instanceMetadata.GPU
 	if gpu > 0 {
