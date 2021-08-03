@@ -289,14 +289,14 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "description": "Total cluster costs include the EKS control plane, Cortex system components, user pods, user nodes, EBS volumes, etc.",
+          "description": "Total cluster costs include the EKS control plane, the system/user nodes, and the EBS volumes.",
           "fieldConfig": {
             "defaults": {
               "unit": "currencyUSD"
             },
             "overrides": []
           },
-          "fill": 10,
+          "fill": 0,
           "fillGradient": 0,
           "gridPos": {
             "h": 8,
@@ -316,7 +316,7 @@ data:
             "values": false
           },
           "lines": true,
-          "linewidth": 1,
+          "linewidth": 2,
           "nullPointMode": "null",
           "options": {
             "alertThreshold": true
@@ -399,7 +399,7 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "description": "",
+          "description": "Compute formula: for each \"API kind\" pod, see how many replicas of a given pod can fit on a specific node and then take the total cost of running the node (which can be on-demand or spot) and divide it by the maximum number of pods that can be run. Then, add the cost of each pod to an accumulator for each \"API kind\". Finally, once the cost for every \"API kind\" is computed, renormalize the sum of all API kinds to the actual cost of the cluster (minus the cortex system costs) so that all API kinds summed will give you the cost of the cluster.",
           "fieldConfig": {
             "defaults": {
               "unit": "currencyUSD"
@@ -415,7 +415,7 @@ data:
             "y": 19
           },
           "hiddenSeries": false,
-          "id": 27,
+          "id": 28,
           "legend": {
             "avg": false,
             "current": false,
@@ -445,8 +445,9 @@ data:
               "exemplar": true,
               "expr": "sum by (component) (cortex_cluster_cost{api=\"false\", kind=\"true\"})",
               "interval": "",
+              "intervalFactor": 1,
               "legendFormat": "{{component}}",
-              "refId": "Workload Costs by API Name"
+              "refId": "Workload Costs by API Kind"
             }
           ],
           "thresholds": [],
@@ -500,7 +501,7 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "description": "",
+          "description": "Compute formula: for each \"API name\" pod, see how many replicas of a given pod can fit on a specific node and then take the total cost of running the node (which can be on-demand or spot) and divide it by the maximum number of pods that can be run. Then, add the cost of each pod to an accumulator for each \"API name\". Finally, once the cost for every \"API name\" is computed, renormalize the sum of all API names to the actual cost of the cluster (minus the cortex system costs) so that all API names summed will give you the cost of the cluster.",
           "fieldConfig": {
             "defaults": {
               "unit": "currencyUSD"
@@ -1624,5 +1625,5 @@ data:
       "timezone": "",
       "title": "Cluster",
       "uid": "cluster",
-      "version": 1
+      "version": 3
     }

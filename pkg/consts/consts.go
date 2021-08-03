@@ -55,6 +55,32 @@ var (
 	CortexDequeuerCPU = kresource.MustParse("100m")
 	CortexDequeuerMem = kresource.MustParse("100Mi")
 
+	/*
+		CPU Pod Reservations:
+		- FluentBit 100
+		- NodeExporter 50 (it has two containers)
+		- KubeProxy 100
+		- AWS cni 10
+	*/
+	CortexCPUPodReserved = kresource.MustParse("260m")
+	/*
+		CPU Node Reservations:
+		- Reserved (150 + 150) see generate_eks.py for details
+	*/
+	CortexCPUK8sReserved = kresource.MustParse("300m")
+
+	/*
+		Memory Pod Reservations:
+		- FluentBit 150
+		- NodeExporter 200 (it has two containers)
+	*/
+	CortexMemPodReserved = kresource.MustParse("350Mi")
+	/*
+		Memory Reservations:
+		- Reserved (300 + 300 + 200) see generate_eks.py for details
+	*/
+	CortexMemK8sReserved = kresource.MustParse("800Mi")
+
 	DefaultInClusterConfigPath   = "/configs/cluster/cluster.yaml"
 	MaxBucketLifecycleRules      = 100
 	AsyncWorkloadsExpirationDays = int64(7)

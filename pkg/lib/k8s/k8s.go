@@ -102,10 +102,6 @@ func New(namespace string, inCluster bool, restConfig *kclientrest.Config, schem
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
 
-	if err != nil {
-		return nil, errors.Wrap(err, "kubeconfig")
-	}
-
 	client.istioClientSet, err = istioclient.NewForConfig(client.RestConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
