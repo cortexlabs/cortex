@@ -185,17 +185,17 @@ func clusterTelemetryProperties() (map[string]interface{}, error) {
 		totalInstancePriceIfOnDemand += info.OnDemandPrice
 	}
 
-	cxSystemPrice := cortexSystemPrice(numOperatorInstances, 1)
+	fixedPrice := cortexSystemPrice(numOperatorInstances, 1)
 
 	return map[string]interface{}{
 		"region":                      config.ClusterConfig.Region,
 		"instance_count":              totalInstances,
 		"instances":                   instanceInfos,
-		"cortex_system_price":         cxSystemPrice,
+		"fixed_price":                 fixedPrice,
 		"workload_price":              totalInstancePrice,
 		"workload_price_if_on_demand": totalInstancePriceIfOnDemand,
-		"total_price":                 totalInstancePrice + cxSystemPrice,
-		"total_price_if_on_demand":    totalInstancePriceIfOnDemand + cxSystemPrice,
+		"total_price":                 totalInstancePrice + fixedPrice,
+		"total_price_if_on_demand":    totalInstancePriceIfOnDemand + fixedPrice,
 	}, nil
 }
 
