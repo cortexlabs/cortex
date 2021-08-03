@@ -476,9 +476,7 @@ def test_autoscaling(
             assert api_updated(
                 client, primary_api_name, timeout=deploy_timeout
             ), "api didn't scale up to the desired number of replicas in time"
-            current_replicas = client.get_api(primary_api_name)["status"]["replica_counts"][
-                "requested"
-            ]
+            current_replicas = client.get_api(primary_api_name)["status"]["requested"]
 
             # stop the requests from being made
             if current_replicas == max_replicas and not request_stopper.is_set():
@@ -908,7 +906,7 @@ def test_realtime_scale_to_zero(
 
     try:
         assert apis_ready(
-            client=client, api_names=[api_name], timeout=timeout
+            client=client, api_names=[api_name], timeout=timeout, greater_or_equal_to=0
         ), f"apis {api_name} not ready"
 
         api_info = client.get_api(api_name)
