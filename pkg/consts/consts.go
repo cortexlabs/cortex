@@ -76,7 +76,7 @@ var (
 	*/
 	CortexMemPodReserved = kresource.MustParse("350Mi")
 	/*
-		Memory Reservations:
+		Memory Node Reservations:
 		- Reserved (300 + 300 + 200) see generate_eks.py for details
 	*/
 	CortexMemK8sReserved = kresource.MustParse("800Mi")
