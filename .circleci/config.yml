@@ -248,6 +248,7 @@ workflows:
     jobs:
       - lint
       - test
+      - e2e-tests
       - build-and-deploy-approval:
           type: approval
           filters:
