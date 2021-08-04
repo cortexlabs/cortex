@@ -1036,7 +1036,7 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	totalPrice := eksPrice + totalNodeGroupsPrice + operatorNodeGroupPrice + prometheusNodeGroupPrice + nlbPrice*2 + natTotalPrice
 	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
 
-	rows = append(rows, []interface{}{fmt.Sprintf("%d t3.medium %s (cortex system)", len(infoResponse.OperatorNodeInfos), s.PluralS("instance", len(infoResponse.OperatorNodeInfos))), s.DollarsAndTenthsOfCents(operatorNodeGroupPrice)})
+	rows = append(rows, []interface{}{fmt.Sprintf("%d t3.medium %s (cortex system)", len(infoResponse.OperatorNodeInfos), s.PluralS("instance", len(infoResponse.OperatorNodeInfos))), s.DollarsAndTenthsOfCents(operatorNodeGroupPrice) + " total"})
 	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (prometheus)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice*2) + " total"})
 
