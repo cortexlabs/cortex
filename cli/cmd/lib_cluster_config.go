@@ -228,7 +228,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 
 	operatorNodeGroupPrice := 2 * (operatorInstancePrice + operatorEBSPrice)
 	prometheusNodeGroupPrice := prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice
-	rows = append(rows, []interface{}{"2 t3.medium instances (cortex system)", s.DollarsAndTenthsOfCents(operatorNodeGroupPrice)})
+	rows = append(rows, []interface{}{"2 t3.medium instances (cortex system)", s.DollarsAndTenthsOfCents(operatorNodeGroupPrice) + " total"})
 	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (prometheus)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
 
