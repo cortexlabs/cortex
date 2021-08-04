@@ -445,8 +445,8 @@ func TestSQSDequeuer_MultipleWorkers(t *testing.T) {
 	}
 	dq.Shutdown()
 
-	// timeout test after 10 seconds
-	time.AfterFunc(10*time.Second, func() {
+	// timeout test after 30 seconds
+	time.AfterFunc(30*time.Second, func() {
 		close(msgCh)
 		errCh <- errors.New("test timed out")
 	})
