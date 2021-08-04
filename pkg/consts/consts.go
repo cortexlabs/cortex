@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	CortexVersion      = "master" // CORTEX_VERSION
-	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
+	CortexVersion      = "0.40.0" // CORTEX_VERSION
+	CortexVersionMinor = "0.40"   // CORTEX_VERSION_MINOR
 
 	DefaultNamespace    = "default"
 	KubeSystemNamespace = "kube-system"
