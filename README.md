@@ -6,9 +6,9 @@
 
 <br>
 
-# Containers as a service on AWS
+# Production infrastructure for machine learning at scale
 
-Deploy, manage, and scale containers without worrying about Kubernetes.
+Deploy, manage, and scale machine learning models in production.
 
 <br>
 
