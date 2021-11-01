@@ -49,6 +49,7 @@ if ! command -v black >/dev/null 2>&1; then
   exit 1
 fi
 
+go mod tidy
 go vet "$ROOT/..."
 
 output=$(golint "$ROOT/..." | grep -v "comment" || true)
