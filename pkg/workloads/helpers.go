@@ -242,7 +242,7 @@ func APIConfigMount(name string) kcore.VolumeMount {
 func ClientConfigMount() kcore.VolumeMount {
 	return kcore.VolumeMount{
 		Name:      _clientConfigDirVolume,
-		MountPath: path.Join(_clientConfigDir, "cli.yaml"),
+		MountPath: path.Join(clientConfigDir, "cli.yaml"),
 		SubPath:   "cli.yaml",
 	}
 }
@@ -261,4 +261,11 @@ func ShmMount(volumeName string) kcore.VolumeMount {
 
 func KubexitMount() kcore.VolumeMount {
 	return k8s.EmptyDirVolumeMount(_kubexitGraveyardName, _kubexitGraveyardMountPath)
+}
+
+func ClientConfigEnvVar() kcore.EnvVar {
+	return kcore.EnvVar{
+		Name:  "CORTEX_CLI_CONFIG_DIR",
+		Value: clientConfigDir,
+	}
 }

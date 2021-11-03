@@ -59,8 +59,8 @@ func realtimeDescribeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Envi
 		return "", errors.ErrorUnexpected("missing metadata from operator response")
 	}
 
-	if realtimeAPI.Status == nil {
-		return "", errors.ErrorUnexpected(fmt.Sprintf("missing status for %s api", realtimeAPI.Metadata.Name))
+	if realtimeAPI.ReplicaCounts == nil {
+		return "", errors.ErrorUnexpected(fmt.Sprintf("missing replica counts for %s api", realtimeAPI.Metadata.Name))
 	}
 
 	t := realtimeAPIsTable([]schema.APIResponse{realtimeAPI}, []string{env.Name})
@@ -74,7 +74,7 @@ func realtimeDescribeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Envi
 		out += "\n" + console.Bold("endpoint: ") + *realtimeAPI.Endpoint + "\n"
 	}
 
-	t = replicaCountTable(realtimeAPI.Status.ReplicaCounts)
+	t = replicaCountTable(realtimeAPI.ReplicaCounts)
 	out += "\n" + t.MustFormat()
 
 	return out, nil
@@ -84,15 +84,27 @@ func realtimeAPIsTable(realtimeAPIs []schema.APIResponse, envNames []string) tab
 	rows := make([][]interface{}, 0, len(realtimeAPIs))
 
 	for i, realtimeAPI := range realtimeAPIs {
-		if realtimeAPI.Metadata == nil || realtimeAPI.Status == nil {
+		if realtimeAPI.Metadata == nil || (realtimeAPI.Status == nil && realtimeAPI.ReplicaCounts == nil) {
 			continue
 		}
+
+		var ready, requested, upToDate int32
+		if realtimeAPI.Status != nil {
+			ready = realtimeAPI.Status.Ready
+			requested = realtimeAPI.Status.Requested
+			upToDate = realtimeAPI.Status.UpToDate
+		} else {
+			ready = realtimeAPI.ReplicaCounts.Ready
+			requested = realtimeAPI.ReplicaCounts.Requested
+			upToDate = realtimeAPI.ReplicaCounts.UpToDate
+		}
+
 		lastUpdated := time.Unix(realtimeAPI.Metadata.LastUpdated, 0)
 		rows = append(rows, []interface{}{
 			envNames[i],
 			realtimeAPI.Metadata.Name,
-			fmt.Sprintf("%d/%d", realtimeAPI.Status.Ready, realtimeAPI.Status.Requested),
-			realtimeAPI.Status.UpToDate,
+			fmt.Sprintf("%d/%d", ready, requested),
+			upToDate,
 			libtime.SinceStr(&lastUpdated),
 		})
 	}

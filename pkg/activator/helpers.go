@@ -31,7 +31,7 @@ type apiMeta struct {
 	maxQueueLength int
 }
 
-func getAPIMeta(obj interface{}) (apiMeta, error) {
+func getAPIMeta(obj interface{}, includeAnnotations bool) (apiMeta, error) {
 	resource, err := meta.Accessor(obj)
 	if err != nil {
 		return apiMeta{}, err
@@ -48,16 +48,22 @@ func getAPIMeta(obj interface{}) (apiMeta, error) {
 		return apiMeta{}, errors.ErrorUnexpected("got a virtual service without apiName label")
 	}
 
-	maxQueueLength, maxConcurrency, err := userconfig.ConcurrencyFromAnnotations(resource)
-	if err != nil {
-		return apiMeta{}, err
+	var maxQueueLength, maxConcurrency int
+	var annotations map[string]string
+
+	if includeAnnotations {
+		maxQueueLength, maxConcurrency, err = userconfig.ConcurrencyFromAnnotations(resource)
+		if err != nil {
+			return apiMeta{}, err
+		}
+		annotations = resource.GetAnnotations()
 	}
 
 	return apiMeta{
 		apiName:        apiName,
 		apiKind:        userconfig.KindFromString(apiKind),
 		labels:         labels,
-		annotations:    resource.GetAnnotations(),
+		annotations:    annotations,
 		maxConcurrency: maxConcurrency,
 		maxQueueLength: maxQueueLength,
 	}, nil

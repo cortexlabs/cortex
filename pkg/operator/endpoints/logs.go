@@ -108,7 +108,7 @@ func GetLogURL(w http.ResponseWriter, r *http.Request) {
 			LogURL: logURL,
 		})
 	case userconfig.RealtimeAPIKind:
-		apiResponse, err := realtimeapi.GetAPIByName(deployedResource)
+		apiResponse, err := realtimeapi.GetAPIByName(apiName)
 		if err != nil {
 			respondError(w, r, err)
 			return

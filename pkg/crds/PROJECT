@@ -3,7 +3,7 @@ layout:
 - go.kubebuilder.io/v3
 multigroup: true
 projectName: operator
-repo: github.com/cortexlabs/cortex
+repo: github.com/cortexlabs/cortex/pkg/crds
 resources:
 - api:
     crdVersion: v1
@@ -13,5 +13,14 @@ resources:
   group: batch
   kind: BatchJob
   path: github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cortex.dev
+  group: serverless
+  kind: RealtimeAPI
+  path: github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1
   version: v1alpha1
 version: "3"

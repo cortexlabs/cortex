@@ -51,6 +51,7 @@ type API struct {
 type Metadata struct {
 	*userconfig.Resource
 	APIID        string `json:"id" yaml:"id"`
+	PodID        string `json:"pod_id,omitempty" yaml:"pod_id,omitempty"`
 	DeploymentID string `json:"deployment_id,omitempty" yaml:"deployment_id,omitempty"`
 	LastUpdated  int64  `json:"last_updated" yaml:"last_updated"`
 }

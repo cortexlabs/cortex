@@ -34,6 +34,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	istioscheme "istio.io/client-go/pkg/clientset/versioned/scheme"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -42,7 +43,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
+	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	batchcontrollers "github.com/cortexlabs/cortex/pkg/crds/controllers/batch"
+	serverlesscontrollers "github.com/cortexlabs/cortex/pkg/crds/controllers/serverless"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -53,8 +56,10 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(istioscheme.AddToScheme(scheme))
 
 	utilruntime.Must(batch.AddToScheme(scheme))
+	utilruntime.Must(serverless.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -151,13 +156,22 @@ func main() {
 	if err = (&batchcontrollers.BatchJobReconciler{
 		Client:        mgr.GetClient(),
 		Config:        batchcontrollers.BatchJobReconcilerConfig{}.ApplyDefaults(),
-		Log:           ctrl.Log.WithName("controllers").WithName("BatchJob"),
+		Log:           ctrl.Log.WithName("controllers").WithName("batch").WithName("BatchJob"),
 		ClusterConfig: clusterConfig,
 		AWS:           awsClient,
 		Prometheus:    promv1.NewAPI(promClient),
 		Scheme:        mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BatchJob")
+		os.Exit(1)
+	}
+	if err = (&serverlesscontrollers.RealtimeAPIReconciler{
+		Client:        mgr.GetClient(),
+		ClusterConfig: clusterConfig,
+		Log:           ctrl.Log.WithName("controllers").WithName("serverless").WithName("RealtimeAPI"),
+		Scheme:        mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "RealtimeAPI")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

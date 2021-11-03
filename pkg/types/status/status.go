@@ -21,15 +21,30 @@ import (
 )
 
 type Status struct {
-	Ready         int32          `json:"ready" yaml:"ready"`           // deployment-reported number of ready replicas (latest + out of date)
-	Requested     int32          `json:"requested" yaml:"requested"`   // deployment-reported number of requested replicas
-	UpToDate      int32          `json:"up_to_date" yaml:"up_to_date"` // deployment-reported number of up-to-date replicas (in whichever phase they are found in)
-	ReplicaCounts *ReplicaCounts `json:"replica_counts,omitempty" yaml:"replica_counts,omitempty"`
+	Ready     int32 `json:"ready" yaml:"ready"`           // deployment-reported number of ready replicas (latest + out of date)
+	Requested int32 `json:"requested" yaml:"requested"`   // deployment-reported number of requested replicas
+	UpToDate  int32 `json:"up_to_date" yaml:"up_to_date"` // deployment-reported number of up-to-date replicas (in whichever phase they are found in)
+}
+
+type ReplicaCounts struct {
+	Status
+	Pending        int32 `json:"pending" yaml:"pending"`
+	Creating       int32 `json:"creating" yaml:"creating"`
+	NotReady       int32 `json:"not_ready" yaml:"not_ready"`
+	ReadyOutOfDate int32 `json:"ready_out_of_date" yaml:"ready_out_of_date"`
+	ErrImagePull   int32 `json:"err_image_pull" yaml:"err_image_pull"`
+	Terminating    int32 `json:"terminating" yaml:"terminating"` // includes up-to-date and out-of-date pods
+	Failed         int32 `json:"failed" yaml:"failed"`
+	Killed         int32 `json:"killed" yaml:"killed"`
+	KilledOOM      int32 `json:"killed_oom" yaml:"killed_oom"`
+	Stalled        int32 `json:"stalled" yaml:"stalled"` // pending for a long time
+	Unknown        int32 `json:"unknown" yaml:"unknown"`
 }
 
 type ReplicaCountType string
 
 const (
+	ReplicaCountUpToDate       ReplicaCountType = "UpToDate"       // total up-to-date pods
 	ReplicaCountRequested      ReplicaCountType = "Requested"      // requested number of replicas (for up-to-date pods)
 	ReplicaCountPending        ReplicaCountType = "Pending"        // pods that are in the pending state (for up-to-date pods)
 	ReplicaCountCreating       ReplicaCountType = "Creating"       // pods that that have their init/non-init containers in the process of being created (for up-to-date pods)
@@ -50,23 +65,7 @@ var ReplicaCountTypes []ReplicaCountType = []ReplicaCountType{
 	ReplicaCountNotReady, ReplicaCountReady, ReplicaCountReadyOutOfDate,
 	ReplicaCountErrImagePull, ReplicaCountTerminating, ReplicaCountFailed,
 	ReplicaCountKilled, ReplicaCountKilledOOM, ReplicaCountStalled,
-	ReplicaCountUnknown,
-}
-
-type ReplicaCounts struct {
-	Requested      int32 `json:"requested" yaml:"requested"`
-	Pending        int32 `json:"pending" yaml:"pending"`
-	Creating       int32 `json:"creating" yaml:"creating"`
-	NotReady       int32 `json:"not_ready" yaml:"not_ready"`
-	Ready          int32 `json:"ready" yaml:"ready"`
-	ReadyOutOfDate int32 `json:"ready_out_of_date" yaml:"ready_out_of_date"`
-	ErrImagePull   int32 `json:"err_image_pull" yaml:"err_image_pull"`
-	Terminating    int32 `json:"terminating" yaml:"terminating"` // includes up-to-date and out-of-date pods
-	Failed         int32 `json:"failed" yaml:"failed"`
-	Killed         int32 `json:"killed" yaml:"killed"`
-	KilledOOM      int32 `json:"killed_oom" yaml:"killed_oom"`
-	Stalled        int32 `json:"stalled" yaml:"stalled"` // pending for a long time
-	Unknown        int32 `json:"unknown" yaml:"unknown"`
+	ReplicaCountUnknown, ReplicaCountUpToDate,
 }
 
 // Worker counts don't have as many failure variations because Jobs clean up dead pods, so counting different failure scenarios isn't interesting
@@ -86,15 +85,21 @@ type WorkerCounts struct {
 }
 
 func FromDeployment(deployment *kapps.Deployment) *Status {
+	var requested int32
+	if deployment.Spec.Replicas != nil {
+		requested = *deployment.Spec.Replicas
+	}
 	return &Status{
 		Ready:     deployment.Status.ReadyReplicas,
-		Requested: deployment.Status.Replicas,
+		Requested: requested,
 		UpToDate:  deployment.Status.UpdatedReplicas,
 	}
 }
 
 func (counts *ReplicaCounts) GetCountBy(replicaType ReplicaCountType) int32 {
 	switch replicaType {
+	case ReplicaCountUpToDate:
+		return counts.UpToDate
 	case ReplicaCountRequested:
 		return counts.Requested
 	case ReplicaCountPending:

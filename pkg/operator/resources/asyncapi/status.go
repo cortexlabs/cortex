@@ -23,9 +23,12 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-func GetReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) *status.ReplicaCounts {
+func GetReplicaCounts(apiStatus *status.Status, deployment *kapps.Deployment, pods []kcore.Pod) *status.ReplicaCounts {
 	counts := status.ReplicaCounts{}
-	counts.Requested = *deployment.Spec.Replicas
+	if apiStatus != nil {
+		counts.Requested = apiStatus.Requested
+		counts.UpToDate = apiStatus.UpToDate
+	}
 
 	for i := range pods {
 		pod := pods[i]

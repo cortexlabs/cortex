@@ -158,7 +158,7 @@ func (a *activator) getOrCreateReadinessTracker(apiName string) *readinessTracke
 }
 
 func (a *activator) addAPI(obj interface{}) {
-	apiMetadata, err := getAPIMeta(obj)
+	apiMetadata, err := getAPIMeta(obj, true)
 	if err != nil {
 		a.logger.Errorw("error during virtual service informer add callback", zap.Error(err))
 		telemetry.Error(err)
@@ -182,7 +182,7 @@ func (a *activator) addAPI(obj interface{}) {
 }
 
 func (a *activator) updateAPI(oldObj interface{}, newObj interface{}) {
-	apiMetadata, err := getAPIMeta(newObj)
+	apiMetadata, err := getAPIMeta(newObj, true)
 	if err != nil {
 		a.logger.Errorw("error during virtual service informer update callback", zap.Error(err))
 		telemetry.Error(err)
@@ -195,7 +195,7 @@ func (a *activator) updateAPI(oldObj interface{}, newObj interface{}) {
 
 	apiName := apiMetadata.apiName
 
-	oldAPIMetatada, err := getAPIMeta(oldObj)
+	oldAPIMetatada, err := getAPIMeta(oldObj, true)
 	if err != nil {
 		a.logger.Errorw("error during virtual service informer update callback", zap.Error(err))
 		telemetry.Error(err)
@@ -212,7 +212,7 @@ func (a *activator) updateAPI(oldObj interface{}, newObj interface{}) {
 }
 
 func (a *activator) removeAPI(obj interface{}) {
-	apiMetadata, err := getAPIMeta(obj)
+	apiMetadata, err := getAPIMeta(obj, false)
 	if err != nil {
 		a.logger.Errorw("error during virtual service informer delete callback", zap.Error(err))
 		telemetry.Error(err)
@@ -250,7 +250,7 @@ func (a *activator) updateReadinessTracker(obj interface{}) {
 		return
 	}
 
-	api, err := getAPIMeta(obj)
+	api, err := getAPIMeta(obj, false)
 	if err != nil {
 		a.logger.Errorw("error during deployment informer callback", zap.Error(err))
 		telemetry.Error(err)
@@ -271,7 +271,7 @@ func (a *activator) updateReadinessTracker(obj interface{}) {
 }
 
 func (a *activator) removeReadinessTracker(obj interface{}) {
-	api, err := getAPIMeta(obj)
+	api, err := getAPIMeta(obj, false)
 	if err != nil {
 		a.logger.Errorw("error during deployment informer callback", zap.Error(err))
 		telemetry.Error(err)

@@ -24,6 +24,11 @@ import (
 func replicaCountTable(counts *status.ReplicaCounts) table.Table {
 	var rows [][]interface{}
 	for _, replicaCountType := range status.ReplicaCountTypes {
+		// skip up-to-date count
+		if replicaCountType == status.ReplicaCountUpToDate {
+			continue
+		}
+
 		count := counts.GetCountBy(replicaCountType)
 		canBeHiddenIfZero := false
 		switch replicaCountType {

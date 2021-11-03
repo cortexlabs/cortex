@@ -24,6 +24,7 @@ import (
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
+	serverless "github.com/cortexlabs/cortex/pkg/crds/apis/serverless/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -55,6 +56,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(batch.AddToScheme(scheme))
+	utilruntime.Must(serverless.AddToScheme(scheme))
 }
 
 func InitConfigs(clusterConfig *clusterconfig.Config, operatorMetadata *clusterconfig.OperatorMetadata) {

@@ -174,7 +174,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 
 	switch deployedResource.Kind {
 	case userconfig.RealtimeAPIKind:
-		return realtimeapi.RefreshAPI(apiName, force)
+		return realtimeapi.RefreshAPI(apiName)
 	case userconfig.AsyncAPIKind:
 		return asyncapi.RefreshAPI(apiName, force)
 	default:
@@ -297,12 +297,9 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	var realtimeAPIDeployments []kapps.Deployment
 	var asyncAPIDeployments []kapps.Deployment
 	for _, deployment := range deployments {
 		switch deployment.Labels["apiKind"] {
-		case userconfig.RealtimeAPIKind.String():
-			realtimeAPIDeployments = append(realtimeAPIDeployments, deployment)
 		case userconfig.AsyncAPIKind.String():
 			asyncAPIDeployments = append(asyncAPIDeployments, deployment)
 		}
@@ -323,7 +320,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIDeployments)
+	realtimeAPIList, err := realtimeapi.GetAllAPIs()
 	if err != nil {
 		return nil, err
 	}
@@ -370,7 +367,7 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 
 	switch deployedResource.Kind {
 	case userconfig.RealtimeAPIKind:
-		apiResponse, err = realtimeapi.GetAPIByName(deployedResource)
+		apiResponse, err = realtimeapi.GetAPIByName(apiName)
 		if err != nil {
 			return nil, err
 		}
@@ -494,7 +491,7 @@ func DescribeAPI(apiName string) ([]schema.APIResponse, error) {
 
 	switch deployedResource.Kind {
 	case userconfig.RealtimeAPIKind:
-		apiResponse, err = realtimeapi.DescribeAPIByName(deployedResource)
+		apiResponse, err = realtimeapi.DescribeAPIByName(apiName)
 		if err != nil {
 			return nil, err
 		}
