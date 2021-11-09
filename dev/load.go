@@ -109,7 +109,7 @@ func runConstantRequestsPerSecond(url string, jsonBytes []byte) {
 	ticker := time.NewTicker(_requestInterval)
 	done := make(chan bool)
 
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
@@ -203,7 +203,7 @@ func runConstantInFlightIteration(url string, jsonBytes []byte, loopNum int) boo
 
 	wasKilled := false
 	killed := make(chan bool)
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
