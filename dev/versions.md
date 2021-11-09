@@ -75,13 +75,20 @@ wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aw
 1. Search the codebase for the current minor version (e.g. `1.17`), update versions as appropriate
 1. Update your local version and alert developers:
     * Linux:
-        1. `wget https://dl.google.com/go/go1.17.3.linux-amd64.tar.gz`
-        1. `tar -xvf go1.17.3.linux-amd64.tar.gz`
-        1. `sudo rm -rf /usr/local/go`
-        1. `sudo mv -f go /usr/local`
-        1. `rm go1.17.3.linux-amd64.tar.gz`
-        1. refresh shell
-        1. `go version`
+
+     ```shell
+        mkdir -p $HOME/temp
+        cd $HOME/temp
+        wget https://dl.google.com/go/go1.17.3.linux-amd64.tar.gz && \
+        tar -xvf go1.17.3.linux-amd64.tar.gz && \
+        sudo rm -rf /usr/local/go && \
+        sudo mv -f go /usr/local && \
+        rm go1.17.3.linux-amd64.tar.gz && \
+        if [ -f $HOME/.bash_profile ]; then source $HOME/.bash_profile; else source $HOME/.bashrc; fi && \
+        cd -
+        go version
+     ```
+
     * Mac:
         1. `brew upgrade go` or `brew install go@1.17`
         1. refresh shell
