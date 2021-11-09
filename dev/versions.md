@@ -7,8 +7,8 @@
 1. Update `generate_eks.py` if necessary
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired, and logs in `cortex cluster up` look good.
 1. Update eksctl on your dev
-   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.51.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
-1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.51.0/userdocs/src/usage/minimum-iam-policies.md
+   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.72.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.72.0/userdocs/src/usage/minimum-iam-policies.md
 
 ## Kubernetes
 
@@ -57,14 +57,14 @@
 
 ## AWS CNI
 
-1. Update the CNI version in `eks_cluster.yaml` ([CNI releases](https://github.com/aws/amazon-vpc-cni-k8s/releases))
+1. Update the CNI version in `generate_eks.py` ([CNI releases](https://github.com/aws/amazon-vpc-cni-k8s/releases))
 1. Update the go module version (see `Go > Non-versioned modules` section below)
 1. Check if new instance types were added by running the script below (update the two env vars at the top).
    1. If there are new instance types, check if any changes need to be made to `servicequotas.go` or `validateInstanceType()`.
 
 ```bash
-PREV_RELEASE=1.7.10
-NEW_RELEASE=1.8.0
+PREV_RELEASE=1.8.0
+NEW_RELEASE=1.9.3
 wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v${PREV_RELEASE}/pkg/awsutils/vpc_ip_resource_limit.go; wget -q -O cni_supported_instances_new.txt https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v${NEW_RELEASE}/pkg/awsutils/vpc_ip_resource_limit.go; git diff --no-index cni_supported_instances_prev.txt cni_supported_instances_new.txt; rm -rf cni_supported_instances_prev.txt; rm -rf cni_supported_instances_new.txt
 ```
 
@@ -72,18 +72,18 @@ wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aw
 
 1. Find the latest release on Golang's [release page](https://golang.org/doc/devel/release.html) (
    or [downloads page](https://golang.org/dl/)) and check the changelog
-1. Search the codebase for the current minor version (e.g. `1.16`), update versions as appropriate
+1. Search the codebase for the current minor version (e.g. `1.17`), update versions as appropriate
 1. Update your local version and alert developers:
     * Linux:
-        1. `wget https://dl.google.com/go/go1.16.5.linux-amd64.tar.gz`
-        1. `tar -xvf go1.16.5.linux-amd64.tar.gz`
+        1. `wget https://dl.google.com/go/go1.17.3.linux-amd64.tar.gz`
+        1. `tar -xvf go1.17.3.linux-amd64.tar.gz`
         1. `sudo rm -rf /usr/local/go`
         1. `sudo mv -f go /usr/local`
-        1. `rm go1.16.5.linux-amd64.tar.gz`
+        1. `rm go1.17.3.linux-amd64.tar.gz`
         1. refresh shell
         1. `go version`
     * Mac:
-        1. `brew upgrade go` or `brew install go@1.16`
+        1. `brew upgrade go` or `brew install go@1.17`
         1. refresh shell
         1. `go version`
 1. Update go modules as necessary
@@ -92,7 +92,7 @@ wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aw
 
 ### Kubernetes client
 
-1. Find the latest patch release for the minor kubernetes version that we use (e.g. for k8s 1.20, use `client-go` version `v0.20.X`, where `X` is the latest available patch release)
+1. Find the latest patch [release](https://github.com/kubernetes/client-go) for the minor kubernetes version that we use (e.g. for k8s 1.21, use `client-go` version `v0.21.X`, where `X` is the latest available patch release)
 1. Follow the "Update non-versioned modules" instructions using the updated version for `k8s.io/client-go`
 
 ### Istio client
@@ -102,7 +102,7 @@ wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aw
 
 ### docker/engine/client
 
-1. Find the latest tag from [releases](https://github.com/docker/engine/releases)
+1. Find the latest tag from [here](https://github.com/docker/engine/tags)
 1. Follow the "Update non-versioned modules" instructions using the updated version for `docker/engine`
 
 _note: docker client installation may be able to be improved,
@@ -131,21 +131,23 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 ### Non-versioned modules
 
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
-1. `go get k8s.io/client-go@v0.20.8 && go get k8s.io/apimachinery@v0.20.8 && go get k8s.io/api@v0.20.8`
-1. `go get istio.io/client-go@1.10.2 && go get istio.io/api@1.10.2`
-1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.8.0`
+1. `go get k8s.io/client-go@v0.21.6 && go get k8s.io/apimachinery@v0.21.6 && go get k8s.io/api@v0.21.6`
+1. `go get istio.io/client-go@v1.11.4 && go get istio.io/api@1.11.4`
+1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.9.3`
 1. `go get github.com/cortexlabs/yaml@31e52ba8433b683c471ef92cf1711fe67671dac5`
 1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
 1. `go get github.com/xlab/treeprint@v1.0.0`
+1. `go get -u sigs.k8s.io/controller-runtime@v0.8.3`
 1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.13' >> go.mod`
 1. `go get -u github.com/docker/distribution`
 1. `go mod tidy`
-1. For every non-indirect, non-hardcoded dependency in go.mod, update with `go get -u <path>`
-1. `go mod tidy`
-1. Re-run the relevant hardcoded `go get` commands above
-1. `go mod tidy`
-1. `make test`
-1. `go mod tidy`
+1. Potentially skip these steps
+   1. For every non-indirect, non-hardcoded dependency in go.mod, update with `go get -u <path>`
+   1. `go mod tidy`
+   1. Re-run the relevant hardcoded `go get` commands above
+   1. `go mod tidy`
+   1. `make test`
+   1. `go mod tidy`
 1. Check that the diff in `go.mod` is reasonable
 
 ## Nvidia device plugin
@@ -188,9 +190,21 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
    set the tree to the tag for the chosen release, and open `cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml`
    (e.g. <https://github.com/kubernetes/autoscaler/blob/cluster-autoscaler-1.20.0/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml>)
 1. Resolve merge conflicts with the template in `manager/manifests/cluster-autoscaler.yaml.j2`.
-1. Pull the release branch from the upstream repo to Cortex's fork on [Github](https://github.com/cortexlabs/autoscaler).
-1. Apply the rate-limiter changes from the previous version to the new one (currently sitting on `cluster-autoscaler-release-1.20` branch).
-1. Update `-b` flag's value from `git clone` command in `images/cluster-autoscaler/Dockerfile` to the branch name of the latest release from Cortex's fork.
+1. Clone our fork: `git clone git@github.com:cortexlabs/autoscaler.git`
+1. Checkout our updated branch: `git checkout cluster-autoscaler-1.21.1-cortex`
+1. List the most recent commit: `git log`
+1. Reset the latest commit (use the SHA of the last non-cortex commit): `git reset <SHA>`
+1. `git add *`
+1. `git stash`
+1. `git remote add upstream https://github.com/kubernetes/autoscaler.git`
+1. `git fetch upstream`
+1. Checkout the appropriate version tag, e.g. `git checkout cluster-autoscaler-1.21.1 -b cluster-autoscaler-1.21.1-cortex`
+1. `git stash pop`
+1. Resolve any merge conflicts
+1. Unstage and check the diff
+1. `git commit -am "Add rate limiter"`
+1. `git push origin cluster-autoscaler-1.21.1-cortex`
+1. Update `images/cluster-autoscaler/Dockerfile` to use the new branch name (e.g. "cluster-autoscaler-1.21.1") in the `-b` flag's value from `git clone`.
 1. Match the Go version of the builder in `images/cluster-autoscaler/Dockerfile` with that of the [cluster autoscaler](https://github.com/kubernetes/autoscaler)'s Dockerfile.
 
 ## FluentBit

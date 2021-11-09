@@ -1,7 +1,7 @@
 ARG TARGETARCH, TARGETOS
 
 # Build the manager binary
-FROM golang:1.16.5 as builder
+FROM golang:1.17.3 as builder
 
 # Copy the Go Modules manifests
 COPY go.mod go.sum /workspace/
