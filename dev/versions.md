@@ -36,11 +36,18 @@
 1. Update the version in `images/manager/Dockerfile` and `images/operator/Dockerfile`
 1. Update your local version and alert developers
     * Linux:
-        1. `curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl`
-        1. `chmod +x ./kubectl`
-        1. `sudo mv -f ./kubectl /usr/local/bin/kubectl`
-        1. refresh shell
-        1. `kubectl version`
+
+     ```shell
+        mkdir -p $HOME/temp && \
+        cd $HOME/temp && \
+        curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && \
+        chmod +x ./kubectl && \
+        sudo mv -f ./kubectl /usr/local/bin/kubectl && \
+        if [ -f $HOME/.bash_profile ]; then source $HOME/.bash_profile; else source $HOME/.bashrc; fi && \
+        cd - && \
+        kubectl version
+     ```
+
     * Mac:
         1. `brew upgrade kubernetes-cli`
         1. refresh shell
@@ -85,7 +92,7 @@ wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aw
         sudo mv -f go /usr/local && \
         rm go1.17.3.linux-amd64.tar.gz && \
         if [ -f $HOME/.bash_profile ]; then source $HOME/.bash_profile; else source $HOME/.bashrc; fi && \
-        cd -
+        cd - && \
         go version
      ```
 
