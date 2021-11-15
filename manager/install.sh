@@ -378,7 +378,7 @@ function remove_nodegroups() {
 
   echo "￮ removing nodegroup(s) from the cluster ..."
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --remove-eks-node-groups="$eks_nodegroup_names" > /workspace/nodegroups.yaml
-  eksctl delete nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --drain=false --approve -f /workspace/nodegroups.yaml
+  eksctl delete nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --approve -f /workspace/nodegroups.yaml
   rm /workspace/nodegroups.yaml
   echo
 }
