@@ -3,6 +3,7 @@ import requests
 import torch
 import torchvision
 import boto3
+import uuid
 
 from typing import List
 from PIL import Image
@@ -85,7 +86,8 @@ def handle_batch(image_urls: List[str]):
     json_output = json.dumps(results)
 
     # save results
-    s3.put_object(Bucket=app.bucket, Key=f"{app.key}/{app.job_id}.json", Body=json_output)
+    prediction_id = uuid.uuid4()
+    s3.put_object(Bucket=app.bucket, Key=f"{app.key}/{prediction_id}.json", Body=json_output)
 
 
 @app.post("/on-job-complete")

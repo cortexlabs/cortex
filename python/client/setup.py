@@ -99,7 +99,7 @@ setup(
         [
             "importlib-resources; python_version < '3.7'",
             "pyyaml>=5.4.1",
-            "sentry-sdk>=1.1.0",
+            "sentry-sdk>=1.4.3",
         ]
     ),
     python_requires=">=3.6",

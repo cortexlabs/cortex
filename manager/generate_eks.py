@@ -19,7 +19,7 @@ from collections import namedtuple
 import re
 import yaml
 
-K8S_VERSION = "1.20"
+K8S_VERSION = "1.21"
 
 ParsedInstanceType = namedtuple(
     "ParsedInstanceType", ["family", "generation", "capabilities", "size"]
@@ -369,7 +369,7 @@ def generate_eks(
         "addons": [
             {
                 "name": "vpc-cni",
-                "version": "1.8.0",
+                "version": "1.9.3",
             },
         ],
     }
