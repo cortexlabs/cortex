@@ -25,47 +25,6 @@ commands:
           name: Login to Quay
           command: docker login -u=$QUAY_USERNAME -p=$QUAY_PASSWORD quay.io
 
-  install-e2e-dependencies:
-    description: Install E2E Tests Dependencies
-    steps:
-      - run:
-          name: Install Dependencies
-          command: |
-            pip install boto3 pyyaml awscli
-            pip install -e ./test/e2e
-            pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
-
-  run-e2e-tests:
-    description: Creates a temporary cluster and runs the cortex E2E tests
-    parameters:
-      config:
-        description: cluster config file path
-        type: string
-        default: ./cluster.yaml
-      slack_channel:
-        description: "slack channel where failed builds will be posted (should start with #)"
-        type: string
-        default: "#builds"
-    steps:
-      - run:
-          name: Create Cluster
-          command: cortex cluster up << parameters.config >> --configure-env cortex -y
-      - run:
-          name: Run E2E Tests
-          no_output_timeout: 30m
-          command: |
-            pytest -v test/e2e/tests --env cortex --x86-nodegroups spot,cpu,gpu,inferentia --arm-nodegroups arm --skip-autoscaling --skip-load --skip-long-running
-            pytest -v test/e2e/tests --env cortex --x86-nodegroups spot,cpu,gpu,inferentia -k test_autoscaling
-            pytest -v test/e2e/tests --env cortex --x86-nodegroups spot,cpu,gpu,inferentia -k test_load
-      - run:
-          name: Delete Cluster
-          command: cortex cluster down --config << parameters.config >> -y
-          when: always
-      - slack/notify:
-          event: fail
-          channel: << parameters.slack_channel >>
-          template: basic_fail_1
-
 jobs:
   lint:
     docker:
@@ -187,15 +146,14 @@ jobs:
           command: make ci-amend-images
           no_output_timeout: 20m
 
-  e2e-tests:
+  cluster-up:
     docker:
       - image: cimg/python:3.6
-    environment:
-      CORTEX_TEST_BATCH_S3_PATH: s3://cortex-nightly-artifacts/test/jobs
     steps:
-      - setup_remote_docker
-      - checkout
-      - install-e2e-dependencies
+      - run:
+          name: Install Cortex CLI
+          command: |
+            pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
       - run:
           name: Initialize Credentials
           command: |
@@ -240,8 +198,68 @@ jobs:
       - run:
           name: Verify configuration of credentials
           command: aws sts get-caller-identity | jq ".Arn" | grep "dev-cortex-nightly-us-east-1"
-      - run-e2e-tests:
-          config: ./cluster.yaml
+      - run:
+          name: Create Cluster
+          command: cortex cluster up cluster.yaml --configure-env cortex -y
+      - slack/notify:
+          event: fail
+          channel: "#builds"
+          template: basic_fail_1
+
+  e2e-tests:
+    docker:
+      - image: cimg/python:3.6
+    environment:
+      CORTEX_TEST_BATCH_S3_PATH: s3://cortex-nightly-artifacts/test/jobs
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: |
+            pip install boto3 pyyaml awscli
+            pip install -e ./test/e2e
+            pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
+      - run:
+          name: Initialize Credentials
+          command: |
+            echo 'export AWS_ACCESS_KEY_ID=${NIGHTLY_AWS_ACCESS_KEY_ID}' >> $BASH_ENV
+            echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
+      - run:
+          name: Configure Cortex CLI
+          command: cortex env configure cortex --operator-endpoint $(python dev/get_operator_url.py cortex-nightly us-east-1)
+      - run:
+          name: Run E2E Tests
+          no_output_timeout: 30m
+          command: |
+            pytest -v test/e2e/tests --env cortex --x86-nodegroups spot,cpu,gpu,inferentia --arm-nodegroups arm --skip-autoscaling --skip-load --skip-long-running
+            pytest -v test/e2e/tests --env cortex --x86-nodegroups spot,cpu,gpu,inferentia -k test_autoscaling
+            pytest -v test/e2e/tests --env cortex --x86-nodegroups spot,cpu,gpu,inferentia -k test_load
+      - slack/notify:
+          event: fail
+          channel: "#builds"
+          template: basic_fail_1
+
+  cluster-down:
+    docker:
+      - image: cimg/python:3.6
+    steps:
+      - run:
+          name: Install Cortex CLI
+          command: |
+            pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
+      - run:
+          name: Initialize Credentials
+          command: |
+            echo 'export AWS_ACCESS_KEY_ID=${NIGHTLY_AWS_ACCESS_KEY_ID}' >> $BASH_ENV
+            echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
+      - run:
+          name: Delete Cluster
+          command: cortex cluster down --name cortex-nightly --region us-east-1 -y
+          when: always
+      - slack/notify:
+          event: fail
+          channel: "#builds"
+          template: basic_fail_1
 
 workflows:
   build:
@@ -294,7 +312,7 @@ workflows:
                 - master
                 - /^[0-9]+\.[0-9]+$/
 
-  nightly:
+  nightly-cluster-up:
     triggers:
       - schedule:
           cron: "0 0 * * *"
@@ -303,4 +321,26 @@ workflows:
               only:
                 - master
     jobs:
+      - cluster-up
+
+  nightly-e2e-tests:
+    triggers:
+      - schedule:
+          cron: "0 1 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
       - e2e-tests
+
+  nightly-cluster-down:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - cluster-down
