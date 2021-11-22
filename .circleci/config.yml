@@ -25,27 +25,6 @@ commands:
           name: Login to Quay
           command: docker login -u=$QUAY_USERNAME -p=$QUAY_PASSWORD quay.io
 
-  run-e2e-tests:
-    description: Creates a temporary cluster and runs the cortex E2E tests
-    parameters:
-      config:
-        description: cluster config file path
-        type: string
-        default: ./cluster.yaml
-      slack_channel:
-        description: "slack channel where failed builds will be posted (should start with #)"
-        type: string
-        default: "#builds"
-    steps:
-      - run:
-          name: Delete Cluster
-          command: cortex cluster down --config << parameters.config >> -y
-          when: always
-      - slack/notify:
-          event: fail
-          channel: << parameters.slack_channel >>
-          template: basic_fail_1
-
 jobs:
   lint:
     docker:
@@ -247,7 +226,7 @@ jobs:
             echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
       - run:
           name: Configure Cortex CLI
-          command: cortex env configure cortex --operator-endpoint # TODO
+          command: cortex env configure cortex --operator-endpoint $(python dev/get_operator_url.py cortex-nightly us-east-1)
       - run:
           name: Run E2E Tests
           no_output_timeout: 30m
@@ -347,7 +326,7 @@ workflows:
   nightly-e2e-tests:
     triggers:
       - schedule:
-          cron: "0 0 * * *"
+          cron: "0 1 * * *"
           filters:
             branches:
               only:
@@ -358,7 +337,7 @@ workflows:
   nightly-cluster-down:
     triggers:
       - schedule:
-          cron: "0 0 * * *"
+          cron: "0 2 * * *"
           filters:
             branches:
               only:
