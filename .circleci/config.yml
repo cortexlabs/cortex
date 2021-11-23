@@ -50,28 +50,6 @@ jobs:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - "~/go/pkg/mod"
-  debug:
-    docker:
-      - image: cimg/python:3.6
-    steps:
-      - checkout
-      - run:
-          name: Install Dependencies
-          command: |
-            pip install boto3 pyyaml awscli
-            pip install -e ./test/e2e
-            pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
-      - run:
-          name: Initialize Credentials
-          command: |
-            echo 'export AWS_ACCESS_KEY_ID=${NIGHTLY_AWS_ACCESS_KEY_ID}' >> $BASH_ENV
-            echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
-      - run:
-          name: Debug
-          command: python dev/get_operator_url.py cortex-nightly us-east-1
-      - run:
-          name: Configure Cortex CLI
-          command: cortex env configure cortex --operator-endpoint $(python dev/get_operator_url.py cortex-nightly us-east-1)
 
   test:
     machine:
@@ -289,7 +267,6 @@ jobs:
 workflows:
   build:
     jobs:
-      - debug
       - lint
       - test
       - build-and-deploy-approval:
