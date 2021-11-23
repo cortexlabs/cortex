@@ -150,6 +150,8 @@ jobs:
     docker:
       - image: cimg/python:3.6
     steps:
+      - setup_remote_docker
+      - checkout
       - run:
           name: Install Cortex CLI
           command: |
@@ -243,6 +245,7 @@ jobs:
     docker:
       - image: cimg/python:3.6
     steps:
+      - setup_remote_docker
       - run:
           name: Install Cortex CLI
           command: |
