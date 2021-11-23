@@ -290,8 +290,8 @@ workflows:
   build:
     jobs:
       - debug
-      # - lint
-      # - test
+      - lint
+      - test
       - build-and-deploy-approval:
           type: approval
           filters:
