@@ -194,7 +194,7 @@ jobs:
             EOF
       - run:
           name: Create/Update AWS User policy
-          command: eval $(python ./manager/cluster_config_env.py cluster.yaml) && python ./dev/create_user.py $CORTEX_CLUSTER_NAME 388176669058 $CORTEX_REGION > $BASH_ENV
+          command: python ./dev/create_user.py cortex-nightly 388176669058 us-east-1 > $BASH_ENV
       - run:
           name: Wait for new keys to propagate in AWS
           command: sleep 10
@@ -247,15 +247,26 @@ jobs:
       - image: cimg/python:3.6
     steps:
       - setup_remote_docker
+      - checkout
       - run:
-          name: Install Cortex CLI
+          name: Install Dependencies
           command: |
+            pip install boto3 pyyaml awscli
             pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
       - run:
           name: Initialize Credentials
           command: |
             echo 'export AWS_ACCESS_KEY_ID=${NIGHTLY_AWS_ACCESS_KEY_ID}' >> $BASH_ENV
             echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
+      - run:
+          name: Create/Update AWS User policy
+          command: python ./dev/create_user.py cortex-nightly 388176669058 us-east-1 > $BASH_ENV
+      - run:
+          name: Wait for new keys to propagate in AWS
+          command: sleep 10
+      - run:
+          name: Verify configuration of credentials
+          command: aws sts get-caller-identity | jq ".Arn" | grep "dev-cortex-nightly-us-east-1"
       - run:
           name: Delete Cluster
           command: cortex cluster down --name cortex-nightly --region us-east-1 -y
