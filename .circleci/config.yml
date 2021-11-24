@@ -257,6 +257,15 @@ jobs:
             echo 'export AWS_ACCESS_KEY_ID=${NIGHTLY_AWS_ACCESS_KEY_ID}' >> $BASH_ENV
             echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
       - run:
+          name: Create/Update AWS User policy
+          command: eval $(python ./manager/cluster_config_env.py cluster.yaml) && python ./dev/create_user.py $CORTEX_CLUSTER_NAME 388176669058 $CORTEX_REGION > $BASH_ENV
+      - run:
+          name: Wait for new keys to propagate in AWS
+          command: sleep 10
+      - run:
+          name: Verify configuration of credentials
+          command: aws sts get-caller-identity | jq ".Arn" | grep "dev-cortex-nightly-us-east-1"
+      - run:
           name: Delete Cluster
           command: cortex cluster down --name cortex-nightly --region us-east-1 -y
           when: always
