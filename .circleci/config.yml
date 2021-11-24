@@ -153,8 +153,9 @@ jobs:
       - setup_remote_docker
       - checkout
       - run:
-          name: Install Cortex CLI
+          name: Install Dependencies
           command: |
+            pip install boto3 pyyaml awscli
             pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
       - run:
           name: Initialize Credentials
