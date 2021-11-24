@@ -282,8 +282,7 @@ workflows:
     jobs:
       - lint
       - test
-      # - cluster-down
-      - e2e-tests
+      - cluster-down
       - build-and-deploy-approval:
           type: approval
           filters:
