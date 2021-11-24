@@ -86,7 +86,7 @@ Deploy or update an API.
 
 **Arguments**:
 
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
+- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.41/ for schema.
 - `force` - Override any in-progress api updates.
 - `wait` - Block until the API is ready.
 
@@ -107,7 +107,7 @@ Deploy or update APIs specified in a configuration file.
 
 **Arguments**:
 
-- `config_file` - Local path to a yaml file defining Cortex API(s). See https://docs.cortex.dev/v/master/ for schema.
+- `config_file` - Local path to a yaml file defining Cortex API(s). See https://docs.cortex.dev/v/0.41/ for schema.
 - `force` - Override any in-progress api updates.
 - `wait` - Block until the API is ready.
 

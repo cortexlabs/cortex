@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-CORTEX_VERSION=master
+CORTEX_VERSION=0.41.0
 
 host_primary=$1
 host_backup=$2

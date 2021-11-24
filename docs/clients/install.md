@@ -4,8 +4,8 @@
 
 <!-- CORTEX_VERSION_README x2 -->
 ```bash
-# download CLI version 0.40.0 (Note the "v"):
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.40.0/get-cli.sh)"
+# download CLI version 0.41.0 (Note the "v"):
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.41.0/get-cli.sh)"
 ```
 
 By default, the Cortex CLI is installed at `/usr/local/bin/cortex`. To install the executable elsewhere, export the `CORTEX_INSTALL_PATH` environment variable to your desired location before running the command above.
@@ -19,10 +19,10 @@ pip install cortex
 ```
 
 <!-- CORTEX_VERSION_README x2 -->
-To install or upgrade to a specific version (e.g. v0.40.0):
+To install or upgrade to a specific version (e.g. v0.41.0):
 
 ```bash
-pip install cortex==0.40.0
+pip install cortex==0.41.0
 ```
 
 To upgrade to the latest version:
