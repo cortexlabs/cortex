@@ -247,9 +247,12 @@ jobs:
       - image: cimg/python:3.6
     steps:
       - setup_remote_docker
+      - checkout
       - run:
-          name: Install Cortex CLI
+          name: Install Dependencies
           command: |
+            pip install boto3 pyyaml awscli
+            pip install -e ./test/e2e
             pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
       - run:
           name: Initialize Credentials
