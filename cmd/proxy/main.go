@@ -146,6 +146,7 @@ func main() {
 	adminHandler := http.NewServeMux()
 	adminHandler.Handle("/metrics", promStats)
 	adminHandler.Handle("/healthz", readinessTCPHandler(userContainerPort, hasTCPProbe, log))
+	adminHandler.Handle("/wait-for-zero-in-flight", waitForZeroInFlight(breaker, log))
 
 	servers := map[string]*http.Server{
 		"proxy": {
@@ -202,6 +203,24 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 		log.Fatal(err)
 	}
 	os.Exit(1)
+}
+
+func waitForZeroInFlight(breaker *proxy.Breaker, logger *zap.SugaredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		for true {
+			inFlight := breaker.InFlight()
+
+			if inFlight == 0 {
+				logger.Info("no in-flight requests remaining")
+				break
+			}
+
+			logger.Info(fmt.Sprintf("waiting for in-flight requests to reach 0 (currently: %d)", inFlight))
+			time.Sleep(500 * time.Millisecond)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 func readinessTCPHandler(port int, enableTCPProbe bool, logger *zap.SugaredLogger) http.HandlerFunc {

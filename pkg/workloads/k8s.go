@@ -203,6 +203,14 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 		VolumeMounts: []kcore.VolumeMount{
 			ClusterConfigMount(),
 		},
+		Lifecycle: &kcore.Lifecycle{
+			PreStop: &kcore.Handler{
+				HTTPGet: &kcore.HTTPGetAction{
+					Path: "/wait-for-zero-in-flight",
+					Port: intstr.FromInt(int(consts.AdminPortInt32)),
+				},
+			},
+		},
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				kcore.ResourceCPU:    consts.CortexProxyCPU,
