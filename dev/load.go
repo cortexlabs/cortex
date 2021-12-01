@@ -51,6 +51,7 @@ const (
 
 	// other options
 	_printSuccessDots = true
+	_printBody        = false
 	_printHTTPErrors  = true
 	_printGoErrors    = true
 )
@@ -301,6 +302,13 @@ func makeRequest(url string, jsonBytes []byte) {
 
 	if _printSuccessDots {
 		fmt.Print(".")
+	}
+	if _printBody {
+		bodyStr := string(body)
+		if bodyStr == "" {
+			bodyStr = "(no body)"
+		}
+		fmt.Print(bodyStr)
 	}
 }
 
