@@ -75,6 +75,45 @@ func GetProbeSpec(probe *userconfig.Probe) *kcore.Probe {
 	}
 }
 
+func GetLifecycleSpec(preStop *userconfig.PreStop) *kcore.Lifecycle {
+	if preStop == nil {
+		return nil
+	}
+
+	var httpGetAction *kcore.HTTPGetAction
+	var tcpSocketAction *kcore.TCPSocketAction
+	var execAction *kcore.ExecAction
+
+	if preStop.HTTPGet != nil {
+		httpGetAction = &kcore.HTTPGetAction{
+			Path: preStop.HTTPGet.Path,
+			Port: intstr.IntOrString{
+				IntVal: preStop.HTTPGet.Port,
+			},
+		}
+	}
+	if preStop.TCPSocket != nil {
+		tcpSocketAction = &kcore.TCPSocketAction{
+			Port: intstr.IntOrString{
+				IntVal: preStop.TCPSocket.Port,
+			},
+		}
+	}
+	if preStop.Exec != nil {
+		execAction = &kcore.ExecAction{
+			Command: preStop.Exec.Command,
+		}
+	}
+
+	return &kcore.Lifecycle{
+		PreStop: &kcore.Handler{
+			HTTPGet:   httpGetAction,
+			TCPSocket: tcpSocketAction,
+			Exec:      execAction,
+		},
+	}
+}
+
 func GetReadinessProbesFromContainers(containers []*userconfig.Container) map[string]kcore.Probe {
 	probes := map[string]kcore.Probe{}
 

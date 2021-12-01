@@ -402,6 +402,7 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			VolumeMounts:   containerMounts,
 			LivenessProbe:  GetProbeSpec(container.LivenessProbe),
 			ReadinessProbe: readinessProbe,
+			Lifecycle:      GetLifecycleSpec(container.PreStop),
 			Resources: kcore.ResourceRequirements{
 				Requests: containerResourceList,
 				Limits:   containerResourceLimitsList,
