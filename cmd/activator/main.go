@@ -24,6 +24,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/activator"
@@ -167,14 +168,13 @@ func main() {
 	}
 
 	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt)
+	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 
 	select {
 	case err = <-errCh:
 		exit(log, err, "failed to start activator server")
 	case <-sigint:
-		// We received an interrupt signal, shut down.
-		log.Info("Received TERM signal, handling a graceful shutdown...")
+		log.Info("Received INT or TERM signal, handling a graceful shutdown...")
 
 		for name, server := range servers {
 			log.Infof("Shutting down %s server", name)

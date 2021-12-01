@@ -25,6 +25,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/autoscaler"
@@ -225,14 +226,13 @@ func main() {
 	}()
 
 	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt)
+	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 
 	select {
 	case err = <-errCh:
 		exit(log, err, "failed to start autoscaler server")
 	case <-sigint:
-		// We received an interrupt signal, shut down.
-		log.Info("Received TERM signal, handling a graceful shutdown...")
+		log.Info("Received INT or TERM signal, handling a graceful shutdown...")
 		log.Info("Shutting down server")
 		if err = server.Shutdown(context.Background()); err != nil {
 			// Error from closing listeners, or context timeout:

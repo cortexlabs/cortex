@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -146,7 +147,6 @@ func main() {
 	adminHandler := http.NewServeMux()
 	adminHandler.Handle("/metrics", promStats)
 	adminHandler.Handle("/healthz", readinessTCPHandler(userContainerPort, hasTCPProbe, log))
-	adminHandler.Handle("/wait-for-zero-in-flight", waitForZeroInFlight(breaker, log))
 
 	servers := map[string]*http.Server{
 		"proxy": {
@@ -168,14 +168,13 @@ func main() {
 	}
 
 	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt)
+	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 
 	select {
 	case err = <-errCh:
 		exit(log, errors.Wrap(err, "failed to start proxy server"))
 	case <-sigint:
-		// We received an interrupt signal, shut down.
-		log.Info("Received TERM signal, handling a graceful shutdown...")
+		log.Info("Received INT or TERM signal, handling a graceful shutdown...")
 
 		for name, server := range servers {
 			log.Infof("Shutting down %s server", name)
@@ -203,24 +202,6 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 		log.Fatal(err)
 	}
 	os.Exit(1)
-}
-
-func waitForZeroInFlight(breaker *proxy.Breaker, logger *zap.SugaredLogger) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		for true {
-			inFlight := breaker.InFlight()
-
-			if inFlight == 0 {
-				logger.Info("no in-flight requests remaining")
-				break
-			}
-
-			logger.Info(fmt.Sprintf("waiting for in-flight requests to reach 0 (currently: %d)", inFlight))
-			time.Sleep(500 * time.Millisecond)
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}
 }
 
 func readinessTCPHandler(port int, enableTCPProbe bool, logger *zap.SugaredLogger) http.HandlerFunc {
