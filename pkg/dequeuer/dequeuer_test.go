@@ -31,7 +31,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/ory/dockertest/v3"
 	dc "github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
@@ -390,75 +389,73 @@ func TestSQSDequeuer_Start_HandlerError(t *testing.T) {
 	}, 5*time.Second, time.Second)
 }
 
-func TestSQSDequeuer_MultipleWorkers(t *testing.T) {
-	// this test seems to be non-deterministically timing out
-	// it seems to be an issue with the test, not the deqeueur
-	return
+// this test seems to be non-deterministically timing out
+// it seems to be an issue with the test, not the deqeueur
+// func TestSQSDequeuer_MultipleWorkers(t *testing.T) {
+// 	t.Parallel()
 
-	t.Parallel()
+// 	awsClient := testAWSClient(t)
+// 	queueURL := createQueue(t, awsClient)
 
-	awsClient := testAWSClient(t)
-	queueURL := createQueue(t, awsClient)
+// 	numMessages := 3
+// 	expectedMsgs := make([]string, numMessages)
+// 	for i := 0; i < numMessages; i++ {
+// 		message := fmt.Sprintf("%d", i)
+// 		expectedMsgs[i] = message
+// 		_, err := awsClient.SQS().SendMessage(&sqs.SendMessageInput{
+// 			MessageBody:            aws.String(message),
+// 			MessageDeduplicationId: aws.String(message),
+// 			MessageGroupId:         aws.String(message),
+// 			QueueUrl:               aws.String(queueURL),
+// 		})
+// 		require.NoError(t, err)
+// 	}
 
-	numMessages := 3
-	expectedMsgs := make([]string, numMessages)
-	for i := 0; i < numMessages; i++ {
-		message := fmt.Sprintf("%d", i)
-		expectedMsgs[i] = message
-		_, err := awsClient.SQS().SendMessage(&sqs.SendMessageInput{
-			MessageBody:            aws.String(message),
-			MessageDeduplicationId: aws.String(message),
-			MessageGroupId:         aws.String(message),
-			QueueUrl:               aws.String(queueURL),
-		})
-		require.NoError(t, err)
-	}
+// 	logger := newLogger(t)
+// 	defer func() { _ = logger.Sync() }()
 
-	logger := newLogger(t)
-	defer func() { _ = logger.Sync() }()
+// 	dq, err := NewSQSDequeuer(
+// 		SQSDequeuerConfig{
+// 			Region:           _localStackDefaultRegion,
+// 			QueueURL:         queueURL,
+// 			StopIfNoMessages: true,
+// 			Workers:          numMessages,
+// 		}, awsClient, logger,
+// 	)
+// 	require.NoError(t, err)
 
-	dq, err := NewSQSDequeuer(
-		SQSDequeuerConfig{
-			Region:           _localStackDefaultRegion,
-			QueueURL:         queueURL,
-			StopIfNoMessages: true,
-			Workers:          numMessages,
-		}, awsClient, logger,
-	)
-	require.NoError(t, err)
+// 	dq.waitTimeSeconds = aws.Int64(0)
+// 	dq.notFoundSleepTime = 0
 
-	dq.waitTimeSeconds = aws.Int64(0)
-	dq.notFoundSleepTime = 0
+// 	msgCh := make(chan string, numMessages)
+// 	handler := NewMessageHandlerFunc(
+// 		func(message *sqs.Message) error {
+// 			msgCh <- *message.Body
+// 			return nil
+// 		},
+// 	)
 
-	msgCh := make(chan string, numMessages)
-	handler := NewMessageHandlerFunc(
-		func(message *sqs.Message) error {
-			msgCh <- *message.Body
-			return nil
-		},
-	)
+// 	errCh := make(chan error)
+// 	go func() {
+// 		errCh <- dq.Start(handler, func() bool { return true })
+// 	}()
 
-	errCh := make(chan error)
-	go func() {
-		errCh <- dq.Start(handler, func() bool { return true })
-	}()
+// 	receivedMessages := make([]string, numMessages)
+// 	for i := 0; i < numMessages; i++ {
+// 		receivedMessages[i] = <-msgCh
+// 	}
+// 	dq.Shutdown()
 
-	receivedMessages := make([]string, numMessages)
-	for i := 0; i < numMessages; i++ {
-		receivedMessages[i] = <-msgCh
-	}
-	dq.Shutdown()
+// 	// timeout test after 30 seconds
+// 	time.AfterFunc(30*time.Second, func() {
+// 		close(msgCh)
+// 		errCh <- errors.New("test timed out")
+// 	})
 
-	// timeout test after 30 seconds
-	time.AfterFunc(30*time.Second, func() {
-		close(msgCh)
-		errCh <- errors.New("test timed out")
-	})
+// 	require.Len(t, receivedMessages, numMessages)
 
-	require.Len(t, receivedMessages, numMessages)
+// 	set := strset.FromSlice(receivedMessages)
+// 	require.True(t, set.Has(expectedMsgs...))
 
-	set := strset.FromSlice(receivedMessages)
-	require.True(t, set.Has(expectedMsgs...))
-
-	require.NoError(t, <-errCh)
-}
+// 	require.NoError(t, <-errCh)
+// }
