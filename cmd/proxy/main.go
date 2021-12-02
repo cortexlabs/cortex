@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -167,14 +168,13 @@ func main() {
 	}
 
 	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt)
+	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 
 	select {
 	case err = <-errCh:
 		exit(log, errors.Wrap(err, "failed to start proxy server"))
 	case <-sigint:
-		// We received an interrupt signal, shut down.
-		log.Info("Received TERM signal, handling a graceful shutdown...")
+		log.Info("Received INT or TERM signal, handling a graceful shutdown...")
 
 		for name, server := range servers {
 			log.Infof("Shutting down %s server", name)
