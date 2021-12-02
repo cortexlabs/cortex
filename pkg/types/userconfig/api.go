@@ -61,8 +61,9 @@ type Container struct {
 	Command []string `json:"command" yaml:"command"`
 	Args    []string `json:"args" yaml:"args"`
 
-	ReadinessProbe *Probe `json:"readiness_probe" yaml:"readiness_probe"`
-	LivenessProbe  *Probe `json:"liveness_probe" yaml:"liveness_probe"`
+	ReadinessProbe *Probe   `json:"readiness_probe" yaml:"readiness_probe"`
+	LivenessProbe  *Probe   `json:"liveness_probe" yaml:"liveness_probe"`
+	PreStop        *PreStop `json:"pre_stop" yaml:"pre_stop"`
 
 	Compute *Compute `json:"compute" yaml:"compute"`
 }
@@ -78,26 +79,31 @@ type Networking struct {
 }
 
 type Probe struct {
-	HTTPGet             *HTTPGetProbe   `json:"http_get" yaml:"http_get"`
-	TCPSocket           *TCPSocketProbe `json:"tcp_socket" yaml:"tcp_socket"`
-	Exec                *ExecProbe      `json:"exec" yaml:"exec"`
-	InitialDelaySeconds int32           `json:"initial_delay_seconds" yaml:"initial_delay_seconds"`
-	TimeoutSeconds      int32           `json:"timeout_seconds" yaml:"timeout_seconds"`
-	PeriodSeconds       int32           `json:"period_seconds" yaml:"period_seconds"`
-	SuccessThreshold    int32           `json:"success_threshold" yaml:"success_threshold"`
-	FailureThreshold    int32           `json:"failure_threshold" yaml:"failure_threshold"`
+	HTTPGet             *HTTPGetHandler   `json:"http_get" yaml:"http_get"`
+	TCPSocket           *TCPSocketHandler `json:"tcp_socket" yaml:"tcp_socket"`
+	Exec                *ExecHandler      `json:"exec" yaml:"exec"`
+	InitialDelaySeconds int32             `json:"initial_delay_seconds" yaml:"initial_delay_seconds"`
+	TimeoutSeconds      int32             `json:"timeout_seconds" yaml:"timeout_seconds"`
+	PeriodSeconds       int32             `json:"period_seconds" yaml:"period_seconds"`
+	SuccessThreshold    int32             `json:"success_threshold" yaml:"success_threshold"`
+	FailureThreshold    int32             `json:"failure_threshold" yaml:"failure_threshold"`
 }
 
-type HTTPGetProbe struct {
+type PreStop struct {
+	HTTPGet *HTTPGetHandler `json:"http_get" yaml:"http_get"`
+	Exec    *ExecHandler    `json:"exec" yaml:"exec"`
+}
+
+type HTTPGetHandler struct {
 	Path string `json:"path" yaml:"path"`
 	Port int32  `json:"port" yaml:"port"`
 }
 
-type TCPSocketProbe struct {
+type TCPSocketHandler struct {
 	Port int32 `json:"port" yaml:"port"`
 }
 
-type ExecProbe struct {
+type ExecHandler struct {
 	Command []string `json:"command" yaml:"command"`
 }
 
@@ -387,6 +393,11 @@ func (container *Container) UserStr() string {
 		sb.WriteString(s.Indent(container.LivenessProbe.UserStr(), "  "))
 	}
 
+	if container.PreStop != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", PreStopKey))
+		sb.WriteString(s.Indent(container.PreStop.UserStr(), "  "))
+	}
+
 	if container.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(container.Compute.UserStr(), "  "))
@@ -428,24 +439,39 @@ func (probe *Probe) UserStr() string {
 	return sb.String()
 }
 
-func (httpProbe *HTTPGetProbe) UserStr() string {
+func (preStop *PreStop) UserStr() string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, httpProbe.Path))
-	sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, httpProbe.Port))
+	if preStop.HTTPGet != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", HTTPGetKey))
+		sb.WriteString(s.Indent(preStop.HTTPGet.UserStr(), "  "))
+	}
+	if preStop.Exec != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ExecKey))
+		sb.WriteString(s.Indent(preStop.Exec.UserStr(), "  "))
+	}
 
 	return sb.String()
 }
 
-func (tcpSocketProbe *TCPSocketProbe) UserStr() string {
+func (httpHandler *HTTPGetHandler) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, tcpSocketProbe.Port))
+
+	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, httpHandler.Path))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, httpHandler.Port))
+
 	return sb.String()
 }
 
-func (execProbe *ExecProbe) UserStr() string {
+func (tcpSocketHandler *TCPSocketHandler) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", CommandKey, s.ObjFlatNoQuotes(execProbe.Command)))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, tcpSocketHandler.Port))
+	return sb.String()
+}
+
+func (execHandler *ExecHandler) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", CommandKey, s.ObjFlatNoQuotes(execHandler.Command)))
 	return sb.String()
 }
 
@@ -589,6 +615,7 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 
 		var numReadinessProbes int
 		var numLivenessProbes int
+		var numPreStops int
 		for _, container := range api.Pod.Containers {
 			if container.ReadinessProbe != nil {
 				numReadinessProbes++
@@ -596,10 +623,14 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 			if container.LivenessProbe != nil {
 				numLivenessProbes++
 			}
+			if container.PreStop != nil {
+				numPreStops++
+			}
 		}
 
 		event["pod.containers._num_readiness_probes"] = numReadinessProbes
 		event["pod.containers._num_liveness_probes"] = numLivenessProbes
+		event["pod.containers._num_pre_stops"] = numPreStops
 
 		totalCompute := GetPodComputeRequest(api)
 		if totalCompute.CPU != nil {
