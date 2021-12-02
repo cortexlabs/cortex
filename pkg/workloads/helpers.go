@@ -86,7 +86,7 @@ func GetLifecycleSpec(preStop *userconfig.PreStop) *kcore.Lifecycle {
 
 	if preStop.HTTPGet != nil {
 		httpGetAction = &kcore.HTTPGetAction{
-			Path: preStop.HTTPGet.Path,
+			Path: strings.TrimPrefix(preStop.HTTPGet.Path, "/"), // the leading / automatically is added by k8s
 			Port: intstr.IntOrString{
 				IntVal: preStop.HTTPGet.Port,
 			},
