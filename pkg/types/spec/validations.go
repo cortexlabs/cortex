@@ -371,7 +371,6 @@ func preStopValidation() *cr.StructFieldValidation {
 			DefaultNil:        true,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				httpGetHandlerValidation(),
-				tcpSocketHandlerValidation(),
 				execHandlerValidation(),
 			},
 		},
@@ -845,15 +844,12 @@ func validatePreStop(preStop userconfig.PreStop) error {
 	if preStop.HTTPGet != nil {
 		numSpecifiedHandlers++
 	}
-	if preStop.TCPSocket != nil {
-		numSpecifiedHandlers++
-	}
 	if preStop.Exec != nil {
 		numSpecifiedHandlers++
 	}
 
 	if numSpecifiedHandlers != 1 {
-		return ErrorSpecifyExactlyOneField(numSpecifiedHandlers, userconfig.HTTPGetKey, userconfig.TCPSocketKey, userconfig.ExecKey)
+		return ErrorSpecifyExactlyOneField(numSpecifiedHandlers, userconfig.HTTPGetKey, userconfig.ExecKey)
 	}
 
 	return nil

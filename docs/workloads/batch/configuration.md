@@ -45,8 +45,6 @@
           http_get:  # specifies an http endpoint to send a request to (only one of http_get, tcp_socket, and exec may be specified)
             port: <int|string>  # the port to access on the container (required)
             path: <string>  # the path to access on the HTTP server (default: /)
-          tcp_socket:  # specifies a port to open a TCP connection to (only one of http_get, tcp_socket, and exec may be specified)
-            port: <int|string>  # the port to access on the container (required)
           exec:  # specifies a command to run (only one of http_get, tcp_socket, and exec may be specified)
             command: <list[string]>  # the command to execute inside the container, which is exec'd (not run inside a shell); the working directory is root ('/') in the container's filesystem (required)
   node_groups: <list[string]>  # a list of node groups on which this API can run (default: all node groups are eligible)

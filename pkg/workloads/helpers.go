@@ -92,13 +92,6 @@ func GetLifecycleSpec(preStop *userconfig.PreStop) *kcore.Lifecycle {
 			},
 		}
 	}
-	if preStop.TCPSocket != nil {
-		tcpSocketAction = &kcore.TCPSocketAction{
-			Port: intstr.IntOrString{
-				IntVal: preStop.TCPSocket.Port,
-			},
-		}
-	}
 	if preStop.Exec != nil {
 		execAction = &kcore.ExecAction{
 			Command: preStop.Exec.Command,

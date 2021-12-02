@@ -90,9 +90,8 @@ type Probe struct {
 }
 
 type PreStop struct {
-	HTTPGet   *HTTPGetHandler   `json:"http_get" yaml:"http_get"`
-	TCPSocket *TCPSocketHandler `json:"tcp_socket" yaml:"tcp_socket"`
-	Exec      *ExecHandler      `json:"exec" yaml:"exec"`
+	HTTPGet *HTTPGetHandler `json:"http_get" yaml:"http_get"`
+	Exec    *ExecHandler    `json:"exec" yaml:"exec"`
 }
 
 type HTTPGetHandler struct {
@@ -446,10 +445,6 @@ func (preStop *PreStop) UserStr() string {
 	if preStop.HTTPGet != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", HTTPGetKey))
 		sb.WriteString(s.Indent(preStop.HTTPGet.UserStr(), "  "))
-	}
-	if preStop.TCPSocket != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", TCPSocketKey))
-		sb.WriteString(s.Indent(preStop.TCPSocket.UserStr(), "  "))
 	}
 	if preStop.Exec != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ExecKey))
