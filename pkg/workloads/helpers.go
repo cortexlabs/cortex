@@ -81,7 +81,6 @@ func GetLifecycleSpec(preStop *userconfig.PreStop) *kcore.Lifecycle {
 	}
 
 	var httpGetAction *kcore.HTTPGetAction
-	var tcpSocketAction *kcore.TCPSocketAction
 	var execAction *kcore.ExecAction
 
 	if preStop.HTTPGet != nil {
@@ -100,9 +99,8 @@ func GetLifecycleSpec(preStop *userconfig.PreStop) *kcore.Lifecycle {
 
 	return &kcore.Lifecycle{
 		PreStop: &kcore.Handler{
-			HTTPGet:   httpGetAction,
-			TCPSocket: tcpSocketAction,
-			Exec:      execAction,
+			HTTPGet: httpGetAction,
+			Exec:    execAction,
 		},
 	}
 }
