@@ -259,6 +259,10 @@ func containersValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 		validations = append(validations, probeValidation("ReadinessProbe", false))
 	}
 
+	if kind == userconfig.RealtimeAPIKind || kind == userconfig.AsyncAPIKind {
+		validations = append(validations, preStopValidation())
+	}
+
 	return &cr.StructFieldValidation{
 		StructField: "Containers",
 		StructListValidation: &cr.StructListValidation{
@@ -306,8 +310,8 @@ func networkingValidation() *cr.StructFieldValidation {
 
 func probeValidation(structFieldName string, hasExecProbe bool) *cr.StructFieldValidation {
 	validations := []*cr.StructFieldValidation{
-		httpGetProbeValidation(),
-		tcpSocketProbeValidation(),
+		httpGetHandlerValidation(),
+		tcpSocketHandlerValidation(),
 		{
 			StructField: "InitialDelaySeconds",
 			Int32Validation: &cr.Int32Validation{
@@ -346,7 +350,7 @@ func probeValidation(structFieldName string, hasExecProbe bool) *cr.StructFieldV
 	}
 
 	if hasExecProbe {
-		validations = append(validations, execProbeValidation())
+		validations = append(validations, execHandlerValidation())
 	}
 
 	return &cr.StructFieldValidation{
@@ -360,7 +364,22 @@ func probeValidation(structFieldName string, hasExecProbe bool) *cr.StructFieldV
 	}
 }
 
-func httpGetProbeValidation() *cr.StructFieldValidation {
+func preStopValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "PreStop",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			AllowExplicitNull: true,
+			DefaultNil:        true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				httpGetHandlerValidation(),
+				execHandlerValidation(),
+			},
+		},
+	}
+}
+
+func httpGetHandlerValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "HTTPGet",
 		StructValidation: &cr.StructValidation{
@@ -390,7 +409,7 @@ func httpGetProbeValidation() *cr.StructFieldValidation {
 	}
 }
 
-func tcpSocketProbeValidation() *cr.StructFieldValidation {
+func tcpSocketHandlerValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "TCPSocket",
 		StructValidation: &cr.StructValidation{
@@ -412,7 +431,7 @@ func tcpSocketProbeValidation() *cr.StructFieldValidation {
 	}
 }
 
-func execProbeValidation() *cr.StructFieldValidation {
+func execHandlerValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Exec",
 		StructValidation: &cr.StructValidation{
@@ -783,6 +802,12 @@ func validateContainers(
 			}
 		}
 
+		if container.PreStop != nil {
+			if err := validatePreStop(*container.PreStop); err != nil {
+				return errors.Wrap(err, s.Index(i), userconfig.PreStopKey)
+			}
+		}
+
 		compute := container.Compute
 		if compute.Shm != nil && compute.Mem != nil && compute.Shm.Cmp(compute.Mem.Quantity) > 0 {
 			return errors.Wrap(ErrorShmCannotExceedMem(*compute.Shm, *compute.Mem), s.Index(i), userconfig.ComputeKey)
@@ -794,23 +819,39 @@ func validateContainers(
 }
 
 func validateProbe(probe userconfig.Probe, supportsExecProbe bool) error {
-	numSpecifiedProbes := 0
+	numSpecifiedHandlers := 0
 	if probe.HTTPGet != nil {
-		numSpecifiedProbes++
+		numSpecifiedHandlers++
 	}
 	if probe.TCPSocket != nil {
-		numSpecifiedProbes++
+		numSpecifiedHandlers++
 	}
 	if probe.Exec != nil {
-		numSpecifiedProbes++
+		numSpecifiedHandlers++
 	}
 
-	if numSpecifiedProbes != 1 {
-		validProbes := []string{userconfig.HTTPGetKey, userconfig.TCPSocketKey}
+	if numSpecifiedHandlers != 1 {
+		validHandlers := []string{userconfig.HTTPGetKey, userconfig.TCPSocketKey}
 		if supportsExecProbe {
-			validProbes = append(validProbes, userconfig.ExecKey)
+			validHandlers = append(validHandlers, userconfig.ExecKey)
 		}
-		return ErrorSpecifyExactlyOneField(numSpecifiedProbes, validProbes...)
+		return ErrorSpecifyExactlyOneField(numSpecifiedHandlers, validHandlers...)
+	}
+
+	return nil
+}
+
+func validatePreStop(preStop userconfig.PreStop) error {
+	numSpecifiedHandlers := 0
+	if preStop.HTTPGet != nil {
+		numSpecifiedHandlers++
+	}
+	if preStop.Exec != nil {
+		numSpecifiedHandlers++
+	}
+
+	if numSpecifiedHandlers != 1 {
+		return ErrorSpecifyExactlyOneField(numSpecifiedHandlers, userconfig.HTTPGetKey, userconfig.ExecKey)
 	}
 
 	return nil

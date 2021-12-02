@@ -46,6 +46,7 @@ const (
 	ArgsKey           = "args"
 	ReadinessProbeKey = "readiness_probe"
 	LivenessProbeKey  = "liveness_probe"
+	PreStopKey        = "pre_stop"
 
 	// Probe
 	HTTPGetKey             = "http_get"
