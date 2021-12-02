@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"syscall"
 
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -210,7 +211,7 @@ func main() {
 	}()
 
 	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt)
+	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 
 	sqsDequeuer, err := dequeuer.NewSQSDequeuer(dequeuerConfig, awsClient, log)
 	if err != nil {
@@ -239,7 +240,7 @@ func main() {
 	case err = <-errCh:
 		exit(log, err, "error during message dequeueing or error from admin server")
 	case <-sigint:
-		log.Info("Received TERM signal, handling a graceful shutdown...")
+		log.Info("Received INT or TERM signal, handling a graceful shutdown...")
 		sqsDequeuer.Shutdown()
 		log.Info("Shutdown complete, exiting...")
 	}
