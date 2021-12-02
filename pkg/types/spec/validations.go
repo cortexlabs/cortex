@@ -259,7 +259,9 @@ func containersValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 		validations = append(validations, probeValidation("ReadinessProbe", false))
 	}
 
-	validations = append(validations, preStopValidation())
+	if kind == userconfig.RealtimeAPIKind || kind == userconfig.AsyncAPIKind {
+		validations = append(validations, preStopValidation())
+	}
 
 	return &cr.StructFieldValidation{
 		StructField: "Containers",
