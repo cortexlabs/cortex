@@ -368,7 +368,7 @@ func (r *requestor) request() {
 // or block until processSuccessfully is called.
 func (r *requestor) requestWithContext(ctx context.Context) {
 	go func() {
-		err := r.breaker.Maybe(ctx, func() {
+		err := r.breaker.Maybe("", ctx, func() {
 			r.InProgress.Inc()
 			<-r.barrierCh
 		})
@@ -402,14 +402,14 @@ func BenchmarkBreakerMaybe(b *testing.B) {
 
 		b.Run(fmt.Sprintf("%d-sequential", c), func(b *testing.B) {
 			for j := 0; j < b.N; j++ {
-				breaker.Maybe(context.Background(), op)
+				breaker.Maybe("", context.Background(), op)
 			}
 		})
 
 		b.Run(fmt.Sprintf("%d-parallel", c), func(b *testing.B) {
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
-					breaker.Maybe(context.Background(), op)
+					breaker.Maybe("", context.Background(), op)
 				}
 			})
 		})

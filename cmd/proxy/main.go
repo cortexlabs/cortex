@@ -148,16 +148,27 @@ func main() {
 	adminHandler.Handle("/metrics", promStats)
 	adminHandler.Handle("/healthz", readinessTCPHandler(userContainerPort, hasTCPProbe, log))
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(60*time.Second))
+
 	servers := map[string]*http.Server{
 		"proxy": {
-			Addr:    ":" + strconv.Itoa(port),
-			Handler: proxy.Handler(breaker, httpProxy),
+			Addr:              ":" + strconv.Itoa(port),
+			Handler:           proxy.Handler(breaker, httpProxy),
+			ReadTimeout:       60 * time.Second,
+			WriteTimeout:      60 * time.Second,
+			ReadHeaderTimeout: 60 * time.Second,
+			IdleTimeout:       60 * time.Second,
+			BaseContext: func(n net.Listener) context.Context {
+				return ctx
+			},
 		},
 		"admin": {
 			Addr:    ":" + strconv.Itoa(adminPort),
 			Handler: adminHandler,
 		},
 	}
+
+	servers["proxy"].RegisterOnShutdown(cancel)
 
 	errCh := make(chan error)
 	for name, server := range servers {

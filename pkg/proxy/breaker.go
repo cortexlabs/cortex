@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.uber.org/atomic"
 )
@@ -131,7 +132,7 @@ func (b *Breaker) Reserve(_ context.Context) (func(), bool) {
 // and queue parameters. If the concurrency limit and queue capacity are
 // already consumed, Maybe returns immediately without calling thunk. If
 // the thunk was executed, Maybe returns true, else false.
-func (b *Breaker) Maybe(ctx context.Context, thunk func()) error {
+func (b *Breaker) Maybe(requestID string, ctx context.Context, thunk func()) error {
 	if !b.tryAcquirePending() {
 		return ErrRequestQueueFull
 	}
@@ -149,7 +150,30 @@ func (b *Breaker) Maybe(ctx context.Context, thunk func()) error {
 	defer b.sem.release()
 
 	// Do the thing.
+	fmt.Printf("%s | %s | FORWARD to container\n", time.Now().Format(time.StampMilli), requestID)
+	t := time.Now()
+
 	thunk()
+
+	// CATCH TIMEOUT
+	// done := make(chan struct{})
+	// go func() {
+	// 	thunk()
+	// 	done <- struct{}{}
+	// }()
+
+	// timer := time.NewTimer(60 * time.Second)
+	// select {
+	// // case <-ctx.Done():
+	// case <-timer.C:
+	// 	fmt.Println("beans1")
+	// 	return errors.New("timeout!!")
+	// case <-done:
+	// 	fmt.Println("beans2")
+	// 	timer.Stop()
+	// }
+
+	fmt.Printf("%s | %s | RECEIVE from container: %f\n", time.Now().Format(time.StampMilli), requestID, time.Since(t).Seconds())
 	// Report success
 	return nil
 }
