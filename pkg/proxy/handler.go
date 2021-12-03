@@ -21,10 +21,26 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/probe"
 )
+
+type doneWriter struct {
+	http.ResponseWriter
+	done bool
+}
+
+func (w *doneWriter) WriteHeader(status int) {
+	w.done = true
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *doneWriter) Write(b []byte) (int, error) {
+	w.done = true
+	return w.ResponseWriter.Write(b)
+}
 
 func Handler(breaker *Breaker, next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -33,19 +49,23 @@ func Handler(breaker *Breaker, next http.Handler) http.HandlerFunc {
 			return
 		}
 
+		dw := &doneWriter{ResponseWriter: w}
+
 		if err := breaker.Maybe(r.Header.Get("x-request-id"), r.Context(), func() {
 			// This alone caused python to error after 1 min, but it did not return (so semaphore did not release)
-			// newCtx, cancel := context.WithTimeout(context.Background(), time.Duration(60*time.Second))
-			// defer cancel()
-			// r = r.Clone(newCtx)
-			next.ServeHTTP(w, r)
+			newCtx, cancel := context.WithTimeout(context.Background(), time.Duration(60*time.Second))
+			defer cancel()
+			r = r.Clone(newCtx)
+			next.ServeHTTP(dw, r)
 		}); err != nil {
 			fmt.Println("GOT ERROR:", err)
-			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrRequestQueueFull) {
-				http.Error(w, err.Error(), http.StatusServiceUnavailable)
-			} else {
-				w.WriteHeader(http.StatusInternalServerError)
-				telemetry.Error(err)
+			if !dw.done {
+				if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrRequestQueueFull) {
+					http.Error(w, err.Error(), http.StatusServiceUnavailable)
+				} else {
+					w.WriteHeader(http.StatusInternalServerError)
+					telemetry.Error(err)
+				}
 			}
 		}
 	}

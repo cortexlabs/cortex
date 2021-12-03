@@ -151,31 +151,29 @@ func (b *Breaker) Maybe(requestID string, ctx context.Context, thunk func()) err
 	// + release calls are equally paired.
 	defer b.sem.release()
 
-	// time.Sleep(10 * time.Second)
+	// time.Sleep(70 * time.Second)
 
 	// Do the thing.
 	fmt.Printf("%s | %s | FORWARD to container\n", time.Now().Format(time.StampMilli), requestID)
 	t := time.Now()
 
-	thunk()
+	// thunk()
 
 	// CATCH TIMEOUT
-	// done := make(chan struct{})
-	// go func() {
-	// 	thunk()
-	// 	done <- struct{}{}
-	// }()
+	done := make(chan struct{})
+	go func() {
+		thunk()
+		done <- struct{}{}
+	}()
 
-	// timer := time.NewTimer(60 * time.Second)
-	// select {
-	// // case <-ctx.Done():
-	// case <-timer.C:
-	// 	fmt.Println("beans1")
-	// 	return errors.New("timeout!!")
-	// case <-done:
-	// 	fmt.Println("beans2")
-	// 	timer.Stop()
-	// }
+	timer := time.NewTimer(60 * time.Second)
+	select {
+	// case <-ctx.Done():
+	case <-timer.C:
+		return errors.New("timeout!!")
+	case <-done:
+		timer.Stop()
+	}
 
 	fmt.Printf("%s | %s | RESPONSE from container: %f\n", time.Now().Format(time.StampMilli), requestID, time.Since(t).Seconds())
 	// Report success

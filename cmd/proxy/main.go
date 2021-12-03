@@ -152,9 +152,9 @@ func main() {
 
 	servers := map[string]*http.Server{
 		"proxy": {
-			Addr:        ":" + strconv.Itoa(port),
-			Handler:     proxy.Handler(breaker, httpProxy),
-			ReadTimeout: 60 * time.Second,
+			Addr:    ":" + strconv.Itoa(port),
+			Handler: proxy.Handler(breaker, httpProxy),
+			// ReadTimeout: 60 * time.Second,
 			// WriteTimeout:      60 * time.Second,
 			// ReadHeaderTimeout: 60 * time.Second,
 			// IdleTimeout: 60 * time.Second,

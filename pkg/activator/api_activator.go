@@ -45,7 +45,7 @@ func newAPIActivator(maxQueueLength, maxConcurrency int) *apiActivator {
 func (a *apiActivator) try(ctx context.Context, fn func() error, tracker *readinessTracker) error {
 	var execErr error
 
-	if err := a.breaker.Maybe(ctx, func() {
+	if err := a.breaker.Maybe("", ctx, func() {
 		ctx, cancel := context.WithTimeout(ctx, consts.WaitForReadyReplicasTimeout)
 		defer cancel()
 
