@@ -360,7 +360,7 @@ func getAPIsByEnv(env cliconfig.Environment) (string, error) {
 	var allTrafficSplitters []schema.APIResponse
 
 	for _, api := range apisRes {
-		switch api.Spec.Kind {
+		switch api.Metadata.Kind {
 		case userconfig.BatchAPIKind:
 			allBatchAPIs = append(allBatchAPIs, api)
 		case userconfig.TaskAPIKind:
