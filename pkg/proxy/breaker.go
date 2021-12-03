@@ -133,6 +133,8 @@ func (b *Breaker) Reserve(_ context.Context) (func(), bool) {
 // already consumed, Maybe returns immediately without calling thunk. If
 // the thunk was executed, Maybe returns true, else false.
 func (b *Breaker) Maybe(requestID string, ctx context.Context, thunk func()) error {
+	fmt.Printf("%s | %s | RECEIVE request\n", time.Now().Format(time.StampMilli), requestID)
+
 	if !b.tryAcquirePending() {
 		return ErrRequestQueueFull
 	}
@@ -148,6 +150,8 @@ func (b *Breaker) Maybe(requestID string, ctx context.Context, thunk func()) err
 	// make sure the semaphore is only manipulated here and acquire
 	// + release calls are equally paired.
 	defer b.sem.release()
+
+	// time.Sleep(10 * time.Second)
 
 	// Do the thing.
 	fmt.Printf("%s | %s | FORWARD to container\n", time.Now().Format(time.StampMilli), requestID)
@@ -173,7 +177,7 @@ func (b *Breaker) Maybe(requestID string, ctx context.Context, thunk func()) err
 	// 	timer.Stop()
 	// }
 
-	fmt.Printf("%s | %s | RECEIVE from container: %f\n", time.Now().Format(time.StampMilli), requestID, time.Since(t).Seconds())
+	fmt.Printf("%s | %s | RESPONSE from container: %f\n", time.Now().Format(time.StampMilli), requestID, time.Since(t).Seconds())
 	// Report success
 	return nil
 }

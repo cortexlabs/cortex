@@ -59,4 +59,4 @@ async def sleep(sleep: float = 0, x_request_id: str = Header(None), image: Uploa
     return PlainTextResponse("ok")
 
 
-# r=$((1 + $RANDOM % 100)); echo "request ID: $r"; SECONDS=0; curl -X POST -H "x-request-id: $r" -F image=@wp.jpg http://ad14cde85e57748ff9c384a32617133f-9335e56d3708bc0a.elb.us-west-2.amazonaws.com/sleep?sleep=10 --limit-rate 4k; echo "$SECONDS seconds"
+# r=$((1 + $RANDOM % 100)); echo "request ID: $r"; SECONDS=0; curl -X POST -H "x-request-id: $r" -F image=@wp.jpg http://ad14cde85e57748ff9c384a32617133f-9335e56d3708bc0a.elb.us-west-2.amazonaws.com/sleep?sleep=1 --limit-rate 4k; echo "$SECONDS seconds"

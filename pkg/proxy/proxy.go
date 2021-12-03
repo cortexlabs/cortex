@@ -17,11 +17,9 @@ limitations under the License.
 package proxy
 
 import (
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"time"
 )
 
 // NewReverseProxy creates a new cortex base reverse proxy
@@ -45,17 +43,17 @@ func buildHTTPTransport(maxIdle, maxIdlePerHost int) http.RoundTripper {
 	transport.ForceAttemptHTTP2 = false
 	transport.DisableCompression = true
 
-	transport.ExpectContinueTimeout = 60 * time.Second
-	transport.IdleConnTimeout = 60 * time.Second
-	transport.ResponseHeaderTimeout = 60 * time.Second
-	transport.TLSHandshakeTimeout = 60 * time.Second
+	// transport.ExpectContinueTimeout = 60 * time.Second
+	// transport.IdleConnTimeout = 60 * time.Second
+	// transport.ResponseHeaderTimeout = 60 * time.Second
+	// transport.TLSHandshakeTimeout = 60 * time.Second
 
-	transport.Dial = nil
+	// transport.Dial = nil
 	// transport.DialContext = nil
-	transport.DialContext = (&net.Dialer{
-		Timeout:   60 * time.Second,
-		KeepAlive: 15 * time.Second,
-	}).DialContext
+	// transport.DialContext = (&net.Dialer{
+	// 	Timeout:   60 * time.Second,
+	// 	KeepAlive: 15 * time.Second,
+	// }).DialContext
 
 	return transport
 }

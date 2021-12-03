@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/probe"
@@ -36,9 +35,9 @@ func Handler(breaker *Breaker, next http.Handler) http.HandlerFunc {
 
 		if err := breaker.Maybe(r.Header.Get("x-request-id"), r.Context(), func() {
 			// This alone caused python to error after 1 min, but it did not return (so semaphore did not release)
-			newCtx, cancel := context.WithTimeout(context.Background(), time.Duration(60*time.Second))
-			defer cancel()
-			r = r.Clone(newCtx)
+			// newCtx, cancel := context.WithTimeout(context.Background(), time.Duration(60*time.Second))
+			// defer cancel()
+			// r = r.Clone(newCtx)
 			next.ServeHTTP(w, r)
 		}); err != nil {
 			fmt.Println("GOT ERROR:", err)
