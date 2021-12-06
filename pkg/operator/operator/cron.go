@@ -18,7 +18,6 @@ package operator
 
 import (
 	"context"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -128,7 +127,7 @@ func clusterTelemetryProperties() (map[string]interface{}, error) {
 		}
 
 		isSpot := false
-		if strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot") {
+		if node.Labels["node-lifecycle"] == "spot" {
 			isSpot = true
 		}
 
@@ -304,7 +303,7 @@ func CostBreakdown() error {
 		}
 
 		isSpot := false
-		if strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot") {
+		if node.Labels["node-lifecycle"] == "spot" {
 			isSpot = true
 		}
 

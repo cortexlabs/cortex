@@ -19,7 +19,6 @@ package endpoints
 import (
 	"net/http"
 	"sort"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -76,7 +75,7 @@ func getWorkerNodeInfos() ([]schema.WorkerNodeInfo, int, error) {
 
 		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
 		nodeGroupName := node.Labels["alpha.eksctl.io/nodegroup-name"]
-		isSpot := strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot")
+		isSpot := node.Labels["node-lifecycle"] == "spot"
 
 		price := aws.InstanceMetadatas[config.ClusterConfig.Region][instanceType].Price
 		if isSpot {
