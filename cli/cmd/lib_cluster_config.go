@@ -187,7 +187,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 
 	ngNameToSpotInstancesUsed := map[string]int{}
-	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	fixedPrice := eksPrice + 2*(operatorInstancePrice+operatorEBSPrice) + prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
 	totalMinPrice := fixedPrice
 	totalMaxPrice := fixedPrice
 	for _, ng := range clusterConfig.NodeGroups {
@@ -215,7 +215,11 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 			workerPriceStr += " (spot pricing unavailable)"
 			if err == nil && spotPrice != 0 {
 				workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsAndTenthsOfCents(spotPrice+apiEBSPrice), s.DollarsAndTenthsOfCents(apiInstancePrice+apiEBSPrice))
-				totalMinPrice += float64(ng.MinInstances) * (spotPrice + apiEBSPrice)
+				if float64(ng.MinInstances) > float64(*ng.SpotConfig.OnDemandBaseCapacity) {
+					totalMinPrice += float64(ng.MinInstances-*ng.SpotConfig.OnDemandBaseCapacity)*(spotPrice+apiEBSPrice) + float64(*ng.SpotConfig.OnDemandBaseCapacity)*(apiInstancePrice+apiEBSPrice)
+				} else {
+					totalMinPrice += float64(ng.MinInstances) * (apiInstancePrice + apiEBSPrice)
+				}
 			} else {
 				totalMinPrice += float64(ng.MinInstances) * (apiInstancePrice + apiEBSPrice)
 			}
