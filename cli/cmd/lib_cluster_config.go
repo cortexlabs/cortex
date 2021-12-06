@@ -215,8 +215,10 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 			workerPriceStr += " (spot pricing unavailable)"
 			if err == nil && spotPrice != 0 {
 				workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsAndTenthsOfCents(spotPrice+apiEBSPrice), s.DollarsAndTenthsOfCents(apiInstancePrice+apiEBSPrice))
-				if float64(ng.MinInstances) > float64(*ng.SpotConfig.OnDemandBaseCapacity) {
-					totalMinPrice += float64(ng.MinInstances-*ng.SpotConfig.OnDemandBaseCapacity)*(spotPrice+apiEBSPrice) + float64(*ng.SpotConfig.OnDemandBaseCapacity)*(apiInstancePrice+apiEBSPrice)
+				if ng.MinInstances > *ng.SpotConfig.OnDemandBaseCapacity {
+					totalMinPrice += float64(ng.MinInstances-*ng.SpotConfig.OnDemandBaseCapacity)*(spotPrice+apiEBSPrice)*float64(100-*ng.SpotConfig.OnDemandPercentageAboveBaseCapacity)/100 +
+						float64(ng.MinInstances-*ng.SpotConfig.OnDemandBaseCapacity)*(apiInstancePrice+apiEBSPrice)*float64(*ng.SpotConfig.OnDemandPercentageAboveBaseCapacity)/100 +
+						float64(*ng.SpotConfig.OnDemandBaseCapacity)*(apiInstancePrice+apiEBSPrice)
 				} else {
 					totalMinPrice += float64(ng.MinInstances) * (apiInstancePrice + apiEBSPrice)
 				}
