@@ -65,8 +65,8 @@ jobs:
       - run:
           name: Initialize Credentials
           command: |
-            echo 'export AWS_ACCESS_KEY_ID=${NIGHTLY_AWS_ACCESS_KEY_ID}' >> $BASH_ENV
-            echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
+            echo 'export AWS_ACCESS_KEY_ID=${TEST_AWS_ACCESS_KEY_ID}' >> $BASH_ENV
+            echo 'export AWS_SECRET_ACCESS_KEY=${TEST_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
       - run:
           name: Generate Cluster Config
           command: |
