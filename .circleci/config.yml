@@ -194,7 +194,7 @@ jobs:
             EOF
       - run:
           name: Create/Update AWS User policy
-          command: python ./dev/create_user.py cortex-nightly 388176669058 us-east-1 > $BASH_ENV
+          command: python ./dev/create_user.py cortex-nightly $NIGHTLY_AWS_ACCOUNT_ID us-east-1 > $BASH_ENV
       - run:
           name: Wait for new keys to propagate in AWS
           command: sleep 10
@@ -260,7 +260,7 @@ jobs:
             echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
       - run:
           name: Create/Update AWS User policy
-          command: python ./dev/create_user.py cortex-nightly 388176669058 us-east-1 > $BASH_ENV
+          command: python ./dev/create_user.py cortex-nightly $NIGHTLY_AWS_ACCOUNT_ID us-east-1 > $BASH_ENV
       - run:
           name: Wait for new keys to propagate in AWS
           command: sleep 10
