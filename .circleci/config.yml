@@ -212,8 +212,6 @@ jobs:
   e2e-tests:
     docker:
       - image: cimg/python:3.6
-    environment:
-      CORTEX_TEST_BATCH_S3_PATH: s3://cortex-nightly-artifacts/test/jobs
     steps:
       - checkout
       - run:
