@@ -175,8 +175,14 @@ func (p *Probe) probeContainer() bool {
 }
 
 func (p *Probe) httpProbe() error {
+	// to mimic k8s probe functionality
+	targetHost := p.HTTPGet.Host
+	if p.HTTPGet.Host == "" {
+		targetHost = "localhost"
+	}
+
 	targetURL := s.EnsurePrefix(
-		net.JoinHostPort(p.HTTPGet.Host, p.HTTPGet.Port.String())+s.EnsurePrefix(p.HTTPGet.Path, "/"),
+		net.JoinHostPort(targetHost, p.HTTPGet.Port.String())+s.EnsurePrefix(p.HTTPGet.Path, "/"),
 		"http://",
 	)
 
@@ -215,8 +221,14 @@ func (p *Probe) httpProbe() error {
 }
 
 func (p *Probe) tcpProbe() error {
+	// to mimic k8s probe functionality
+	targetHost := p.TCPSocket.Host
+	if p.TCPSocket.Host == "" {
+		targetHost = "localhost"
+	}
+
 	timeout := time.Duration(p.TimeoutSeconds) * time.Second
-	address := net.JoinHostPort(p.TCPSocket.Host, p.TCPSocket.Port.String())
+	address := net.JoinHostPort(targetHost, p.TCPSocket.Port.String())
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	if err != nil {
 		return err
