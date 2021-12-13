@@ -8,6 +8,8 @@ RUN apt-get update \
         build-essential \
         git \
         cmake \
+        libjpeg8-dev \
+        zlib1g-dev \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 ENV LC_ALL=C.UTF-8 LANG=C.UTF-8

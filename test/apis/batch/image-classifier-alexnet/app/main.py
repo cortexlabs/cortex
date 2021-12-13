@@ -73,7 +73,7 @@ def handle_batch(image_urls: List[str]):
         tensor_list.append(app.preprocess(img_pil))
 
     # classify the batch of images
-    img_tensor = torch.stack(tensor_list)
+    img_tensor = torch.stack(tensor_list).to(app.device)
     with torch.no_grad():
         prediction = app.model(img_tensor)
     _, indices = prediction.max(1)
