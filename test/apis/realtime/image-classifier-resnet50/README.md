@@ -15,7 +15,7 @@ python client.py http://<lb-id>.elb.<cluster-region>.amazonaws.com/image-classif
 Or alternatively:
 
 ```bash
-curl "http://<lb-id>.elb.<cluster-region>.amazonaws.com/image-classifier-resnet50/v1/models/resnet50:predict" -X POST -H "Content-type: application/json" -d @sample_inf.json
+curl "http://<lb-id>.elb.<cluster-region>.amazonaws.com/image-classifier-resnet50/v1/models/resnet50:predict" -X POST -H "Content-type: application/json" -d @sample.json
 ```
 
 ## Inferentia
@@ -30,12 +30,6 @@ cortex get image-classifier-resnet50
 
 ```bash
 python client_inf.py http://<lb-id>.elb.<cluster-region>.amazonaws.com/image-classifier-resnet50
-```
-
-Or alternatively:
-
-```bash
-curl "http://<lb-id>.elb.<cluster-region>.amazonaws.com/image-classifier-resnet50/v1/models/resnet50_neuron:predict" -X POST -H "Content-type: application/json" -d @sample.json
 ```
 
 ### gRPC
