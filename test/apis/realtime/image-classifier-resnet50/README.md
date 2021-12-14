@@ -3,6 +3,7 @@
 ## CPU/GPU
 
 Get the image classifier endpoint:
+
 ```bash
 cortex get image-classifier-resnet50
 ```
@@ -22,6 +23,7 @@ curl "http://<lb-id>.elb.<cluster-region>.amazonaws.com/image-classifier-resnet5
 ### HTTP
 
 Get the image classifier endpoint:
+
 ```bash
 cortex get image-classifier-resnet50
 ```
