@@ -1,10 +1,44 @@
-# Inferentia
+# Running an example
+
+## CPU/GPU
+
+Get the image classifier endpoint:
+
+```bash
+cortex get image-classifier-resnet50
+```
+
+```bash
+python client.py http://<lb-id>.elb.<cluster-region>.amazonaws.com/image-classifier-resnet50
+```
+
+Or alternatively:
+
+```bash
+curl "http://<lb-id>.elb.<cluster-region>.amazonaws.com/image-classifier-resnet50/v1/models/resnet50:predict" -X POST -H "Content-type: application/json" -d @sample.json
+```
+
+## Inferentia
+
+### HTTP
+
+Get the image classifier endpoint:
+
+```bash
+cortex get image-classifier-resnet50
+```
+
+```bash
+python client_inf.py http://<lb-id>.elb.<cluster-region>.amazonaws.com/image-classifier-resnet50
+```
+
+### gRPC
 
 The Inferentia examples were inspired by [this tutorial](https://awsdocs-neuron.readthedocs-hosted.com/en/latest/neuron-deploy/tutorials/k8s_rn50_demo.html).
 
-This guide shows how to exec into a pod, check the Neuron runtime, and make inferences using gRPC for testing purposes (exposing gRPC endpoints outside of the cluster is not currently supported by Cortex, but is on the roadmap). It is possible to make HTTP requests to this API from outside of the cluster.
+This guide shows how to exec into a pod, check the Neuron runtime, and make inferences using gRPC for testing purposes (exposing gRPC endpoints outside of the cluster is not currently supported by Cortex, but is on the roadmap).
 
-## Making an inference
+#### Making an inference
 
 Exec into the TensorFlow Serving pod:
 
@@ -47,7 +81,7 @@ Run an inference:
 python tensorflow-model-server-infer.py
 ```
 
-## Inspecting the neuron runtime
+#### Inspecting the neuron runtime
 
 Exec into the TensorFlow Serving pod (the `rtd` pod will also work for the example which uses the neuron-rtd sidecar):
 
