@@ -155,27 +155,27 @@ func (b *Breaker) Maybe(requestID string, ctx context.Context, thunk func()) err
 
 	// Do the thing.
 	fmt.Printf("%s | %s | FORWARD to container\n", time.Now().Format(time.StampMilli), requestID)
-	t := time.Now()
+	// t := time.Now()
 
-	// thunk()
+	thunk()
 
-	// CATCH TIMEOUT
-	done := make(chan struct{})
-	go func() {
-		thunk()
-		done <- struct{}{}
-	}()
+	// // CATCH TIMEOUT
+	// done := make(chan struct{})
+	// go func() {
+	// 	thunk()
+	// 	done <- struct{}{}
+	// }()
 
-	timer := time.NewTimer(60 * time.Second)
-	select {
-	// case <-ctx.Done():
-	case <-timer.C:
-		return errors.New("timeout!!")
-	case <-done:
-		timer.Stop()
-	}
+	// timer := time.NewTimer(60 * time.Second)
+	// select {
+	// // case <-ctx.Done():
+	// case <-timer.C:
+	// 	return errors.New("timeout!!")
+	// case <-done:
+	// 	timer.Stop()
+	// }
 
-	fmt.Printf("%s | %s | RESPONSE from container: %f\n", time.Now().Format(time.StampMilli), requestID, time.Since(t).Seconds())
+	// fmt.Printf("%s | %s | RESPONSE from container: %f\n", time.Now().Format(time.StampMilli), requestID, time.Since(t).Seconds())
 	// Report success
 	return nil
 }
