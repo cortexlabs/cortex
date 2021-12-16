@@ -155,7 +155,7 @@ func (b *Breaker) Maybe(requestID string, ctx context.Context, thunk func()) err
 
 	// Do the thing.
 	fmt.Printf("%s | %s | FORWARD to container\n", time.Now().Format(time.StampMilli), requestID)
-	// t := time.Now()
+	t := time.Now()
 
 	thunk()
 
@@ -175,7 +175,7 @@ func (b *Breaker) Maybe(requestID string, ctx context.Context, thunk func()) err
 	// 	timer.Stop()
 	// }
 
-	// fmt.Printf("%s | %s | RESPONSE from container: %f\n", time.Now().Format(time.StampMilli), requestID, time.Since(t).Seconds())
+	fmt.Printf("%s | %s | RESPONSE from container: %f\n", time.Now().Format(time.StampMilli), requestID, time.Since(t).Seconds())
 	// Report success
 	return nil
 }
