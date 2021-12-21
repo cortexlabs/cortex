@@ -35,4 +35,4 @@ Visit the workload-specific documentation for more details.
 
 ## Architecture Diagram
 
-![](https://user-images.githubusercontent.com/4365343/121231768-ce62e200-c85e-11eb-84b1-3d5d4b999c12.png)
+![](https://user-images.githubusercontent.com/808475/146854233-505fb8c2-513d-4836-920b-5d447da95dee.png)
