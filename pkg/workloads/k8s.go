@@ -19,6 +19,7 @@ package workloads
 import (
 	"fmt"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -386,10 +387,18 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			})
 		}
 
-		for k, v := range container.Env {
+		envVarNames := make([]string, 0, len(container.Env))
+		for envVarName := range container.Env {
+			envVarNames = append(envVarNames, envVarName)
+		}
+
+		// k8s deployments will replace pods if env vars are re-ordered
+		sort.Strings(envVarNames)
+
+		for _, envVarName := range envVarNames {
 			containerEnvVars = append(containerEnvVars, kcore.EnvVar{
-				Name:  k,
-				Value: v,
+				Name:  envVarName,
+				Value: container.Env[envVarName],
 			})
 		}
 
