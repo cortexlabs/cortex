@@ -267,7 +267,7 @@ func TaskContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.
 
 		containerDeathDependencies := containerNames.Copy()
 		containerDeathDependencies.Remove(c.Name)
-		containerDeathEnvVars := getKubexitEnvVars(c.Name, containerDeathDependencies.Slice(), nil)
+		containerDeathEnvVars := getKubexitEnvVars(c.Name, containerDeathDependencies.SliceSorted(), nil)
 		containers[i].Env = append(containers[i].Env, containerDeathEnvVars...)
 
 		if c.Command[0] != "/cortex/kubexit" {
@@ -304,7 +304,7 @@ func BatchContainers(api spec.API, job *spec.BatchJob) ([]kcore.Container, []kco
 
 		containerDeathDependencies := containerNames.Copy()
 		containerDeathDependencies.Remove(c.Name)
-		containerDeathEnvVars := getKubexitEnvVars(c.Name, containerDeathDependencies.Slice(), nil)
+		containerDeathEnvVars := getKubexitEnvVars(c.Name, containerDeathDependencies.SliceSorted(), nil)
 		containers[i].Env = append(containers[i].Env, containerDeathEnvVars...)
 
 		if c.Command[0] != "/cortex/kubexit" {
