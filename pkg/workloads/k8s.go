@@ -209,19 +209,19 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 				kcore.ResourceMemory: consts.CortexProxyMem,
 			},
 		},
-		ReadinessProbe: &kcore.Probe{
-			Handler: kcore.Handler{
-				HTTPGet: &kcore.HTTPGetAction{
-					Path: "/healthz",
-					Port: intstr.FromInt(int(consts.AdminPortInt32)),
-				},
-			},
-			InitialDelaySeconds: 1,
-			TimeoutSeconds:      3,
-			PeriodSeconds:       10,
-			SuccessThreshold:    1,
-			FailureThreshold:    3,
-		},
+		// ReadinessProbe: &kcore.Probe{
+		// 	Handler: kcore.Handler{
+		// 		HTTPGet: &kcore.HTTPGetAction{
+		// 			Path: "/healthz",
+		// 			Port: intstr.FromInt(int(consts.AdminPortInt32)),
+		// 		},
+		// 	},
+		// 	InitialDelaySeconds: 1,
+		// 	TimeoutSeconds:      3,
+		// 	PeriodSeconds:       10,
+		// 	SuccessThreshold:    1,
+		// 	FailureThreshold:    3,
+		// },
 	}, ClusterConfigVolume()
 }
 

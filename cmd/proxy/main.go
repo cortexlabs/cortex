@@ -162,10 +162,10 @@ func main() {
 			// 	return ctx
 			// },
 		},
-		"admin": {
-			Addr:    ":" + strconv.Itoa(adminPort),
-			Handler: adminHandler,
-		},
+		// "admin": {
+		// 	Addr:    ":" + strconv.Itoa(adminPort),
+		// 	Handler: adminHandler,
+		// },
 	}
 
 	// servers["proxy"].RegisterOnShutdown(cancel)
