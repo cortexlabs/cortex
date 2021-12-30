@@ -1,6 +1,6 @@
 # to replace when building the dockerfile
 FROM ubuntu:18.04
-ENV CORTEX_MODEL_SERVER_VERSION=0.1.0
+ENV CORTEX_MODEL_SERVER_VERSION=0.2.0
 
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \

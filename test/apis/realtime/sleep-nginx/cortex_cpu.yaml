@@ -1,0 +1,24 @@
+- name: sleep
+  kind: RealtimeAPI
+  pod:
+    port: 8080
+    max_concurrency: 1
+    max_queue_length: 128
+    containers:
+      - name: api
+        image: 764403040460.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/realtime-sleep-cpu:latest
+        # readiness_probe:
+        #   http_get:
+        #     path: "/healthz"
+        #     port: 8080
+        compute:
+          cpu: 200m
+          mem: 128Mi
+      - name: nginx
+        image: 764403040460.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/realtime-sleep-nginx:latest
+        compute:
+          cpu: 200m
+          mem: 128Mi
+  autoscaling:
+    target_in_flight: 1
+    max_replicas: 1
