@@ -1,0 +1,20 @@
+- name: sleep
+  kind: RealtimeAPI
+  pod:
+    port: 8080
+    max_concurrency: 1
+    max_queue_length: 128
+    containers:
+    - name: api
+      image: 499593605069.dkr.ecr.eu-central-1.amazonaws.com/cortexlabs/realtime-sleep-cpu:latest
+      compute:
+        cpu: 200m
+        mem: 128Mi
+    - name: apache
+      image: 499593605069.dkr.ecr.eu-central-1.amazonaws.com/cortexlabs/realtime-sleep-apache:latest
+      compute:
+        cpu: 200m
+        mem: 128Mi
+  autoscaling:
+    target_in_flight: 1
+    max_replicas: 1
