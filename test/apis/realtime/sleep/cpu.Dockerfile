@@ -10,4 +10,4 @@ WORKDIR /app/
 ENV PYTHONPATH=/app
 
 ENV CORTEX_PORT=8080
-CMD uvicorn --workers 1 --limit-concurrency 2 --host 0.0.0.0 --port $CORTEX_PORT main:app
+CMD uvicorn --workers 1 --host 0.0.0.0 --port $CORTEX_PORT main:app
