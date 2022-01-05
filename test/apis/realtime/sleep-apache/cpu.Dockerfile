@@ -9,4 +9,4 @@ COPY app /app
 WORKDIR /app/
 ENV PYTHONPATH=/app
 
-CMD uvicorn --workers 1 --limit-concurrency 2 --host 0.0.0.0 --port 9000 main:app
+CMD uvicorn --workers 1 --host 0.0.0.0 --port 9000 main:app
