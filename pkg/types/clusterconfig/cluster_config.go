@@ -324,6 +324,7 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StringValidation: &cr.StringValidation{
 			MinLength: 1,
 			Default:   "t3.medium",
+			// TODO could add a ValidatorWithField field to avoid having to validate for the nlb stuff in the validate function (from cluster config)
 			Validator: validatePrometheusInstanceType,
 		},
 	},
@@ -920,6 +921,16 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 }
 
 func (cc *Config) validate(awsClient *aws.Client) error {
+	if cc.APILoadBalancerType == NLBLoadBalancerType {
+		isSupportedByNLB, err := aws.IsInstanceSupportedByNLB(cc.PrometheusInstanceType)
+		if err != nil {
+			return err
+		}
+		if !isSupportedByNLB {
+			return errors.Wrap(ErrorInstanceTypeNotSupportedByCortex(cc.PrometheusInstanceType), PrometheusInstanceTypeKey)
+		}
+	}
+
 	numNodeGroups := len(cc.NodeGroups)
 	if numNodeGroups > MaxNodeGroups {
 		return ErrorMaxNumOfNodeGroupsReached(MaxNodeGroups)
@@ -943,7 +954,7 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 			return errors.Wrap(ErrorDuplicateNodeGroupName(nodeGroup.Name), NodeGroupsKey)
 		}
 
-		err := nodeGroup.validateNodeGroup(awsClient, cc.Region)
+		err := nodeGroup.validateNodeGroup(awsClient, cc.Region, cc.APILoadBalancerType)
 		if err != nil {
 			return errors.Wrap(err, NodeGroupsKey, nodeGroup.Name)
 		}
@@ -1251,12 +1262,22 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, k8sClient *k8s.Clie
 	}, nil
 }
 
-func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) error {
+func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string, loadBalancerType LoadBalancerType) error {
 	if ng.MinInstances > ng.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(ng.MinInstances, ng.MaxInstances)
 	}
 
 	primaryInstanceType := ng.InstanceType
+
+	if loadBalancerType == NLBLoadBalancerType {
+		isPrimaryInstanceSupportedByNLB, err := aws.IsInstanceSupportedByNLB(primaryInstanceType)
+		if err != nil {
+			return err
+		}
+		if !isPrimaryInstanceSupportedByNLB {
+			return errors.Wrap(ErrorInstanceTypeNotSupportedByCortex(primaryInstanceType), InstanceTypeKey)
+		}
+	}
 
 	if !aws.InstanceTypes[region].Has(primaryInstanceType) {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, region), InstanceTypeKey)
@@ -1327,6 +1348,15 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, region), SpotConfigKey, InstanceDistributionKey)
 			}
 
+			if loadBalancerType == NLBLoadBalancerType {
+				isSecondaryInstanceSupportedByNLB, err := aws.IsInstanceSupportedByNLB(primaryInstanceType)
+				if err != nil {
+					return err
+				}
+				if !isSecondaryInstanceSupportedByNLB {
+					return errors.Wrap(ErrorInstanceTypeNotSupportedByCortex(primaryInstanceType), SpotConfigKey, InstanceDistributionKey)
+				}
+			}
 			if _, ok := aws.InstanceMetadatas[region][instanceType]; !ok {
 				return errors.Wrap(ErrorInstanceTypeNotSupportedByCortex(instanceType), SpotConfigKey, InstanceDistributionKey)
 			}
@@ -1541,14 +1571,6 @@ func validateInstanceType(instanceType string) (string, error) {
 
 	if parsedType.Size == "nano" || parsedType.Size == "micro" {
 		return "", ErrorInstanceTypeTooSmall(instanceType)
-	}
-
-	isSupportedByNLB, err := aws.IsInstanceSupportedByNLB(instanceType)
-	if err != nil {
-		return "", err
-	}
-	if !isSupportedByNLB {
-		return "", ErrorInstanceTypeNotSupportedByCortex(instanceType)
 	}
 
 	isAMDGPU, err := aws.IsAMDGPUInstance(instanceType)
