@@ -13,15 +13,29 @@
 # limitations under the License.
 
 
-def get_operator_load_balancer(cluster_name, client_elbv2):
-    return _get_load_balancer("operator", cluster_name, client_elbv2)
+def get_operator_load_balancer_v2(cluster_name, client_elbv2):
+    return _get_load_balancer_v2("operator", cluster_name, client_elbv2)
 
 
-def get_api_load_balancer(cluster_name, client_elbv2):
-    return _get_load_balancer("api", cluster_name, client_elbv2)
+def get_api_load_balancer_v2(cluster_name, client_elbv2):
+    return _get_load_balancer_v2("api", cluster_name, client_elbv2)
 
 
-def _get_load_balancer(load_balancer_tag, cluster_name, client_elbv2):
+def get_api_load_balancer(cluster_name, client_elb):
+    return _get_load_balancer("api", cluster_name, client_elb)
+
+
+def get_api_load_balancer_health(load_balancer_name, client_elb):
+    instance_health = client_elb.describe_instance_health(
+        LoadBalancerName=load_balancer_name,
+    )
+    for instance_state in instance_health["InstanceStates"]:
+        if instance_state["State"] != "InService":
+            return "inactive"
+    return "active"
+
+
+def _get_load_balancer_v2(load_balancer_tag, cluster_name, client_elbv2):
     paginator = client_elbv2.get_paginator("describe_load_balancers")
     for load_balancer_page in paginator.paginate(PaginationConfig={"PageSize": 20}):
         load_balancers = {
@@ -41,5 +55,29 @@ def _get_load_balancer(load_balancer_tag, cluster_name, client_elbv2):
                     foundLoadBalancerTag = True
             if foundClusterNameTag and foundLoadBalancerTag:
                 return load_balancers[tag_description["ResourceArn"]]
+
+    raise Exception(f"unable to find {load_balancer_tag} load balancer")
+
+
+def _get_load_balancer(load_balancer_tag, cluster_name, client_elb):
+    paginator = client_elb.get_paginator("describe_load_balancers")
+    for load_balancer_page in paginator.paginate(PaginationConfig={"PageSize": 20}):
+        load_balancers = {
+            load_balancer["LoadBalancerName"]: load_balancer
+            for load_balancer in load_balancer_page["LoadBalancerDescriptions"]
+        }
+        tag_descriptions = client_elb.describe_tags(LoadBalancerNames=list(load_balancers.keys()))[
+            "TagDescriptions"
+        ]
+        for tag_description in tag_descriptions:
+            foundClusterNameTag = False
+            foundLoadBalancerTag = False
+            for tags in tag_description["Tags"]:
+                if tags["Key"] == "cortex.dev/cluster-name" and tags["Value"] == cluster_name:
+                    foundClusterNameTag = True
+                if tags["Key"] == "cortex.dev/load-balancer" and tags["Value"] == load_balancer_tag:
+                    foundLoadBalancerTag = True
+            if foundClusterNameTag and foundLoadBalancerTag:
+                return load_balancers[tag_description["LoadBalancerName"]]
 
     raise Exception(f"unable to find {load_balancer_tag} load balancer")

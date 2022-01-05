@@ -15,17 +15,22 @@
 import boto3
 import os
 
-from helpers import get_api_load_balancer
+from helpers import get_api_load_balancer_v2, get_api_load_balancer, get_api_load_balancer_health
 
 
 def get_api_load_balancer_state():
     cluster_name = os.environ["CORTEX_CLUSTER_NAME"]
     region = os.environ["CORTEX_REGION"]
+    load_balancer_type = os.environ["API_LOAD_BALANCER_TYPE"]
 
-    client_elbv2 = boto3.client("elbv2", region_name=region)
-
-    load_balancer = get_api_load_balancer(cluster_name, client_elbv2)
-    return load_balancer["State"]["Code"]
+    if load_balancer_type == "nlb":
+        client_elbv2 = boto3.client("elbv2", region_name=region)
+        load_balancer = get_api_load_balancer_v2(cluster_name, client_elbv2)
+        return load_balancer["State"]["Code"]
+    else:
+        client_elb = boto3.client("elb", region_name=region)
+        load_balancer = get_api_load_balancer(cluster_name, client_elb)
+        return get_api_load_balancer_health(load_balancer["LoadBalancerName"], client_elb)
 
 
 if __name__ == "__main__":

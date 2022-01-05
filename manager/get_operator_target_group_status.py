@@ -16,7 +16,7 @@ import boto3
 import os
 import json
 
-from helpers import get_operator_load_balancer
+from helpers import get_operator_load_balancer_v2
 
 
 def get_operator_target_group_status():
@@ -25,7 +25,7 @@ def get_operator_target_group_status():
 
     client_elbv2 = boto3.client("elbv2", region_name=region)
 
-    load_balancer_arn = get_operator_load_balancer(cluster_name, client_elbv2)["LoadBalancerArn"]
+    load_balancer_arn = get_operator_load_balancer_v2(cluster_name, client_elbv2)["LoadBalancerArn"]
     target_group_arn = get_load_balancer_https_target_group_arn(load_balancer_arn, client_elbv2)
     return get_target_health(target_group_arn, client_elbv2)
 
