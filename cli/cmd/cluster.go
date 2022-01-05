@@ -1367,7 +1367,7 @@ func (lb LoadBalancer) String() string {
 
 // Will return error if the load balancer can't be found
 func getLoadBalancer(clusterName string, whichLB LoadBalancer, awsClient *awslib.Client) (*elbv2.LoadBalancer, error) {
-	loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
+	loadBalancer, err := awsClient.FindLoadBalancerV2(map[string]string{
 		clusterconfig.ClusterNameTag: clusterName,
 		"cortex.dev/load-balancer":   whichLB.String(),
 	})

@@ -136,6 +136,7 @@ type CoreConfig struct {
 	SubnetVisibility                  SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
 	Subnets                           []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
 	NATGateway                        NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
+	APILoadBalancerType               LoadBalancerType   `json:"api_load_balancer_type" yaml:"api_load_balancer_type"`
 	APILoadBalancerScheme             LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme        LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
 	APILoadBalancerCIDRWhiteList      []string           `json:"api_load_balancer_cidr_white_list,omitempty" yaml:"api_load_balancer_cidr_white_list,omitempty"`
@@ -632,6 +633,16 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 				return NoneNATGateway.String()
 			}
 			return SingleNATGateway.String()
+		},
+	},
+	{
+		StructField: "APILoadBalancerType",
+		StringValidation: &cr.StringValidation{
+			AllowedValues: LoadBalancerTypeStrings(),
+			Default:       NLBLoadBalancerType.String(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return LoadBalancerTypeFromString(str), nil
 		},
 	},
 	{
@@ -1835,6 +1846,7 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 
 	event["subnet_visibility"] = cc.SubnetVisibility
 	event["nat_gateway"] = cc.NATGateway
+	event["api_load_balancer_type"] = cc.APILoadBalancerType
 	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
 	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
 	if cc.VPCCIDR != nil {
