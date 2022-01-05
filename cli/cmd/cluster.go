@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/cli/cluster"
@@ -302,7 +303,7 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
-		loadBalancer, err := getLoadBalancer(clusterConfig.ClusterName, OperatorLoadBalancer, awsClient)
+		loadBalancer, err := getLoadBalancerV2(clusterConfig.ClusterName, OperatorLoadBalancer, awsClient)
 		if err != nil {
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", envName)))
 		}
@@ -522,7 +523,7 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		// updating CLI env is best-effort, so ignore errors
-		loadBalancer, _ := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
+		loadBalancer, _ := getLoadBalancerV2(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 
 		fmt.Print("￮ deleting sqs queues ... ")
 		numDeleted, err := awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
@@ -735,7 +736,7 @@ var _clusterExportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		loadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
+		loadBalancer, err := getLoadBalancerV2(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -881,17 +882,27 @@ func cmdPrintConfig(awsClient *awslib.Client, accessConfig *clusterconfig.Access
 func cmdInfo(awsClient *awslib.Client, accessConfig *clusterconfig.AccessConfig, stacks clusterstate.ClusterStacks, outputType flags.OutputType, disallowPrompt bool) {
 	clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, outputType == flags.PrettyOutputType)
 
-	operatorLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
+	operatorLoadBalancer, err := getLoadBalancerV2(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 	if err != nil {
 		exit.Error(err)
 	}
-	apiLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, APILoadBalancer, awsClient)
-	if err != nil {
-		exit.Error(err)
-	}
-
 	operatorEndpoint := s.EnsurePrefix(*operatorLoadBalancer.DNSName, "https://")
-	apiEndpoint := *apiLoadBalancer.DNSName
+
+	var apiEndpoint string
+	if clusterConfig.APILoadBalancerType == clusterconfig.NLBLoadBalancerType {
+		apiLoadBalancer, err := getLoadBalancerV2(accessConfig.ClusterName, APILoadBalancer, awsClient)
+		if err != nil {
+			exit.Error(err)
+		}
+		apiEndpoint = *apiLoadBalancer.DNSName
+	}
+	if clusterConfig.APILoadBalancerType == clusterconfig.NLBLoadBalancerType {
+		apiLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, APILoadBalancer, awsClient)
+		if err != nil {
+			exit.Error(err)
+		}
+		apiEndpoint = *apiLoadBalancer.DNSName
+	}
 
 	if outputType == flags.JSONOutputType || outputType == flags.YAMLOutputType {
 		infoResponse, err := getInfoOperatorResponse(operatorEndpoint)
@@ -1366,8 +1377,24 @@ func (lb LoadBalancer) String() string {
 }
 
 // Will return error if the load balancer can't be found
-func getLoadBalancer(clusterName string, whichLB LoadBalancer, awsClient *awslib.Client) (*elbv2.LoadBalancer, error) {
+func getLoadBalancerV2(clusterName string, whichLB LoadBalancer, awsClient *awslib.Client) (*elbv2.LoadBalancer, error) {
 	loadBalancer, err := awsClient.FindLoadBalancerV2(map[string]string{
+		clusterconfig.ClusterNameTag: clusterName,
+		"cortex.dev/load-balancer":   whichLB.String(),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("unable to locate %s load balancer", whichLB.String()))
+	}
+
+	if loadBalancer == nil {
+		return nil, ErrorNoOperatorLoadBalancer(whichLB.String())
+	}
+
+	return loadBalancer, nil
+}
+
+func getLoadBalancer(clusterName string, whichLB LoadBalancer, awsClient *awslib.Client) (*elb.LoadBalancerDescription, error) {
+	loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
 		clusterconfig.ClusterNameTag: clusterName,
 		"cortex.dev/load-balancer":   whichLB.String(),
 	})
