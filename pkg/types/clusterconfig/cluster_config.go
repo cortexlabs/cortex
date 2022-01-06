@@ -324,7 +324,6 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StringValidation: &cr.StringValidation{
 			MinLength: 1,
 			Default:   "t3.medium",
-			// TODO could add a ValidatorWithField field to avoid having to validate for the nlb stuff in the validate function (from cluster config)
 			Validator: validatePrometheusInstanceType,
 		},
 	},

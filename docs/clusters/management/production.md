@@ -47,7 +47,7 @@ See [here](../networking/load-balancers.md) for more information about the load 
 
 ### Workload load-balancing
 
-Depending on your application's requirements, you might have different needs from the cluster's api load balancer. By default, the api load balancer is a [Network load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) (NLB) that works at L4 and it's highly performant. Alternatively, a [Classic load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html) (ELB) can be set `api_load_balancer_type: elb` in your cluster config. An ELB works at both layers L4 and L7, but it's less performant. This choice can only be made before spinning up your cluster.
+Depending on your application's requirements, you might have different needs from the cluster's api load balancer. By default, the api load balancer is a [Network load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) (NLB) that works at L4 and it's highly performant. Alternatively, a [Classic load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html) (ELB) can be set `api_load_balancer_type: elb` in your cluster config. An ELB works at both L4 and L7 layers, but it's less performant. This selection can only be made before spinning up your cluster.
 
 ### Ensure node provisioning
 

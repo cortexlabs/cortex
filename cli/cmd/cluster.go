@@ -1407,6 +1407,7 @@ func getLoadBalancerV2(clusterName string, whichLB LoadBalancer, awsClient *awsl
 	return loadBalancer, nil
 }
 
+// Will return error if the load balancer can't be found
 func getLoadBalancer(clusterName string, whichLB LoadBalancer, awsClient *awslib.Client) (*elb.LoadBalancerDescription, error) {
 	loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
 		clusterconfig.ClusterNameTag: clusterName,
