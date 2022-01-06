@@ -14,7 +14,7 @@ Cortex uses the Kubernetes Cluster Autoscaler to scale the appropriate node grou
 
 By default, a new dedicated VPC is created for the cluster during installation.
 
-Two network load balancers (NLBs) are created to route traffic to the cluster. One load balancer is dedicated for traffic to your APIs, and the other load balancer is dedicated for API management requests to Cortex from your CLI or Python client. Optionally, the API load balancer can be a classic load balancer (ELB). Traffic to the load balancers can be secured and restricted based on your cluster configuration.
+Two AWS load balancers are created to route traffic to the cluster. One load balancer is dedicated for traffic to your APIs, and the other load balancer is dedicated for API management requests to Cortex from your CLI or Python client. Traffic to the load balancers can be secured and restricted based on your cluster configuration.
 
 ### Observability
 

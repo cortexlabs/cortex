@@ -293,14 +293,16 @@ func getLoadBalancerHealth(awsClient *awslib.Client, clusterName string, loadBal
 		"cortex.dev/load-balancer":   loadBalancerName,
 	})
 	loadBalancerV2Exists := err == nil && loadBalancerV2 != nil
-	if !testClassicLB && !loadBalancerV2Exists {
-		return false, errors.Wrap(err, fmt.Sprintf("unable to locate %s nlb load balancer", loadBalancerName))
+
+	if loadBalancerV2Exists {
+		return aws.IsLoadBalancerV2Healthy(*loadBalancerV2), nil
 	}
-	if loadBalancerV2Exists && aws.IsLoadBalancerV2Healthy(*loadBalancerV2) {
-		return true, nil
-	}
+
 	if !testClassicLB {
-		return false, nil
+		if err == nil {
+			return false, errors.ErrorUnexpected(fmt.Sprintf("unable to locate %s nlb load balancer", loadBalancerName))
+		}
+		return false, errors.Wrap(err, fmt.Sprintf("unable to locate %s nlb load balancer", loadBalancerName))
 	}
 
 	loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
@@ -309,6 +311,9 @@ func getLoadBalancerHealth(awsClient *awslib.Client, clusterName string, loadBal
 	})
 	loadBalancerExists := err == nil && loadBalancer != nil
 	if !loadBalancerExists {
+		if err == nil {
+			return false, errors.ErrorUnexpected(fmt.Sprintf("unable to locate %s elb load balancer", loadBalancerName))
+		}
 		return false, errors.Wrap(err, fmt.Sprintf("unable to locate %s elb load balancer", loadBalancerName))
 	}
 	healthy, err := awsClient.IsLoadBalancerHealthy(*loadBalancer.LoadBalancerName)

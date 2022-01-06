@@ -4,8 +4,6 @@ This guide shows how set up AWS API Gateway for your Cortex APIs, which is the s
 
 Please note that one limitation of API Gateway is that there is a 30-second time limit for all requests.
 
-A requirement that needs to be met for this guide is that the `api_load_balancer_type` field has to be set to `nlb` in your cluster configuration file before creating the cluster. By default, the field is set to `nlb`.
-
 If your API load balancer is internet-facing (which is the default, or you set `api_load_balancer_scheme: internet-facing` in your cluster configuration file before creating your cluster), use the [first section](#internet-facing-load-balancer) of this guide.
 
 If your API load balancer is internal (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), use the [second section](#internal-load-balancer) of this guide.

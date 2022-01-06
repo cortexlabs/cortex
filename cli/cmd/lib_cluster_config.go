@@ -246,8 +246,8 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	rows = append(rows, []interface{}{"2 t3.medium instances (cortex system)", s.DollarsAndTenthsOfCents(operatorNodeGroupPrice) + " total"})
 	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (prometheus)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
 	if usesELBForAPILoadBalancer {
-		rows = append(rows, []interface{}{"1 network load balancer", s.DollarsMaxPrecision(nlbPrice) + " total"})
-		rows = append(rows, []interface{}{"1 classic load balancer", s.DollarsMaxPrecision(elbPrice) + " total"})
+		rows = append(rows, []interface{}{"1 network load balancer", s.DollarsMaxPrecision(nlbPrice)})
+		rows = append(rows, []interface{}{"1 classic load balancer", s.DollarsMaxPrecision(elbPrice)})
 	} else {
 		rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(loadBalancersPrice) + " total"})
 	}
