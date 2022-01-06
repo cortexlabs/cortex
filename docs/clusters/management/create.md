@@ -61,6 +61,9 @@ nat_gateway: none
 # API load balancer scheme [internet-facing | internal]
 api_load_balancer_scheme: internet-facing
 
+# API load balancer type [nlb | elb]
+api_load_balancer_type: nlb
+
 # operator load balancer scheme [internet-facing | internal]
 # note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator
 operator_load_balancer_scheme: internet-facing

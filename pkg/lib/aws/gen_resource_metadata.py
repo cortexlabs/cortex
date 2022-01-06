@@ -126,6 +126,7 @@ def get_nlb_metadata(pricing):
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
         return {"price": float(price)}
 
+
 def get_elb_metadata(pricing):
     for _, product in pricing["products"].items():
         if product.get("attributes") is None:
