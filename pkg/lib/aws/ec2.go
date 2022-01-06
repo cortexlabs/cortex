@@ -177,6 +177,15 @@ func IsInferentiaInstance(instanceType string) (bool, error) {
 	return parsedType.Family == "inf", nil
 }
 
+func IsTrainiumInstance(instanceType string) (bool, error) {
+	parsedType, err := ParseInstanceType(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	return parsedType.Family == "trn", nil
+}
+
 func IsMacInstance(instanceType string) (bool, error) {
 	parsedType, err := ParseInstanceType(instanceType)
 	if err != nil {
@@ -184,6 +193,45 @@ func IsMacInstance(instanceType string) (bool, error) {
 	}
 
 	if parsedType.Family == "mac" {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func IsFPGAInstance(instanceType string) (bool, error) {
+	parsedType, err := ParseInstanceType(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	if parsedType.Family == "f" {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func IsAlevoInstance(instanceType string) (bool, error) {
+	parsedType, err := ParseInstanceType(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	if parsedType.Family == "vt" {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func IsGaudiInstance(instanceType string) (bool, error) {
+	parsedType, err := ParseInstanceType(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	if parsedType.Family == "dl" {
 		return true, nil
 	}
 

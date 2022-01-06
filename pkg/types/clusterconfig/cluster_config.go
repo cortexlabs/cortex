@@ -1588,6 +1588,38 @@ func validateInstanceType(instanceType string) (string, error) {
 		return "", ErrorMacInstancesNotSupported(instanceType)
 	}
 
+	isFPGA, err := aws.IsFPGAInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isFPGA {
+		return "", ErrorFPGAInstancesNotSupported(instanceType)
+	}
+
+	isAlevo, err := aws.IsAlevoInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isAlevo {
+		return "", ErrorAlevoInstancesNotSupported(instanceType)
+	}
+
+	isGaudi, err := aws.IsGaudiInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isGaudi {
+		return "", ErrorGaudiInstancesNotSupported(instanceType)
+	}
+
+	isTrainium, err := aws.IsTrainiumInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isTrainium {
+		return "", ErrorTrainiumInstancesNotSupported(instanceType)
+	}
+
 	if _, ok := awsutils.InstanceNetworkingLimits[instanceType]; !ok {
 		return "", ErrorInstanceTypeNotSupportedByCortex(instanceType)
 	}
