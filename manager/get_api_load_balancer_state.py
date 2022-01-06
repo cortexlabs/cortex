@@ -21,7 +21,7 @@ from helpers import get_api_load_balancer_v2, get_api_load_balancer, get_api_loa
 def get_api_load_balancer_state():
     cluster_name = os.environ["CORTEX_CLUSTER_NAME"]
     region = os.environ["CORTEX_REGION"]
-    load_balancer_type = os.environ["API_LOAD_BALANCER_TYPE"]
+    load_balancer_type = os.environ["CORTEX_API_LOAD_BALANCER_TYPE"]
 
     if load_balancer_type == "nlb":
         client_elbv2 = boto3.client("elbv2", region_name=region)

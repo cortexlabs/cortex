@@ -126,6 +126,25 @@ def get_nlb_metadata(pricing):
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
         return {"price": float(price)}
 
+def get_elb_metadata(pricing):
+    for _, product in pricing["products"].items():
+        if product.get("attributes") is None:
+            continue
+        if product.get("productFamily") != "Load Balancer":
+            continue
+        if product["attributes"].get("group") != "ELB:Balancer":
+            continue
+        if product["attributes"].get("operation") != "LoadBalancing":
+            continue
+        if "LoadBalancerUsage" not in product["attributes"].get("usagetype"):
+            continue
+
+        price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
+            "priceDimensions"
+        ]
+        price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
+        return {"price": float(price)}
+
 
 def get_nat_metadata(pricing):
     for _, product in pricing["products"].items():
@@ -300,6 +319,11 @@ type NLBMetadata struct {
 	Price  float64 `json:"price"`
 }
 
+type ELBMetadata struct {
+	Region string  `json:"region"`
+	Price  float64 `json:"price"`
+}
+
 type NATMetadata struct {
 	Region string  `json:"region"`
 	Price  float64 `json:"price"`
@@ -333,6 +357,11 @@ var InstanceMetadatas = map[string]map[string]InstanceMetadata{
 // region -> NLB metadata
 var NLBMetadatas = map[string]NLBMetadata{
 	${nlb_region_map}
+}
+
+// region -> ELB metadata
+var ELBMetadatas = map[string]ELBMetadata{
+	${elb_region_map}
 }
 
 // region -> NAT metadata
@@ -377,13 +406,18 @@ nlb_region_map_template = Template(
 """
 )
 
+elb_region_map_template = Template(
+    """"${region}": {Region: "${region}", Price: ${price}},
+"""
+)
+
 nat_region_map_template = Template(
     """"${region}": {Region: "${region}", Price: ${price}},
 """
 )
 
 ebs_region_map_template = Template(
-    """"${region}": map[string]EBSMetadata{
+    """"${region}": {
 	${ebs_metadata}
 },
 """
@@ -435,6 +469,7 @@ def main():
     instance_types_map_str = ""
     instance_region_map_str = ""
     nlb_region_map_str = ""
+    elb_region_map_str = ""
     nat_region_map_str = ""
     ebs_region_map_str = ""
     eks_region_map_str = ""
@@ -447,6 +482,7 @@ def main():
 
         instance_types, instance_metadatas = get_instance_metadatas(pricing)
         nlb_metadata = get_nlb_metadata(pricing)
+        elb_metadata = get_elb_metadata(pricing)
         nat_metadata = get_nat_metadata(pricing)
         ebs_metadata = get_ebs_metadata(pricing)
         eks_price = get_eks_price(region)
@@ -497,6 +533,9 @@ def main():
         nlb_region_map_str += nlb_region_map_template.substitute(
             {"region": region, "price": nlb_metadata["price"]}
         )
+        elb_region_map_str += elb_region_map_template.substitute(
+            {"region": region, "price": elb_metadata["price"]}
+        )
         nat_region_map_str += nat_region_map_template.substitute(
             {"region": region, "price": nat_metadata["price"]}
         )
@@ -517,6 +556,7 @@ def main():
             "instance_types_map": instance_types_map_str,
             "instance_region_map": instance_region_map_str,
             "nlb_region_map": nlb_region_map_str,
+            "elb_region_map": elb_region_map_str,
             "nat_region_map": nat_region_map_str,
             "ebs_region_map": ebs_region_map_str,
             "eks_region_map": eks_region_map_str,

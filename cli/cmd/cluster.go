@@ -994,7 +994,16 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	prometheusEBSPrice := awslib.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
 	metricsEBSPrice := awslib.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
 	nlbPrice := awslib.NLBMetadatas[clusterConfig.Region].Price
+	elbPrice := awslib.ELBMetadatas[clusterConfig.Region].Price
 	natUnitPrice := awslib.NATMetadatas[clusterConfig.Region].Price
+
+	var loadBalancersPrice float64
+	usesELBForAPILoadBalancer := clusterConfig.APILoadBalancerType == clusterconfig.ELBLoadBalancerType
+	if usesELBForAPILoadBalancer {
+		loadBalancersPrice = nlbPrice + elbPrice
+	} else {
+		loadBalancersPrice = 2 * nlbPrice
+	}
 
 	headers := []table.Header{
 		{Title: "aws resource"},
@@ -1044,12 +1053,17 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
 		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
 	}
-	totalPrice := eksPrice + totalNodeGroupsPrice + operatorNodeGroupPrice + prometheusNodeGroupPrice + nlbPrice*2 + natTotalPrice
+	totalPrice := eksPrice + totalNodeGroupsPrice + operatorNodeGroupPrice + prometheusNodeGroupPrice + loadBalancersPrice + natTotalPrice
 	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
 
 	rows = append(rows, []interface{}{fmt.Sprintf("%d t3.medium %s (cortex system)", len(infoResponse.OperatorNodeInfos), s.PluralS("instance", len(infoResponse.OperatorNodeInfos))), s.DollarsAndTenthsOfCents(operatorNodeGroupPrice) + " total"})
 	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (prometheus)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
-	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice*2) + " total"})
+	if usesELBForAPILoadBalancer {
+		rows = append(rows, []interface{}{"1 network load balancer", s.DollarsMaxPrecision(nlbPrice) + " total"})
+		rows = append(rows, []interface{}{"1 classic load balancer", s.DollarsMaxPrecision(elbPrice) + " total"})
+	} else {
+		rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(loadBalancersPrice) + " total"})
+	}
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
 		rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natUnitPrice)})
