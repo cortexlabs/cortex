@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -160,12 +160,12 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 		},
 		func() error {
 			var err error
-			operatorLoadBalancerHealth, err = getLoadBalancerHealth(awsClient, clusterName, "operator")
+			operatorLoadBalancerHealth, err = getLoadBalancerHealth(awsClient, clusterName, "operator", false)
 			return err
 		},
 		func() error {
 			var err error
-			apisLoadBalancerHealth, err = getLoadBalancerHealth(awsClient, clusterName, "api")
+			apisLoadBalancerHealth, err = getLoadBalancerHealth(awsClient, clusterName, "api", true)
 			return err
 		},
 		func() error {
@@ -287,20 +287,40 @@ func getDaemonSetReadiness(k8sClient *k8s.Client, name, namespace string) (bool,
 	return daemonSet.Status.NumberReady == daemonSet.Status.CurrentNumberScheduled, nil
 }
 
-func getLoadBalancerHealth(awsClient *awslib.Client, clusterName string, loadBalancerName string) (bool, error) {
+func getLoadBalancerHealth(awsClient *awslib.Client, clusterName string, loadBalancerName string, testClassicLB bool) (bool, error) {
+	loadBalancerV2, err := awsClient.FindLoadBalancerV2(map[string]string{
+		clusterconfig.ClusterNameTag: clusterName,
+		"cortex.dev/load-balancer":   loadBalancerName,
+	})
+	loadBalancerV2Exists := err == nil && loadBalancerV2 != nil
+
+	if loadBalancerV2Exists {
+		return aws.IsLoadBalancerV2Healthy(*loadBalancerV2), nil
+	}
+
+	if !testClassicLB {
+		if err == nil {
+			return false, errors.ErrorUnexpected(fmt.Sprintf("unable to locate %s nlb load balancer", loadBalancerName))
+		}
+		return false, errors.Wrap(err, fmt.Sprintf("unable to locate %s nlb load balancer", loadBalancerName))
+	}
+
 	loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
 		clusterconfig.ClusterNameTag: clusterName,
 		"cortex.dev/load-balancer":   loadBalancerName,
 	})
+	loadBalancerExists := err == nil && loadBalancer != nil
+	if !loadBalancerExists {
+		if err == nil {
+			return false, errors.ErrorUnexpected(fmt.Sprintf("unable to locate %s elb load balancer", loadBalancerName))
+		}
+		return false, errors.Wrap(err, fmt.Sprintf("unable to locate %s elb load balancer", loadBalancerName))
+	}
+	healthy, err := awsClient.IsLoadBalancerHealthy(*loadBalancer.LoadBalancerName)
 	if err != nil {
-		return false, errors.Wrap(err, fmt.Sprintf("unable to locate %s load balancer", loadBalancerName))
+		return false, errors.Wrap(err, fmt.Sprintf("unable to check %s elb load balancer", loadBalancerName))
 	}
-
-	if loadBalancer.State == nil || loadBalancer.State.Code == nil {
-		return false, nil
-	}
-
-	return *loadBalancer.State.Code == elbv2.LoadBalancerStateEnumActive, nil
+	return healthy, nil
 }
 
 func getPodMemorySaturation(k8sClient *k8s.Client, podName, namespace string) (float64, error) {

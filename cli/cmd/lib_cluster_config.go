@@ -169,7 +169,16 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	prometheusEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
 	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
 	nlbPrice := aws.NLBMetadatas[clusterConfig.Region].Price
+	elbPrice := aws.ELBMetadatas[clusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[clusterConfig.Region].Price
+
+	var loadBalancersPrice float64
+	usesELBForAPILoadBalancer := clusterConfig.APILoadBalancerType == clusterconfig.ELBLoadBalancerType
+	if usesELBForAPILoadBalancer {
+		loadBalancersPrice = nlbPrice + elbPrice
+	} else {
+		loadBalancersPrice = 2 * nlbPrice
+	}
 
 	var natTotalPrice float64
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
@@ -187,7 +196,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 
 	ngNameToSpotInstancesUsed := map[string]int{}
-	fixedPrice := eksPrice + 2*(operatorInstancePrice+operatorEBSPrice) + prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	fixedPrice := eksPrice + 2*(operatorInstancePrice+operatorEBSPrice) + prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice + loadBalancersPrice + natTotalPrice
 	totalMinPrice := fixedPrice
 	totalMaxPrice := fixedPrice
 	for _, ng := range clusterConfig.NodeGroups {
@@ -236,7 +245,12 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	prometheusNodeGroupPrice := prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice
 	rows = append(rows, []interface{}{"2 t3.medium instances (cortex system)", s.DollarsAndTenthsOfCents(operatorNodeGroupPrice) + " total"})
 	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (prometheus)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
-	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
+	if usesELBForAPILoadBalancer {
+		rows = append(rows, []interface{}{"1 network load balancer", s.DollarsMaxPrecision(nlbPrice)})
+		rows = append(rows, []interface{}{"1 classic load balancer", s.DollarsMaxPrecision(elbPrice)})
+	} else {
+		rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(loadBalancersPrice) + " total"})
+	}
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
 		rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natUnitPrice)})

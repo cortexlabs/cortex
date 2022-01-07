@@ -58,6 +58,9 @@ subnet_visibility: public
 # NAT gateway (required when using private subnets) [none | single | highly_available (a NAT gateway per availability zone)]
 nat_gateway: none
 
+# API load balancer type [nlb | elb]
+api_load_balancer_type: nlb
+
 # API load balancer scheme [internet-facing | internal]
 api_load_balancer_scheme: internet-facing
 

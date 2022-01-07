@@ -136,6 +136,7 @@ type CoreConfig struct {
 	SubnetVisibility                  SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
 	Subnets                           []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
 	NATGateway                        NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
+	APILoadBalancerType               LoadBalancerType   `json:"api_load_balancer_type" yaml:"api_load_balancer_type"`
 	APILoadBalancerScheme             LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme        LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
 	APILoadBalancerCIDRWhiteList      []string           `json:"api_load_balancer_cidr_white_list,omitempty" yaml:"api_load_balancer_cidr_white_list,omitempty"`
@@ -635,6 +636,16 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
+		StructField: "APILoadBalancerType",
+		StringValidation: &cr.StringValidation{
+			AllowedValues: LoadBalancerTypeStrings(),
+			Default:       NLBLoadBalancerType.String(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return LoadBalancerTypeFromString(str), nil
+		},
+	},
+	{
 		StructField: "APILoadBalancerScheme",
 		StringValidation: &cr.StringValidation{
 			AllowedValues: LoadBalancerSchemeStrings(),
@@ -909,6 +920,16 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 }
 
 func (cc *Config) validate(awsClient *aws.Client) error {
+	if cc.APILoadBalancerType == NLBLoadBalancerType {
+		isSupportedByNLB, err := aws.IsInstanceSupportedByNLB(cc.PrometheusInstanceType)
+		if err != nil {
+			return err
+		}
+		if !isSupportedByNLB {
+			return errors.Wrap(ErrorInstanceTypeNotSupportedByCortex(cc.PrometheusInstanceType), PrometheusInstanceTypeKey)
+		}
+	}
+
 	numNodeGroups := len(cc.NodeGroups)
 	if numNodeGroups > MaxNodeGroups {
 		return ErrorMaxNumOfNodeGroupsReached(MaxNodeGroups)
@@ -932,7 +953,7 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 			return errors.Wrap(ErrorDuplicateNodeGroupName(nodeGroup.Name), NodeGroupsKey)
 		}
 
-		err := nodeGroup.validateNodeGroup(awsClient, cc.Region)
+		err := nodeGroup.validateNodeGroup(awsClient, cc.Region, cc.APILoadBalancerType)
 		if err != nil {
 			return errors.Wrap(err, NodeGroupsKey, nodeGroup.Name)
 		}
@@ -1240,12 +1261,22 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, k8sClient *k8s.Clie
 	}, nil
 }
 
-func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) error {
+func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string, loadBalancerType LoadBalancerType) error {
 	if ng.MinInstances > ng.MaxInstances {
 		return ErrorMinInstancesGreaterThanMax(ng.MinInstances, ng.MaxInstances)
 	}
 
 	primaryInstanceType := ng.InstanceType
+
+	if loadBalancerType == NLBLoadBalancerType {
+		isPrimaryInstanceSupportedByNLB, err := aws.IsInstanceSupportedByNLB(primaryInstanceType)
+		if err != nil {
+			return err
+		}
+		if !isPrimaryInstanceSupportedByNLB {
+			return errors.Wrap(ErrorInstanceTypeNotSupportedByCortex(primaryInstanceType), InstanceTypeKey)
+		}
+	}
 
 	if !aws.InstanceTypes[region].Has(primaryInstanceType) {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, region), InstanceTypeKey)
@@ -1316,6 +1347,15 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, region), SpotConfigKey, InstanceDistributionKey)
 			}
 
+			if loadBalancerType == NLBLoadBalancerType {
+				isSecondaryInstanceSupportedByNLB, err := aws.IsInstanceSupportedByNLB(primaryInstanceType)
+				if err != nil {
+					return err
+				}
+				if !isSecondaryInstanceSupportedByNLB {
+					return errors.Wrap(ErrorInstanceTypeNotSupportedByCortex(primaryInstanceType), SpotConfigKey, InstanceDistributionKey)
+				}
+			}
 			if _, ok := aws.InstanceMetadatas[region][instanceType]; !ok {
 				return errors.Wrap(ErrorInstanceTypeNotSupportedByCortex(instanceType), SpotConfigKey, InstanceDistributionKey)
 			}
@@ -1532,14 +1572,6 @@ func validateInstanceType(instanceType string) (string, error) {
 		return "", ErrorInstanceTypeTooSmall(instanceType)
 	}
 
-	isSupportedByNLB, err := aws.IsInstanceSupportedByNLB(instanceType)
-	if err != nil {
-		return "", err
-	}
-	if !isSupportedByNLB {
-		return "", ErrorInstanceTypeNotSupportedByCortex(instanceType)
-	}
-
 	isAMDGPU, err := aws.IsAMDGPUInstance(instanceType)
 	if err != nil {
 		return "", err
@@ -1554,6 +1586,38 @@ func validateInstanceType(instanceType string) (string, error) {
 	}
 	if isMac {
 		return "", ErrorMacInstancesNotSupported(instanceType)
+	}
+
+	isFPGA, err := aws.IsFPGAInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isFPGA {
+		return "", ErrorFPGAInstancesNotSupported(instanceType)
+	}
+
+	isAlevo, err := aws.IsAlevoInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isAlevo {
+		return "", ErrorAlevoInstancesNotSupported(instanceType)
+	}
+
+	isGaudi, err := aws.IsGaudiInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isGaudi {
+		return "", ErrorGaudiInstancesNotSupported(instanceType)
+	}
+
+	isTrainium, err := aws.IsTrainiumInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isTrainium {
+		return "", ErrorTrainiumInstancesNotSupported(instanceType)
 	}
 
 	if _, ok := awsutils.InstanceNetworkingLimits[instanceType]; !ok {
@@ -1835,6 +1899,7 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 
 	event["subnet_visibility"] = cc.SubnetVisibility
 	event["nat_gateway"] = cc.NATGateway
+	event["api_load_balancer_type"] = cc.APILoadBalancerType
 	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
 	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
 	if cc.VPCCIDR != nil {

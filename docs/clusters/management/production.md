@@ -45,6 +45,10 @@ operator_load_balancer_cidr_white_list: [0.0.0.0/0]
 
 See [here](../networking/load-balancers.md) for more information about the load balancers.
 
+### Workload load-balancing
+
+Depending on your application's requirements, you might have different needs from the cluster's api load balancer. By default, the api load balancer is a [Network load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) (NLB). In some situations, a [Classic load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html) (ELB) may be preferred, and can be selected in your cluster config by setting `api_load_balancer_type: elb`. This selection can only be made before creating your cluster.
+
 ### Ensure node provisioning
 
 You can take advantage of the cost savings of spot instances and the reliability of on-demand instances by utilizing the `priority` field in node groups. You can deploy two node groups, one that is spot and another that is on-demand. Set the priority of the spot node group to be higher than the priority of the on-demand node group. This encourages the cluster-autoscaler to try to spin up instances from the spot node group first. If there are no more spot instances available, the on-demand node group will be used instead.

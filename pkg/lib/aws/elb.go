@@ -17,52 +17,44 @@ limitations under the License.
 package aws
 
 import (
-	"strings"
-
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
-// https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-target-groups.html
-var _nlbUnsupportedInstancePrefixes = strset.New("c1", "cc1", "cc2", "cg1", "cg2", "cr1", "g1", "g2", "hi1", "hs1", "m1", "m2", "m3", "t1")
+type ClassicLoadBalancerState string
 
-func IsInstanceSupportedByNLB(instanceType string) (bool, error) {
-	if err := CheckValidInstanceType(instanceType); err != nil {
-		return false, err
-	}
+const (
+	LoadBalancerStateInService    ClassicLoadBalancerState = "InService"
+	LoadBalancerStateOutOfService ClassicLoadBalancerState = "OutOfService"
+	LoadBalancerStateUnknown      ClassicLoadBalancerState = "Unknown"
+)
 
-	for prefix := range _nlbUnsupportedInstancePrefixes {
-		if strings.HasPrefix(instanceType, prefix) {
-			return false, nil
-		}
-	}
-
-	return true, nil
+func (state ClassicLoadBalancerState) String() string {
+	return string(state)
 }
 
-// returns the first load balancer which has all of the specified tags, or nil if no load balancers match
-func (c *Client) FindLoadBalancer(tags map[string]string) (*elbv2.LoadBalancer, error) {
-	var loadBalancer *elbv2.LoadBalancer
+// returns the first classic load balancer which has all of the specified tags, or nil if no load balancers match
+func (c *Client) FindLoadBalancer(tags map[string]string) (*elb.LoadBalancerDescription, error) {
+	var loadBalancer *elb.LoadBalancerDescription
 	var fnErr error
 
-	params := elbv2.DescribeLoadBalancersInput{
+	params := elb.DescribeLoadBalancersInput{
 		PageSize: aws.Int64(20), // 20 is the limit for DescribeTags()
 	}
-	err := c.ELBV2().DescribeLoadBalancersPages(&params,
-		func(page *elbv2.DescribeLoadBalancersOutput, lastPage bool) bool {
-			arns := make([]string, len(page.LoadBalancers))
-			loadBalancers := make(map[string]*elbv2.LoadBalancer)
+	err := c.ELB().DescribeLoadBalancersPages(&params,
+		func(page *elb.DescribeLoadBalancersOutput, lastPage bool) bool {
+			loadBalancerNames := make([]string, len(page.LoadBalancerDescriptions))
+			loadBalancers := make(map[string]*elb.LoadBalancerDescription)
 
-			for i := range page.LoadBalancers {
-				arn := *page.LoadBalancers[i].LoadBalancerArn
-				arns[i] = arn
-				loadBalancers[arn] = page.LoadBalancers[i]
+			for i := range page.LoadBalancerDescriptions {
+				loadBalancerName := *page.LoadBalancerDescriptions[i].LoadBalancerName
+				loadBalancerNames[i] = loadBalancerName
+				loadBalancers[loadBalancerName] = page.LoadBalancerDescriptions[i]
 			}
 
-			tagsOutput, err := c.ELBV2().DescribeTags(&elbv2.DescribeTagsInput{
-				ResourceArns: aws.StringSlice(arns),
+			tagsOutput, err := c.ELB().DescribeTags(&elb.DescribeTagsInput{
+				LoadBalancerNames: aws.StringSlice(loadBalancerNames),
 			})
 			if err != nil {
 				fnErr = errors.WithStack(err)
@@ -86,7 +78,7 @@ func (c *Client) FindLoadBalancer(tags map[string]string) (*elbv2.LoadBalancer, 
 				}
 
 				if !missingTag {
-					loadBalancer = loadBalancers[*tagDescription.ResourceArn]
+					loadBalancer = loadBalancers[*tagDescription.LoadBalancerName]
 					return false
 				}
 			}
@@ -102,4 +94,24 @@ func (c *Client) FindLoadBalancer(tags map[string]string) (*elbv2.LoadBalancer, 
 	}
 
 	return loadBalancer, nil
+}
+
+func (c *Client) IsLoadBalancerHealthy(loadBalancerName string) (bool, error) {
+	instanceHealthOutput, err := c.ELB().DescribeInstanceHealth(&elb.DescribeInstanceHealthInput{
+		LoadBalancerName: &loadBalancerName,
+	})
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+
+	for _, instance := range instanceHealthOutput.InstanceStates {
+		if instance == nil {
+			continue
+		}
+		if instance.State != nil && *instance.State != LoadBalancerStateInService.String() {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

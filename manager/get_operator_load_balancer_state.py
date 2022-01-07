@@ -15,7 +15,7 @@
 import boto3
 import os
 
-from helpers import get_operator_load_balancer
+from helpers import get_operator_load_balancer_v2
 
 
 def get_operator_load_balancer_state():
@@ -24,7 +24,7 @@ def get_operator_load_balancer_state():
 
     client_elbv2 = boto3.client("elbv2", region_name=region)
 
-    load_balancer = get_operator_load_balancer(cluster_name, client_elbv2)
+    load_balancer = get_operator_load_balancer_v2(cluster_name, client_elbv2)
     return load_balancer["State"]["Code"]
 
 

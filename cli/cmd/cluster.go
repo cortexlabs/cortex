@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/cli/cluster"
@@ -302,7 +303,7 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
-		loadBalancer, err := getLoadBalancer(clusterConfig.ClusterName, OperatorLoadBalancer, awsClient)
+		loadBalancer, err := getNLBLoadBalancer(clusterConfig.ClusterName, OperatorLoadBalancer, awsClient)
 		if err != nil {
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", envName)))
 		}
@@ -522,7 +523,7 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		// updating CLI env is best-effort, so ignore errors
-		loadBalancer, _ := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
+		loadBalancer, _ := getNLBLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 
 		fmt.Print("￮ deleting sqs queues ... ")
 		numDeleted, err := awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
@@ -735,7 +736,7 @@ var _clusterExportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		loadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
+		loadBalancer, err := getNLBLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -881,17 +882,27 @@ func cmdPrintConfig(awsClient *awslib.Client, accessConfig *clusterconfig.Access
 func cmdInfo(awsClient *awslib.Client, accessConfig *clusterconfig.AccessConfig, stacks clusterstate.ClusterStacks, outputType flags.OutputType, disallowPrompt bool) {
 	clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, outputType == flags.PrettyOutputType)
 
-	operatorLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
+	operatorLoadBalancer, err := getNLBLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 	if err != nil {
 		exit.Error(err)
 	}
-	apiLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, APILoadBalancer, awsClient)
-	if err != nil {
-		exit.Error(err)
-	}
-
 	operatorEndpoint := s.EnsurePrefix(*operatorLoadBalancer.DNSName, "https://")
-	apiEndpoint := *apiLoadBalancer.DNSName
+
+	var apiEndpoint string
+	if clusterConfig.APILoadBalancerType == clusterconfig.NLBLoadBalancerType {
+		apiLoadBalancer, err := getNLBLoadBalancer(accessConfig.ClusterName, APILoadBalancer, awsClient)
+		if err != nil {
+			exit.Error(err)
+		}
+		apiEndpoint = *apiLoadBalancer.DNSName
+	}
+	if clusterConfig.APILoadBalancerType == clusterconfig.ELBLoadBalancerType {
+		apiLoadBalancer, err := getELBLoadBalancer(accessConfig.ClusterName, APILoadBalancer, awsClient)
+		if err != nil {
+			exit.Error(err)
+		}
+		apiEndpoint = *apiLoadBalancer.DNSName
+	}
 
 	if outputType == flags.JSONOutputType || outputType == flags.YAMLOutputType {
 		infoResponse, err := getInfoOperatorResponse(operatorEndpoint)
@@ -983,7 +994,16 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	prometheusEBSPrice := awslib.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
 	metricsEBSPrice := awslib.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
 	nlbPrice := awslib.NLBMetadatas[clusterConfig.Region].Price
+	elbPrice := awslib.ELBMetadatas[clusterConfig.Region].Price
 	natUnitPrice := awslib.NATMetadatas[clusterConfig.Region].Price
+
+	var loadBalancersPrice float64
+	usesELBForAPILoadBalancer := clusterConfig.APILoadBalancerType == clusterconfig.ELBLoadBalancerType
+	if usesELBForAPILoadBalancer {
+		loadBalancersPrice = nlbPrice + elbPrice
+	} else {
+		loadBalancersPrice = 2 * nlbPrice
+	}
 
 	headers := []table.Header{
 		{Title: "aws resource"},
@@ -1033,12 +1053,17 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
 		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
 	}
-	totalPrice := eksPrice + totalNodeGroupsPrice + operatorNodeGroupPrice + prometheusNodeGroupPrice + nlbPrice*2 + natTotalPrice
+	totalPrice := eksPrice + totalNodeGroupsPrice + operatorNodeGroupPrice + prometheusNodeGroupPrice + loadBalancersPrice + natTotalPrice
 	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
 
 	rows = append(rows, []interface{}{fmt.Sprintf("%d t3.medium %s (cortex system)", len(infoResponse.OperatorNodeInfos), s.PluralS("instance", len(infoResponse.OperatorNodeInfos))), s.DollarsAndTenthsOfCents(operatorNodeGroupPrice) + " total"})
 	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (prometheus)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
-	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice*2) + " total"})
+	if usesELBForAPILoadBalancer {
+		rows = append(rows, []interface{}{"1 network load balancer", s.DollarsMaxPrecision(nlbPrice)})
+		rows = append(rows, []interface{}{"1 classic load balancer", s.DollarsMaxPrecision(elbPrice)})
+	} else {
+		rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(loadBalancersPrice) + " total"})
+	}
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
 		rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natUnitPrice)})
@@ -1366,7 +1391,24 @@ func (lb LoadBalancer) String() string {
 }
 
 // Will return error if the load balancer can't be found
-func getLoadBalancer(clusterName string, whichLB LoadBalancer, awsClient *awslib.Client) (*elbv2.LoadBalancer, error) {
+func getNLBLoadBalancer(clusterName string, whichLB LoadBalancer, awsClient *awslib.Client) (*elbv2.LoadBalancer, error) {
+	loadBalancer, err := awsClient.FindLoadBalancerV2(map[string]string{
+		clusterconfig.ClusterNameTag: clusterName,
+		"cortex.dev/load-balancer":   whichLB.String(),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("unable to locate %s load balancer", whichLB.String()))
+	}
+
+	if loadBalancer == nil {
+		return nil, ErrorNoOperatorLoadBalancer(whichLB.String())
+	}
+
+	return loadBalancer, nil
+}
+
+// Will return error if the load balancer can't be found
+func getELBLoadBalancer(clusterName string, whichLB LoadBalancer, awsClient *awslib.Client) (*elb.LoadBalancerDescription, error) {
 	loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
 		clusterconfig.ClusterNameTag: clusterName,
 		"cortex.dev/load-balancer":   whichLB.String(),

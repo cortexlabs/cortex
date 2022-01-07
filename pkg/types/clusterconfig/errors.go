@@ -51,6 +51,10 @@ const (
 	ErrGPUInstancesNotSupported               = "clusterconfig.gpu_instance_not_supported"
 	ErrInferentiaInstancesNotSupported        = "clusterconfig.inferentia_instances_not_supported"
 	ErrMacInstancesNotSupported               = "clusterconfig.mac_instances_not_supported"
+	ErrFPGAInstancesNotSupported              = "clusterconfig.fpga_instances_not_supported"
+	ErrAlevoInstancesNotSupported             = "clusterconfig.alevo_instances_not_supported"
+	ErrGaudiInstancesNotSupported             = "clusterconfig.gaudi_instances_not_supported"
+	ErrTrainiumInstancesNotSupported          = "clusterconfig.trainium_instances_not_supported"
 	ErrAtLeastOneInstanceDistribution         = "clusterconfig.at_least_one_instance_distribution"
 	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
 	ErrConfiguredWhenSpotIsNotEnabled         = "clusterconfig.configured_when_spot_is_not_enabled"
@@ -239,6 +243,34 @@ func ErrorMacInstancesNotSupported(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMacInstancesNotSupported,
 		Message: fmt.Sprintf("mac instances (including %s) are not supported by cortex", instanceType),
+	})
+}
+
+func ErrorFPGAInstancesNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFPGAInstancesNotSupported,
+		Message: fmt.Sprintf("FPGA instances (including %s) are not supported by cortex", instanceType),
+	})
+}
+
+func ErrorAlevoInstancesNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAlevoInstancesNotSupported,
+		Message: fmt.Sprintf("Alevo instances (including %s) are not supported by cortex", instanceType),
+	})
+}
+
+func ErrorGaudiInstancesNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGaudiInstancesNotSupported,
+		Message: fmt.Sprintf("Gaudi instances (including %s) are not supported by cortex", instanceType),
+	})
+}
+
+func ErrorTrainiumInstancesNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrTrainiumInstancesNotSupported,
+		Message: fmt.Sprintf("Trainium instances (including %s) are not supported by cortex", instanceType),
 	})
 }
 
