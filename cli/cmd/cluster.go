@@ -764,12 +764,16 @@ var _clusterExportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		for _, apiResponse := range apisResponse {
-			specFilePath := filepath.Join(exportPath, apiResponse.Spec.Name+".yaml")
+		for _, api := range apisResponse {
+			apisWithSpec, err := cluster.GetAPI(operatorConfig, api.Metadata.Name)
+			if err != nil {
+				exit.Error(err)
+			}
 
-			fmt.Println(fmt.Sprintf("exporting %s to %s", apiResponse.Spec.Name, specFilePath))
+			specFilePath := filepath.Join(exportPath, api.Metadata.Name+".yaml")
+			fmt.Println(fmt.Sprintf("exporting %s to %s", api.Metadata.Name, specFilePath))
 
-			yamlBytes, err := yaml.Marshal(apiResponse.Spec.API.SubmittedAPISpec)
+			yamlBytes, err := yaml.Marshal(apisWithSpec[0].Spec.API.SubmittedAPISpec)
 			if err != nil {
 				exit.Error(err)
 			}
