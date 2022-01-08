@@ -51,7 +51,7 @@ class Client:
         Deploy or update an API.
 
         Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.42/ for schema.
             force: Override any in-progress api updates.
             wait: Block until the API is ready.
 
@@ -82,7 +82,7 @@ class Client:
         Deploy or update APIs specified in a configuration file.
 
         Args:
-            config_file: Local path to a yaml file defining Cortex API(s). See https://docs.cortex.dev/v/master/ for schema.
+            config_file: Local path to a yaml file defining Cortex API(s). See https://docs.cortex.dev/v/0.42/ for schema.
             force: Override any in-progress api updates.
             wait: Block until the API is ready.
 

@@ -16,7 +16,7 @@
 
 set -e
 
-CORTEX_VERSION_MINOR=master
+CORTEX_VERSION_MINOR=0.42
 
 cluster_config_out_path="$1"
 mkdir -p "$(dirname "$cluster_config_out_path")"
