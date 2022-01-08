@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/DataDog/datadog-go v4.8.0+incompatible
-	github.com/aws/amazon-vpc-cni-k8s v1.9.3
+	github.com/aws/amazon-vpc-cni-k8s v1.10.1
 	github.com/aws/aws-sdk-go v1.40.6
 	github.com/cortexlabs/go-input v0.0.0-20200503032952-8b67a7a7b28d
 	github.com/cortexlabs/yaml v0.0.0-20210628201654-31e52ba8433b
