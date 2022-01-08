@@ -108,6 +108,6 @@ func describeAPI(env cliconfig.Environment, apiName string) (string, error) {
 	case userconfig.AsyncAPIKind:
 		return asyncDescribeAPITable(apiRes, env)
 	default:
-		return "", errors.ErrorUnexpected(fmt.Sprintf("encountered unexpected kind %s for api %s", apiRes.Spec.Kind, apiRes.Spec.Name))
+		return "", errors.ErrorUnexpected(fmt.Sprintf("encountered unexpected kind %s for api %s", apiRes.Metadata.Kind, apiRes.Metadata.Name))
 	}
 }

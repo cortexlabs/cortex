@@ -80,7 +80,7 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 		}
 		lastUpdated := time.Unix(apiRes.Metadata.LastUpdated, 0)
 
-		apiName := apiRes.Spec.Name
+		apiName := apiRes.Metadata.Name
 		if api.Shadow {
 			apiName += " (shadow)"
 		}

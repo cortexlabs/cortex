@@ -127,7 +127,7 @@ var _getCmd = &cobra.Command{
 				}
 
 				var jobTable string
-				if apisRes[0].Spec.Kind == userconfig.BatchAPIKind {
+				if apisRes[0].Metadata.Kind == userconfig.BatchAPIKind {
 					jobTable, err = getBatchJob(env, args[0], args[1])
 				} else {
 					jobTable, err = getTaskJob(env, args[0], args[1])
@@ -484,7 +484,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 
 	apiRes := apisRes[0]
 
-	switch apiRes.Spec.Kind {
+	switch apiRes.Metadata.Kind {
 	case userconfig.RealtimeAPIKind:
 		return realtimeAPITable(apiRes, env)
 	case userconfig.AsyncAPIKind:
@@ -496,7 +496,7 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	case userconfig.TaskAPIKind:
 		return taskAPITable(apiRes), nil
 	default:
-		return "", errors.ErrorUnexpected(fmt.Sprintf("encountered unexpected kind %s for api %s", apiRes.Spec.Kind, apiRes.Spec.Name))
+		return "", errors.ErrorUnexpected(fmt.Sprintf("encountered unexpected kind %s for api %s", apiRes.Metadata.Kind, apiRes.Metadata.Name))
 	}
 }
 
