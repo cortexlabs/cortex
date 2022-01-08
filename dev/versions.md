@@ -70,8 +70,8 @@
    1. If there are new instance types, check if any changes need to be made to `servicequotas.go` or `validateInstanceType()`.
 
 ```bash
-PREV_RELEASE=1.8.0
-NEW_RELEASE=1.9.3
+PREV_RELEASE=1.9.3
+NEW_RELEASE=1.10.1
 wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v${PREV_RELEASE}/pkg/awsutils/vpc_ip_resource_limit.go; wget -q -O cni_supported_instances_new.txt https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v${NEW_RELEASE}/pkg/awsutils/vpc_ip_resource_limit.go; git diff --no-index cni_supported_instances_prev.txt cni_supported_instances_new.txt; rm -rf cni_supported_instances_prev.txt; rm -rf cni_supported_instances_new.txt
 ```
 

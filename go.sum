@@ -126,8 +126,8 @@ github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmV
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
 github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
-github.com/aws/amazon-vpc-cni-k8s v1.9.3 h1:iroC3au4c9znUZn2sHXKF4lEm/eXyTY2z2Qy+63Ar4E=
-github.com/aws/amazon-vpc-cni-k8s v1.9.3/go.mod h1:FHKQKIQ4ylokY3vV54uwFgME0BRIYCHoxgFtXFdUPYY=
+github.com/aws/amazon-vpc-cni-k8s v1.10.1 h1:hFuId8HhDuB4GmeJCCrPPRlHHQljT9Hp8qY3wbS8i+o=
+github.com/aws/amazon-vpc-cni-k8s v1.10.1/go.mod h1:FHKQKIQ4ylokY3vV54uwFgME0BRIYCHoxgFtXFdUPYY=
 github.com/aws/aws-sdk-go v1.15.11/go.mod h1:mFuSZ37Z9YOHbQEwBWztmVzqXrEkub65tZoCYDt7FT0=
 github.com/aws/aws-sdk-go v1.37.1/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
 github.com/aws/aws-sdk-go v1.40.6 h1:JCQfi5MD8cW0PCAzr88hj9tj4BdEJkAy8EyAJ6c8I/k=
