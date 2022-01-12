@@ -138,7 +138,7 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: istio-stats
+  name: istio-ingress-stats
   namespace: prometheus
   labels:
     monitoring.cortex.dev: "istio"
@@ -150,7 +150,7 @@ spec:
       - { key: release, operator: In, values: [ "istio" ]}
   namespaceSelector:
     any: true
-  jobLabel: envoy-stats
+  jobLabel: istio-ingress-stats
   podMetricsEndpoints:
     - path: /stats/prometheus
       interval: 15s
@@ -173,6 +173,11 @@ spec:
         - sourceLabels: [ __meta_kubernetes_pod_name ]
           action: replace
           targetLabel: pod_name
+        - sourceLabels: [ __name__, __meta_kubernetes_pod_label_app, __meta_kubernetes_pod_name ]
+          action: replace
+          regex: (istio_requests_total)?;(istio-ingressgateway)?;(.+)
+          replacement: $3
+          targetLabel: istioingress_podname
       metricRelabelings:
         - action: keep
           sourceLabels: [__name__]
@@ -183,7 +188,7 @@ spec:
             request_duration_milliseconds_count\
             )"
         - action: labelkeep
-          regex: (__name__|destination_service|response_code|le)
+          regex: (__name__|destination_service|response_code|le|istioingress_podname)
 
 ---
 
