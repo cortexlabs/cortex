@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.uber.org/atomic"
 )
@@ -29,6 +30,7 @@ import (
 var (
 	// ErrRequestQueueFull indicates the breaker queue depth was exceeded.
 	ErrRequestQueueFull = errors.New("pending request queue full")
+	ErrQueueTimeout     = errors.New("queue timeout")
 )
 
 // BreakerParams defines the parameters of the breaker.
@@ -139,7 +141,7 @@ func (b *Breaker) Maybe(ctx context.Context, thunk func()) error {
 	defer b.releasePending()
 
 	// Wait for capacity in the active queue.
-	if err := b.sem.acquire(ctx); err != nil {
+	if err := b.sem.acquireWithTimeout(ctx, 0); err != nil {
 		return err
 	}
 	// Defer releasing capacity in the active.
@@ -224,6 +226,38 @@ func (s *semaphore) acquire(ctx context.Context) error {
 
 		if in >= capacity {
 			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-s.queue:
+			}
+			// Force reload state.
+			continue
+		}
+
+		in++
+		if s.state.CAS(old, pack(capacity, in)) {
+			return nil
+		}
+	}
+}
+
+// acquireWithTimeout acquires capacity from the semaphore, with a timeout.
+// if timeout <= 0, no timeout is used
+func (s *semaphore) acquireWithTimeout(ctx context.Context, timeout time.Duration) error {
+	if timeout <= 0 {
+		return s.acquire(ctx)
+	}
+
+	timer := time.NewTimer(timeout)
+
+	for {
+		old := s.state.Load()
+		capacity, in := unpack(old)
+
+		if in >= capacity {
+			select {
+			case <-timer.C:
+				return ErrQueueTimeout
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-s.queue:

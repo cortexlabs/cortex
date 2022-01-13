@@ -45,6 +45,7 @@ type VirtualServiceSpec struct {
 	Labels       map[string]string
 	Annotations  map[string]string
 	Headers      *istionetworking.Headers
+	Retries      *int32
 }
 
 type Destination struct {
@@ -151,6 +152,14 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 		}
 
 		httpRoutes = append(httpRoutes, exactMatch, prefixMatch)
+	}
+
+	if spec.Retries != nil {
+		for i := range httpRoutes {
+			httpRoutes[i].Retries = &istionetworking.HTTPRetry{
+				Attempts: *spec.Retries,
+			}
+		}
 	}
 
 	virtualService := &istioclientnetworking.VirtualService{
