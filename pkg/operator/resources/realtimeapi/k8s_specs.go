@@ -149,6 +149,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String("/"),
+		Retries:     pointer.Int32(0),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName":               api.Name,

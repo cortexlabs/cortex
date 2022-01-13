@@ -32,6 +32,7 @@ func virtualServiceSpec(trafficSplitter *spec.API) *istioclientnetworking.Virtua
 		Destinations: getTrafficSplitterDestinations(trafficSplitter),
 		ExactPath:    trafficSplitter.Networking.Endpoint,
 		Rewrite:      pointer.String("/"),
+		Retries:      pointer.Int32(0),
 		Annotations:  trafficSplitter.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName":               trafficSplitter.Name,
