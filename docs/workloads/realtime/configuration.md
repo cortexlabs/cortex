@@ -7,6 +7,7 @@
     port: <int>  # port to which requests will be sent (default: 8080; exported as $CORTEX_PORT)
     max_concurrency: <int>  # maximum number of requests that will be concurrently sent into the container (default: 1)
     max_queue_length: <int>  # maximum number of requests per replica which will be queued (beyond max_concurrency) before requests are rejected with error code 503 (default: 100)
+    max_queued_seconds: <int>
     containers:  # configurations for the containers to run (at least one constainer must be provided)
       - name: <string>  # name of the container (required)
         image: <string>  # docker image to use for the container (required)

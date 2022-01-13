@@ -141,6 +141,7 @@ func (b *Breaker) Maybe(ctx context.Context, thunk func()) error {
 	defer b.releasePending()
 
 	// Wait for capacity in the active queue.
+	// TODO use the actual timeout
 	if err := b.sem.acquireWithTimeout(ctx, 0); err != nil {
 		return err
 	}

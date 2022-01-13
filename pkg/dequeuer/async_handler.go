@@ -28,7 +28,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types/async"
 	"go.uber.org/zap"
@@ -75,15 +78,26 @@ func (h *AsyncMessageHandler) Handle(message *sqs.Message) error {
 		return errors.ErrorUnexpected("got unexpected sqs message with empty or nil body")
 	}
 
+	var msgSentTime *time.Time
+	if msgSentTimestamp, ok := message.Attributes[sqs.MessageSystemAttributeNameSentTimestamp]; ok {
+		if msgSentTimestamp != nil {
+			if parsed, ok := s.ParseInt64(*msgSentTimestamp); ok {
+				msgSentTime = pointer.Time(time.UnixMilli(parsed))
+			}
+		}
+	}
+
 	requestID := *message.Body
-	err := h.handleMessage(requestID)
+	err := h.handleMessage(requestID, msgSentTime)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (h *AsyncMessageHandler) handleMessage(requestID string) error {
+func (h *AsyncMessageHandler) handleMessage(requestID string, msgSentTime *time.Time) error {
+	debug.Ppg(msgSentTime)
+
 	h.log.Infow("processing workload", "id", requestID)
 
 	err := h.updateStatus(requestID, async.StatusInProgress)
