@@ -173,9 +173,9 @@ spec:
         - sourceLabels: [ __meta_kubernetes_pod_name ]
           action: replace
           targetLabel: pod_name
-        - sourceLabels: [ __name__, __meta_kubernetes_pod_label_app, __meta_kubernetes_pod_name ]
+        - sourceLabels: [ __name__, __meta_kubernetes_pod_label_istio, __meta_kubernetes_pod_name ]
           action: replace
-          regex: (istio_requests_total)?;(istio-ingressgateway)?;(.+)
+          regex: (istio_requests_total)?;(ingressgateway-apis)?;(.+)
           replacement: $3
           targetLabel: istioingress_podname
       metricRelabelings:
