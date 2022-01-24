@@ -32,7 +32,7 @@ destination_ecr_prefix="cortexlabs"
 destination_registry="${aws_account_id}.dkr.ecr.${ecr_region}.amazonaws.com/${destination_ecr_prefix}"
 aws ecr get-login-password --region $ecr_region | docker login --username AWS --password-stdin $destination_registry
 
-source build/images.sh
+source $ROOT/build/images.sh
 
 # create the image repositories
 for image in "${all_images[@]}"; do
