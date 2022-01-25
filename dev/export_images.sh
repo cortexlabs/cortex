@@ -31,7 +31,16 @@ source_registry=quay.io/cortexlabs  # this can also be docker.io/cortexlabs
 
 destination_ecr_prefix="cortexlabs"
 destination_registry="${aws_account_id}.dkr.ecr.${ecr_region}.amazonaws.com/${destination_ecr_prefix}"
-aws ecr get-login-password --region $ecr_region | docker login --username AWS --password-stdin $destination_registry
+
+need_login=true
+if [[ -f $HOME/.docker/config.json && $(cat $HOME/.docker/config.json | grep "ecr-login" | wc -l) -ne 0 ]]; then
+	need_login=false
+	echo "skipping docker login because you are using ecr-login with Amazon ECR Docker Credential Helper"
+fi
+
+if [[ $need_login = true ]]; then
+	aws ecr get-login-password --region $ecr_region | docker login --username AWS --password-stdin $destination_registry
+fi
 
 source $ROOT/build/images.sh
 
