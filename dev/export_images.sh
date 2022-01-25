@@ -37,7 +37,12 @@ source $ROOT/build/images.sh
 
 # create the image repositories
 for image in "${all_images[@]}"; do
-    aws ecr create-repository --repository-name=$destination_ecr_prefix/$image --region=$ecr_region || true
+	repository_name=$destination_ecr_prefix/$image
+	if [[ $(aws ecr describe-repositories | grep repositoryName | grep $image | wc -l) -ne 0 ]]; then
+		echo "repository '$repository_name' already exists. skip to next"
+	else
+		aws ecr create-repository --repository-name=$repository_name --region=$ecr_region | cat
+	fi
 done
 echo
 
