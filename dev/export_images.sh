@@ -47,7 +47,7 @@ for image in "${all_images[@]}"; do
     if aws ecr describe-repositories --repository-names=$repository_name --region=$ecr_region >/dev/null 2>&1; then
         echo "repository '$repository_name' already exists"
     else
-        aws ecr create-repository --repository-name=$repository_name --region=$ecr_region
+        aws ecr create-repository --repository-name=$repository_name --region=$ecr_region | cat
     fi
 done
 echo
