@@ -131,7 +131,7 @@ Define a `patch.yaml` file with your changes to the Prometheus server:
 spec:
   containers: # container for your adapter
     ...
-  remote_write:
+  remoteWrite:
     url: "http://localhost:9201/write" # http endpoint for your adapter
 ```
 
