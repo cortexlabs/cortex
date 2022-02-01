@@ -110,7 +110,7 @@ spec:
 Then, update Prometheus with your annotations:
 
 ```bash
-kubectl patch prometheuses.monitoring.coreos.com prometheus --patch-file patch.yaml --type merge
+kubectl patch --namespace prometheus prometheuses.monitoring.coreos.com prometheus --patch-file patch.yaml --type merge
 ```
 
 ## Long term metric storage
@@ -131,12 +131,12 @@ Define a `patch.yaml` file with your changes to the Prometheus server:
 spec:
   containers: # container for your adapter
     ...
-  remote_write:
+  remoteWrite:
     url: "http://localhost:9201/write" # http endpoint for your adapter
 ```
 
 Update Prometheus with your changes:
 
 ```bash
-kubectl patch prometheuses.monitoring.coreos.com prometheus --patch-file patch.yaml --type merge
+kubectl patch --namespace prometheus prometheuses.monitoring.coreos.com prometheus --patch-file patch.yaml --type merge
 ```
