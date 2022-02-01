@@ -426,7 +426,7 @@ func getAPIsByEnv(env cliconfig.Environment) (string, error) {
 
 	if len(allAsyncAPIs) > 0 {
 		envNames := []string{}
-		for range allRealtimeAPIs {
+		for range allAsyncAPIs {
 			envNames = append(envNames, env.Name)
 		}
 
