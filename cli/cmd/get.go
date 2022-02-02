@@ -374,7 +374,7 @@ func getAPIsByEnv(env cliconfig.Environment) (string, error) {
 		}
 	}
 
-	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTaskAPIs) == 0 && len(allTrafficSplitters) == 0 {
+	if len(allRealtimeAPIs) == 0 && len(allAsyncAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTaskAPIs) == 0 && len(allTrafficSplitters) == 0 {
 		return console.Bold("no apis are deployed"), nil
 	}
 
