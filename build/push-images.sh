@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2021 Cortex Labs, Inc.
+# Copyright 2022 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ host_backup=$3
 
 for image in "${all_images[@]}"; do
   is_multi_arch="false"
-  if in_array $image "multi_arch_images"; then
+  if [[ " ${multi_arch_images[*]} " =~ " $image " ]]; then
     is_multi_arch="true"
     $ROOT/build/push-image.sh $host_primary $host_backup $image $is_multi_arch $arch
   elif [ "$arch" = "amd64" ]; then

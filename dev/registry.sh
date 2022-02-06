@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2021 Cortex Labs, Inc.
+# Copyright 2022 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -104,7 +104,7 @@ function build_and_push() {
 
   set -euo pipefail
 
-  if ! in_array $image "multi_arch_images"; then
+  if [[ ! " ${multi_arch_images[*]} " =~ " $image " ]]; then
     include_arm64_arch="false"
   fi
 
@@ -144,7 +144,7 @@ function build_and_push() {
     green_echo "$finished_operation $image:$tag (amd64)"
   fi
 
-  if [[ " $images_that_can_run_locally " =~ " $image " ]] && [[ "$include_arm64_arch" == "false" ]]; then
+  if [[ " ${images_that_can_run_locally[*]} " =~ " $image " ]] && [[ "$include_arm64_arch" == "false" ]]; then
     blue_echo "Exporting $image:$tag to local docker..."
     docker buildx build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag --platform $platforms --load
     green_echo "Exported $image:$tag to local docker"
