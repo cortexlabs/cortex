@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Cortex Labs, Inc.
+Copyright 2022 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ const (
 
 func randomString(n int, src rand.Source, charset string) string {
 	b := make([]byte, n)
-	// A src.Int63() generates 63 random bits, enough for _letterIdxMax characters!
 	for i, cache, remain := n-1, src.Int63(), _letterIdxMax; i >= 0; {
 		if remain == 0 {
 			cache, remain = src.Int63(), _letterIdxMax

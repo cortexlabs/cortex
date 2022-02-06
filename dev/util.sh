@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2021 Cortex Labs, Inc.
+# Copyright 2022 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,33 +25,4 @@ function green_echo() {
 
 function error_echo() {
   echo -e "\033[1;31mERROR: \033[0m$1"
-}
-
-function join_by() {
-  # Argument #1 is the separator. It can be multi-character.
-  # Argument #2, 3, and so on, are the elements to be joined.
-  # Usage: join_by ", " "${array[@]}"
-  local SEPARATOR="$1"
-  shift
-
-  local F=0
-  for x in "$@"; do
-    if [[ F -eq 1 ]]; then
-      echo -n "$SEPARATOR"
-    else
-      F=1
-    fi
-    echo -n "$x"
-  done
-  echo
-}
-
-# Check if array contains item [$1: item, $2: array name]
-function in_array() {
-    local needle="$1" item
-    local -n arrref="$2"
-    for item in "${arrref[@]}"; do
-        [[ "${item}" == "${needle}" ]] && return 0
-    done
-    return 1
 }
