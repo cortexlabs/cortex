@@ -20,14 +20,14 @@
 ## client
 
 ```python
-client(env: Optional[str] = None) -> Client
+client(env_name: Optional[str] = None) -> Client
 ```
 
 Initialize a client based on the specified environment. If no environment is specified, it will attempt to use the default environment.
 
 **Arguments**:
 
-- `env` - Name of the environment to use.
+- `env_name` - Name of the environment to use.
 
 
 **Returns**:
@@ -37,14 +37,14 @@ Initialize a client based on the specified environment. If no environment is spe
 ## new\_client
 
 ```python
-new_client(name: str, operator_endpoint: str) -> Client
+new_client(env_name: str, operator_endpoint: str) -> Client
 ```
 
 Create a new environment to connect to an existing cluster, and initialize a client to deploy and manage APIs on that cluster.
 
 **Arguments**:
 
-- `name` - Name of the environment to create.
+- `env_name` - Name of the environment to create.
 - `operator_endpoint` - The endpoint for the operator of your Cortex cluster. You can get this endpoint by running the CLI command `cortex cluster info`.
 
 
