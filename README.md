@@ -2,7 +2,7 @@
 
 <br>
 
-<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='32'>
+<img src='https://cortex-public.s3.us-west-2.amazonaws.com/logo.png' height='32'>
 
 <br>
 
