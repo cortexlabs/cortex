@@ -53,6 +53,7 @@ node_groups:
   # ...
 
 # subnet visibility for instances [public (instances will have public IPs) | private (instances will not have public IPs)]
+# when using private subnets, you may wish to enable VPC endpoints (via the AWS console) for S3 and ECR to avoid extra NAT Gateway charges
 subnet_visibility: public
 
 # NAT gateway (required when using private subnets) [none | single | highly_available (a NAT gateway per availability zone)]
