@@ -27,10 +27,9 @@ git clone --depth 1 --branch v$CORTEX_VERSION https://github.com/cortexlabs/cort
 
 Run the script below to export images to ECR in the same region and account as your cluster.
 
-The script will automatically create ECR Repositories with prefix `cortexlabs` if not exists.
+The script will automatically create ECR Repositories with prefix `cortexlabs` if the don't exist.
 
 Feel free to modify the script if you would like to export the images to a different registry such as a private docker hub.
-
 
 ```bash
 ./cortex/dev/export_images.sh <AWS_REGION> <AWS_ACCOUNT_ID>
