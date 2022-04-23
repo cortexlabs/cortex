@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Cortex Labs, Inc.
+Copyright 2022 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -374,7 +374,7 @@ func getAPIsByEnv(env cliconfig.Environment) (string, error) {
 		}
 	}
 
-	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTaskAPIs) == 0 && len(allTrafficSplitters) == 0 {
+	if len(allRealtimeAPIs) == 0 && len(allAsyncAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTaskAPIs) == 0 && len(allTrafficSplitters) == 0 {
 		return console.Bold("no apis are deployed"), nil
 	}
 
@@ -426,7 +426,7 @@ func getAPIsByEnv(env cliconfig.Environment) (string, error) {
 
 	if len(allAsyncAPIs) > 0 {
 		envNames := []string{}
-		for range allRealtimeAPIs {
+		for range allAsyncAPIs {
 			envNames = append(envNames, env.Name)
 		}
 

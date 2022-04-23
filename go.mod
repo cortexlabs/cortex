@@ -36,7 +36,6 @@ require (
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c
 	go.uber.org/atomic v1.8.0
 	go.uber.org/zap v1.18.1
-	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	istio.io/api v0.0.0-20210617170320-ee3eb4b39496
 	istio.io/client-go v1.10.2-0.20210617171818-3dcf18fc084e

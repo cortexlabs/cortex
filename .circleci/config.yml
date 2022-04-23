@@ -325,35 +325,35 @@ workflows:
                 - master
                 - /^[0-9]+\.[0-9]+$/
 
-  nightly-cluster-up:
-    triggers:
-      - schedule:
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - cluster-up
+  # nightly-cluster-up:
+  #   triggers:
+  #     - schedule:
+  #         cron: "0 0 * * *"
+  #         filters:
+  #           branches:
+  #             only:
+  #               - master
+  #   jobs:
+  #     - cluster-up
 
-  nightly-e2e-tests:
-    triggers:
-      - schedule:
-          cron: "0 1 * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - e2e-tests
+  # nightly-e2e-tests:
+  #   triggers:
+  #     - schedule:
+  #         cron: "0 1 * * *"
+  #         filters:
+  #           branches:
+  #             only:
+  #               - master
+  #   jobs:
+  #     - e2e-tests
 
-  nightly-cluster-down:
-    triggers:
-      - schedule:
-          cron: "0 2 * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - cluster-down
+  # nightly-cluster-down:
+  #   triggers:
+  #     - schedule:
+  #         cron: "0 2 * * *"
+  #         filters:
+  #           branches:
+  #             only:
+  #               - master
+  #   jobs:
+  #     - cluster-down

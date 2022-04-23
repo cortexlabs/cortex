@@ -1,4 +1,4 @@
-# Copyright 2021 Cortex Labs, Inc.
+# Copyright 2022 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,44 +25,46 @@ __version__ = "master"  # CORTEX_VERSION
 
 
 @sentry_wrapper
-def client(env: Optional[str] = None) -> Client:
+def client(env_name: Optional[str] = None) -> Client:
     """
     Initialize a client based on the specified environment. If no environment is specified, it will attempt to use the default environment.
 
     Args:
-        env: Name of the environment to use.
+        env_name: Name of the environment to use.
 
     Returns:
         Cortex client that can be used to deploy and manage APIs in the specified environment.
     """
     environments = env_list()
 
-    if env is None:
+    if env_name is None:
         if not environments.get("default_environment"):
             raise NotFound("no default environment configured")
-        env = environments["default_environment"]
+        env_name = environments["default_environment"]
 
     found = False
     for environment in environments["environments"]:
-        if environment["name"] == env:
+        if environment["name"] == env_name:
             found = True
             break
     if not found:
-        raise NotFound(f"can't find environment {env}, create one by calling `cortex.new_client()`")
+        raise NotFound(
+            f"can't find environment {env_name}, create one by calling `cortex.new_client()`"
+        )
 
     return Client(environment)
 
 
 @sentry_wrapper
 def new_client(
-    name: str,
+    env_name: str,
     operator_endpoint: str,
 ) -> Client:
     """
     Create a new environment to connect to an existing cluster, and initialize a client to deploy and manage APIs on that cluster.
 
     Args:
-        name: Name of the environment to create.
+        env_name: Name of the environment to create.
         operator_endpoint: The endpoint for the operator of your Cortex cluster. You can get this endpoint by running the CLI command `cortex cluster info`.
 
     Returns:
@@ -71,14 +73,14 @@ def new_client(
     cli_args = [
         "env",
         "configure",
-        name,
+        env_name,
         "--operator-endpoint",
         operator_endpoint,
     ]
 
     run_cli(cli_args, hide_output=True)
 
-    return client(name)
+    return client(env_name)
 
 
 @sentry_wrapper
