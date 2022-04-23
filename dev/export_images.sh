@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2022 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,13 +32,23 @@ source_registry=quay.io/cortexlabs  # this can also be docker.io/cortexlabs
 
 destination_ecr_prefix="cortexlabs"
 destination_registry="${aws_account_id}.dkr.ecr.${ecr_region}.amazonaws.com/${destination_ecr_prefix}"
-aws ecr get-login-password --region $ecr_region | docker login --username AWS --password-stdin $destination_registry
+
+if [[ -f $HOME/.docker/config.json && $(cat $HOME/.docker/config.json | grep "ecr-login" | wc -l) -ne 0 ]]; then
+    echo "skipping docker login because you are using ecr-login with Amazon ECR Docker Credential Helper"
+else
+    aws ecr get-login-password --region $ecr_region | docker login --username AWS --password-stdin $destination_registry
+fi
 
 source $ROOT/build/images.sh
 
 # create the image repositories
 for image in "${all_images[@]}"; do
-    aws ecr create-repository --repository-name=$destination_ecr_prefix/$image --region=$ecr_region || true
+    repository_name=$destination_ecr_prefix/$image
+    if aws ecr describe-repositories --repository-names=$repository_name --region=$ecr_region >/dev/null 2>&1; then
+        echo "repository '$repository_name' already exists"
+    else
+        aws ecr create-repository --repository-name=$repository_name --region=$ecr_region | cat
+    fi
 done
 echo
 
