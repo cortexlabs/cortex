@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ghcr.io/opsgenie/kubernetes-event-exporter:v0.10
+FROM ghcr.io/opsgenie/kubernetes-event-exporter:v0.11

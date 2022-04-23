@@ -7,8 +7,8 @@
 1. Update `generate_eks.py` if necessary
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired, and logs in `cortex cluster up` look good.
 1. Update eksctl on your dev
-   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.67.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
-1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.67.0/userdocs/src/usage/minimum-iam-policies.md
+   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.93.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.93.0/userdocs/src/usage/minimum-iam-policies.md
 
 ## Kubernetes
 
@@ -71,7 +71,7 @@
 
 ```bash
 PREV_RELEASE=1.10.1
-NEW_RELEASE=1.10.1
+NEW_RELEASE=1.11.0
 wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v${PREV_RELEASE}/pkg/awsutils/vpc_ip_resource_limit.go; wget -q -O cni_supported_instances_new.txt https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v${NEW_RELEASE}/pkg/awsutils/vpc_ip_resource_limit.go; git diff --no-index cni_supported_instances_prev.txt cni_supported_instances_new.txt; rm -rf cni_supported_instances_prev.txt; rm -rf cni_supported_instances_new.txt
 ```
 
@@ -145,9 +145,9 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 ### Non-versioned modules
 
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
-1. `go get k8s.io/client-go@v0.21.6 && go get k8s.io/apimachinery@v0.21.6 && go get k8s.io/api@v0.21.6`
-1. `go get istio.io/client-go@v1.11.4 && go get istio.io/api@1.11.4`
-1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.9.3`
+1. `go get k8s.io/client-go@v0.20.15 && go get k8s.io/apimachinery@v0.20.15 && go get k8s.io/api@v0.20.15`
+1. `go get istio.io/client-go@v1.11.8 && go get istio.io/api@1.11.8`
+1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.11.0`
 1. `go get github.com/cortexlabs/yaml@31e52ba8433b683c471ef92cf1711fe67671dac5`
 1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
 1. `go get github.com/xlab/treeprint@v1.0.0`
@@ -212,14 +212,14 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 1. `git stash`
 1. `git remote add upstream https://github.com/kubernetes/autoscaler.git`
 1. `git fetch upstream`
-1. Checkout the appropriate version tag, e.g. `git checkout cluster-autoscaler-1.21.1 -b cluster-autoscaler-1.21.1-cortex`
+1. Checkout the appropriate version tag, e.g. `git checkout cluster-autoscaler-1.22.2 -b cluster-autoscaler-1.22.2-cortex`
 1. `git stash pop`
 1. Resolve any merge conflicts
 1. Unstage and check the diff
-1. `git commit -am "Add rate limiter"`
-1. `git push origin cluster-autoscaler-1.21.1-cortex`
-1. Update `images/cluster-autoscaler/Dockerfile` to use the new branch name (e.g. "cluster-autoscaler-1.21.1") in the `-b` flag's value from `git clone`.
-1. Match the Go version of the builder in `images/cluster-autoscaler/Dockerfile` with that of the [cluster autoscaler](https://github.com/kubernetes/autoscaler)'s Dockerfile.
+1. `git add *; git commit -am "Add rate limiter"`
+1. `git push origin cluster-autoscaler-1.22.2-cortex`
+1. Update `images/cluster-autoscaler/Dockerfile` to use the new branch name (e.g. "cluster-autoscaler-1.22.2") in the `-b` flag's value from `git clone`.
+1. Match the Go version of the builder in `images/cluster-autoscaler/Dockerfile` with that of the [cluster autoscaler's Dockerfile](https://github.com/kubernetes/autoscaler/blob/master/builder/Dockerfile).
 
 ## FluentBit
 

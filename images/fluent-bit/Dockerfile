@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM amazon/aws-for-fluent-bit:2.21.1
+FROM amazon/aws-for-fluent-bit:2.23.3

@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 # Modifications Copyright 2022 Cortex Labs, Inc.
-# Source: https://github.com/NVIDIA/k8s-device-plugin/blob/v0.9.0/nvidia-device-plugin.yml
+# Source: https://github.com/NVIDIA/k8s-device-plugin/blob/v0.11.0/nvidia-device-plugin.yml
 
 apiVersion: apps/v1
 kind: DaemonSet
