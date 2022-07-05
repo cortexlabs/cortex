@@ -76,11 +76,13 @@ def default_nodegroup(cluster_config):
             "sudo modprobe ip_vs_sh",  # source-hashing load balancer
             "sudo modprobe nf_conntrack_ipv4",
         ],
-        "overrideBootstrapCommand": "\n".join([
-            "#!/bin/bash",
-            "source /var/lib/cloud/scripts/eksctl/bootstrap.helper.sh",
-            f"/etc/eks/bootstrap.sh {cluster_config['cluster_name']} --container-runtime containerd --kubelet-extra-args \"--node-labels=${{NODE_LABELS}}\"",
-        ])
+        "overrideBootstrapCommand": "\n".join(
+            [
+                "#!/bin/bash",
+                "source /var/lib/cloud/scripts/eksctl/bootstrap.helper.sh",
+                f"/etc/eks/bootstrap.sh {cluster_config['cluster_name']} --container-runtime containerd --kubelet-extra-args \"--node-labels=${{NODE_LABELS}}\"",
+            ]
+        ),
     }
 
 

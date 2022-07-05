@@ -53,7 +53,7 @@ jobs:
 
   test:
     machine:
-      image: ubuntu-1604:202104-01 # machine executor necessary to run go integration tests
+      image: ubuntu-2004:202201-02 # machine executor necessary to run go integration tests
     resource_class: medium
     steps:
       - checkout
@@ -117,7 +117,7 @@ jobs:
 
   build-and-push-images-arm64:
     machine:
-      image: ubuntu-2004:202101-01
+      image: ubuntu-2004:202201-02
     resource_class: arm.medium
     steps:
       - checkout
