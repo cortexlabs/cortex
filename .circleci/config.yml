@@ -28,7 +28,7 @@ commands:
 jobs:
   lint:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     resource_class: medium
     steps:
       - checkout
@@ -90,7 +90,7 @@ jobs:
 
   build-and-upload-cli:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     resource_class: medium
     steps:
       - checkout
@@ -133,7 +133,7 @@ jobs:
 
   amend-images:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     environment:
       DOCKER_CLI_EXPERIMENTAL: enabled
     resource_class: medium
@@ -148,7 +148,7 @@ jobs:
 
   cluster-up:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     steps:
       - setup_remote_docker
       - checkout
@@ -211,7 +211,7 @@ jobs:
 
   e2e-tests:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     steps:
       - checkout
       - run:
@@ -242,7 +242,7 @@ jobs:
 
   cluster-down:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     steps:
       - setup_remote_docker
       - checkout

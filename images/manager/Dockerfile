@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.6-alpine3.15
+FROM python:3.7-alpine3.16
 
 WORKDIR /root
 
@@ -29,7 +29,7 @@ RUN pip install --upgrade pip && \
 
 RUN apk add --no-cache bash curl gettext jq openssl
 
-RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.93.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
+RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.103.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/eksctl /usr/local/bin
 
 RUN curl -o aws-iam-authenticator https://s3.us-west-2.amazonaws.com/amazon-eks/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator && \

@@ -121,7 +121,7 @@ func clusterTelemetryProperties() (map[string]interface{}, error) {
 			continue
 		}
 
-		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		instanceType := node.Labels["node.kubernetes.io/instance-type"]
 		if instanceType == "" {
 			instanceType = "unknown"
 		}
@@ -292,7 +292,7 @@ func CostBreakdown() error {
 	totalWorkloadComputeCostsByAPIKind := make(map[string]float64, 0)
 
 	for _, node := range nodes {
-		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		instanceType := node.Labels["node.kubernetes.io/instance-type"]
 		if instanceType == "" {
 			continue
 		}
