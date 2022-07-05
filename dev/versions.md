@@ -57,10 +57,10 @@
 
 1. Find the latest [release](https://istio.io/latest/news/releases) and check the release notes (here are
    the [latest IstioOperator Options](https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/))
-1. Update the version in `images/manager/Dockerfile`
-1. Update the version in all `images/istio-*` Dockerfiles
-1. Update `istio.yaml.j2`, `apis.yaml.j2`, `operator.yaml.j2`, and `pkg/lib/k8s` as necessary
-1. Update `install.sh` as necessary
+1. Update the version in `images/manager/Dockerfile`.
+1. Update the version in all `images/istio-*` Dockerfiles.
+1. Update `istio.yaml.j2`, `apis.yaml.j2`, `operator.yaml.j2`, and `pkg/lib/k8s` as necessary.
+1. Update `install.sh` as necessary.
 
 ## AWS CNI
 
