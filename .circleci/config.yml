@@ -42,7 +42,7 @@ jobs:
           command: |
             go get -u -v golang.org/x/lint/golint
             go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
-            pip3 install black aiohttp
+            pip3 install aiohttp black==20.8b1
       - run:
           name: Lint
           command: make lint
