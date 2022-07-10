@@ -80,7 +80,7 @@ def default_nodegroup(cluster_config):
             [
                 "#!/bin/bash",
                 "source /var/lib/cloud/scripts/eksctl/bootstrap.helper.sh",
-                f"/etc/eks/bootstrap.sh {cluster_config['cluster_name']} --container-runtime containerd --kubelet-extra-args \"--node-labels=${{NODE_LABELS}}\"",
+                f"/etc/eks/bootstrap.sh {cluster_config['cluster_name']} --container-runtime dockerd --kubelet-extra-args \"--node-labels=${{NODE_LABELS}}\"",
             ]
         ),
     }
