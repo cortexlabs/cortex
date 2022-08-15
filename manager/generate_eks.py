@@ -80,7 +80,7 @@ def default_nodegroup(cluster_config):
             [
                 "#!/bin/bash",
                 "source /var/lib/cloud/scripts/eksctl/bootstrap.helper.sh",
-                f"/etc/eks/bootstrap.sh {cluster_config['cluster_name']} --container-runtime dockerd --kubelet-extra-args \"--node-labels=${{NODE_LABELS}}\"",
+                f"/etc/eks/bootstrap.sh {cluster_config['cluster_name']} --container-runtime dockerd --kubelet-extra-args \"--node-labels=${{NODE_LABELS}} --register-with-taints=${{NODE_TAINTS}}\"",
             ]
         ),
     }
@@ -92,6 +92,8 @@ def merge_override(a, b):
         if key in a:
             if isinstance(a[key], dict) and isinstance(b[key], dict):
                 merge_override(a[key], b[key])
+            elif isinstance(a[key], list) and isinstance(b[key], list):
+                a[key] += b[key]
             else:
                 a[key] = b[key]
         else:
@@ -104,7 +106,13 @@ def apply_worker_settings(nodegroup, config):
         "name": "cx-wd-" + config["name"],
         "asgSuspendProcesses": ["AZRebalance"],
         "labels": {"workload": "true"},
-        "taints": {"workload": "true:NoSchedule"},
+        "taints": [
+            {
+                "key": "workload",
+                "value": "true",
+                "effect": "NoSchedule",
+            },
+        ],
         "tags": {
             "k8s.io/cluster-autoscaler/enabled": "true",
             "k8s.io/cluster-autoscaler/node-template/label/workload": "true",
@@ -162,7 +170,13 @@ def apply_gpu_settings(nodegroup):
             "nvidia.com/gpu": "true",
             "k8s.amazonaws.com/accelerator": "true",  # accepted values are GPU type such as nvidia-tesla-k80 but using "true" as a placeholder for now because the value doesn't matter for AWS cluster autoscaler
         },
-        "taints": {"nvidia.com/gpu": "true:NoSchedule"},
+        "taints": [
+            {
+                "key": "nvidia.com/gpu",
+                "value": "true",
+                "effect": "NoSchedule",
+            },
+        ],
     }
 
     return merge_override(nodegroup, gpu_settings)
@@ -187,7 +201,13 @@ def apply_inf_settings(nodegroup, config):
             "k8s.io/cluster-autoscaler/node-template/resources/hugepages-2Mi": num_hugepages,
         },
         "labels": {"aws.amazon.com/neuron": "true"},
-        "taints": {"aws.amazon.com/neuron": "true:NoSchedule"},
+        "taints": [
+            {
+                "key": "aws.amazon.com/neuron",
+                "value": "true",
+                "effect": "NoSchedule",
+            },
+        ],
     }
     return merge_override(nodegroup, inf_settings)
 
@@ -350,7 +370,13 @@ def generate_eks(
         "volumeIOPS": 3000,
         "volumeThroughput": 125,
         "labels": {"prometheus": "true"},
-        "taints": {"prometheus": "true:NoSchedule"},
+        "taints": [
+            {
+                "key": "prometheus",
+                "value": "true",
+                "effect": "NoSchedule",
+            },
+        ],
     }
     prometheus_nodegroup = merge_override(prometheus_nodegroup, prometheus_settings)
 

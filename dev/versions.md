@@ -7,8 +7,8 @@
 1. Update `generate_eks.py` if necessary
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired, and logs in `cortex cluster up` look good.
 1. Update eksctl on your dev
-   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.103.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
-1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.103.0/userdocs/src/usage/minimum-iam-policies.md
+   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.107.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.107.0/userdocs/src/usage/minimum-iam-policies.md
 
 ## Kubernetes
 
