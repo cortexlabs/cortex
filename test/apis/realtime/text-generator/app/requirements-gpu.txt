@@ -1,4 +1,5 @@
-uvicorn[standard]
+uvicorn[standard]==0.16.0
+sentencepiece==0.1.94
 fastapi
 transformers==3.0.*
-torch==1.7.*
+torch==1.10.2

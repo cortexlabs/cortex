@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.2-cudnn8-runtime-ubuntu18.04
+FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu18.04
 
 RUN apt-get update \
     && apt-get install -y \
@@ -16,7 +16,10 @@ ENV LC_ALL=C.UTF-8 LANG=C.UTF-8
 ENV PYTHONUNBUFFERED TRUE
 
 COPY app/requirements-gpu.txt /app/requirements.txt
-RUN pip3 install --no-cache-dir -r /app/requirements.txt
+RUN pip3 install \
+    --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cu113 \
+    -r /app/requirements.txt
 
 COPY app /app
 WORKDIR /app/
