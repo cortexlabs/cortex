@@ -46,6 +46,7 @@ jobs:
       - run:
           name: Lint
           command: make lint
+          no_output_timeout: 20m
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
