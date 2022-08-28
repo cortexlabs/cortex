@@ -2,4 +2,4 @@ boto3
 jinja2
 pyyaml
 yq
-click
+click==8.0.4
