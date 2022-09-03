@@ -447,14 +447,14 @@ def test_autoscaling(
             current_replicas += 1
         if current_replicas > max_replicas:
             current_replicas = max_replicas
-        test_timeout += int(autoscaling["upscale_stabilization_period"] / (1000**3))
+        test_timeout += int(autoscaling["upscale_stabilization_period"] / (1000 ** 3))
     while current_replicas > 1:
         downscale_ceil = math.ceil(current_replicas * autoscaling["max_downscale_factor"])
         if downscale_ceil < current_replicas - 1:
             current_replicas = downscale_ceil
         else:
             current_replicas -= 1
-        test_timeout += int(autoscaling["downscale_stabilization_period"] / (1000**3))
+        test_timeout += int(autoscaling["downscale_stabilization_period"] / (1000 ** 3))
 
     # add overhead to the test timeout to account for the process of downloading images or adding nodes to the cluster
     test_timeout *= 2

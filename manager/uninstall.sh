@@ -21,7 +21,7 @@ EKSCTL_TIMEOUT=45m
 function main() {
   echo
   aws eks --region $CORTEX_REGION update-kubeconfig --name $CORTEX_CLUSTER_NAME >/dev/null
-  eksctl delete cluster --wait --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --timeout=$EKSCTL_TIMEOUT
+  eksctl delete cluster --wait --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --disable-nodegroup-eviction --timeout=$EKSCTL_TIMEOUT
   echo -e "\n✓ done spinning down the cluster"
 }
 

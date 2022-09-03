@@ -1,6 +1,7 @@
-uvicorn[standard]
+uvicorn[standard]==0.16.0
+sentencepiece==0.1.94
 fastapi
 requests
 boto3==1.17.*
-torch==1.7.*
+torch==1.10.2
 torchvision==0.8.*

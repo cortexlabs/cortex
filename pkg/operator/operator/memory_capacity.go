@@ -49,7 +49,7 @@ func getMemoryCapacityFromNodes(primaryInstances []string) (map[string]*kresourc
 		isPrimaryInstance := false
 		var primaryInstanceType string
 		for k, v := range node.Labels {
-			if k == "beta.kubernetes.io/instance-type" && slices.HasString(primaryInstances, v) {
+			if k == "node.kubernetes.io/instance-type" && slices.HasString(primaryInstances, v) {
 				isPrimaryInstance = true
 				primaryInstanceType = v
 				break

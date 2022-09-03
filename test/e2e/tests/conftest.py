@@ -126,13 +126,13 @@ def pytest_configure(config):
             },
             "load_test_config": {
                 "realtime": {
-                    "total_requests": 10**5,
+                    "total_requests": 10 ** 5,
                     "desired_replicas": 50,
                     "concurrency": 50,
                     "status_code_timeout": 60,  # measured in seconds
                 },
                 "async": {
-                    "total_requests": 10**3,
+                    "total_requests": 10 ** 3,
                     "desired_replicas": 20,
                     "concurrency": 10,
                     "submit_timeout": 120,  # measured in seconds
@@ -141,7 +141,7 @@ def pytest_configure(config):
                 "batch": {
                     "jobs": 10,
                     "workers_per_job": 10,
-                    "items_per_job": 10**5,
+                    "items_per_job": 10 ** 5,
                     "batch_size": 10 * 2,
                     "workload_timeout": 300,  # measured in seconds
                 },

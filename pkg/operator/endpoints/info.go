@@ -73,7 +73,7 @@ func getWorkerNodeInfos() ([]schema.WorkerNodeInfo, int, error) {
 	for i := range nodes {
 		node := nodes[i]
 
-		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		instanceType := node.Labels["node.kubernetes.io/instance-type"]
 		nodeGroupName := node.Labels["alpha.eksctl.io/nodegroup-name"]
 		isSpot := node.Labels["node-lifecycle"] == "spot"
 
@@ -196,7 +196,7 @@ func getOperatorNodeInfos() ([]schema.NodeInfo, error) {
 	for i := range nodes {
 		node := nodes[i]
 
-		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		instanceType := node.Labels["node.kubernetes.io/instance-type"]
 		nodeGroupName := node.Labels["alpha.eksctl.io/nodegroup-name"]
 
 		price := aws.InstanceMetadatas[config.ClusterConfig.Region][instanceType].Price

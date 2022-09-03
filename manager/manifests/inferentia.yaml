@@ -115,8 +115,6 @@ spec:
       labels:
         app: neuron-scheduler
         component: k8s-neuron-scheduler
-      annotations:
-        scheduler.alpha.kubernetes.io/critical-pod: ""
     spec:
       hostNetwork: true
       tolerations:
@@ -127,6 +125,7 @@ spec:
           operator: Exists
           key: node.cloudprovider.kubernetes.io/uninitialized
       serviceAccount: k8s-neuron-scheduler
+      priorityClassName: "system-node-critical"
       containers:
         - name: neuron-scheduler
           image: $CORTEX_IMAGE_NEURON_SCHEDULER
@@ -232,8 +231,6 @@ spec:
     type: RollingUpdate
   template:
     metadata:
-      annotations:
-        scheduler.alpha.kubernetes.io/critical-pod: ""
       labels:
         name: neuron-device-plugin-ds
     spec:
@@ -256,14 +253,6 @@ spec:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-              - matchExpressions:
-                  - key: "beta.kubernetes.io/instance-type"
-                    operator: In
-                    values:
-                      - inf1.xlarge
-                      - inf1.2xlarge
-                      - inf1.6xlarge
-                      - inf1.4xlarge
               - matchExpressions:
                   - key: "node.kubernetes.io/instance-type"
                     operator: In
