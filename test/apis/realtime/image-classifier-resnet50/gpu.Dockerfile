@@ -1,4 +1,4 @@
-FROM tensorflow/serving:2.3.0-gpu
+FROM tensorflow/serving:2.8.2-gpu
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends -q \
         wget \

@@ -28,7 +28,7 @@ commands:
 jobs:
   lint:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     resource_class: medium
     steps:
       - checkout
@@ -42,10 +42,11 @@ jobs:
           command: |
             go get -u -v golang.org/x/lint/golint
             go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
-            pip3 install black aiohttp
+            pip3 install aiohttp black==20.8b1 click==8.0.4
       - run:
           name: Lint
           command: make lint
+          no_output_timeout: 20m
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
@@ -53,7 +54,7 @@ jobs:
 
   test:
     machine:
-      image: ubuntu-1604:202104-01 # machine executor necessary to run go integration tests
+      image: ubuntu-2004:202201-02 # machine executor necessary to run go integration tests
     resource_class: medium
     steps:
       - checkout
@@ -90,7 +91,7 @@ jobs:
 
   build-and-upload-cli:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     resource_class: medium
     steps:
       - checkout
@@ -117,7 +118,7 @@ jobs:
 
   build-and-push-images-arm64:
     machine:
-      image: ubuntu-2004:202101-01
+      image: ubuntu-2004:202201-02
     resource_class: arm.medium
     steps:
       - checkout
@@ -133,7 +134,7 @@ jobs:
 
   amend-images:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     environment:
       DOCKER_CLI_EXPERIMENTAL: enabled
     resource_class: medium
@@ -148,7 +149,7 @@ jobs:
 
   cluster-up:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     steps:
       - setup_remote_docker
       - checkout
@@ -211,7 +212,7 @@ jobs:
 
   e2e-tests:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     steps:
       - checkout
       - run:
@@ -242,7 +243,7 @@ jobs:
 
   cluster-down:
     docker:
-      - image: cimg/python:3.6
+      - image: cimg/python:3.7
     steps:
       - setup_remote_docker
       - checkout

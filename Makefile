@@ -171,7 +171,7 @@ tools:
 	@go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 	@go get -u -v github.com/go-delve/delve/cmd/dlv
-	@python3 -m pip install aiohttp black 'pydoc-markdown>=3.0.0,<4.0.0' boto3 pyyaml
+	@python3 -m pip install aiohttp boto3 pyyaml pydoc-markdown==3.* black==20.8b1 -U
 	@python3 -m pip install -e test/e2e
 
 format:

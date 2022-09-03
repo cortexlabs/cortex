@@ -121,6 +121,10 @@ Replace the following placeholders with their respective values in the policy te
                 "logs:ListTagsLogGroup",
                 "logs:DescribeLogStreams",
                 "iam:TagRole",
+                "iam:GetPolicy",
+                "iam:CreatePolicy",
+                "iam:DeletePolicy",
+                "iam:ListPolicyVersions",
                 "iam:RemoveRoleFromInstanceProfile",
                 "iam:CreateRole",
                 "iam:AttachRolePolicy",
@@ -134,6 +138,7 @@ Replace the following placeholders with their respective values in the policy te
                 "iam:ListAttachedRolePolicies",
                 "iam:DeleteRolePolicy",
                 "iam:DeleteOpenIDConnectProvider",
+                "iam:TagOpenIDConnectProvider",
                 "iam:DeleteInstanceProfile",
                 "iam:GetRole",
                 "iam:GetInstanceProfile",
@@ -149,6 +154,7 @@ Replace the following placeholders with their respective values in the policy te
             "Resource": [
                 "arn:*:iam::$CORTEX_ACCOUNT_ID:instance-profile/eksctl-*",
                 "arn:*:iam::$CORTEX_ACCOUNT_ID:role/eksctl-*",
+                "arn:*:iam::$CORTEX_ACCOUNT_ID:policy/eksctl-*",
                 "arn:*:iam::$CORTEX_ACCOUNT_ID:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
                 "arn:*:iam::$CORTEX_ACCOUNT_ID:role/eksctl-managed-*",
                 "arn:*:iam::$CORTEX_ACCOUNT_ID:oidc-provider/*",
@@ -184,7 +190,8 @@ Replace the following placeholders with their respective values in the policy te
                 "eks:*",
                 "kms:CreateGrant",
                 "acm:DescribeCertificate",
-                "servicequotas:ListServiceQuotas"
+                "servicequotas:ListServiceQuotas",
+                "logs:PutRetentionPolicy"
             ],
             "Resource": "*"
         },

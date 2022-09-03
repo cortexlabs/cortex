@@ -1,7 +1,7 @@
 from typing import List
 from random import sample
 
-RANGE = 10**12
+RANGE = 10 ** 12
 LENGTH = 5
 
 

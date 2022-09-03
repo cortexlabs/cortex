@@ -27,7 +27,7 @@ import (
 )
 
 var _standardInstanceFamilies = strset.New("a", "c", "d", "h", "i", "m", "r", "t", "z")
-var _knownInstanceFamilies = strset.Union(_standardInstanceFamilies, strset.New("p", "g", "inf", "x", "f", "mac", "vt", "dl", "trn", "im", "is"))
+var _knownInstanceFamilies = strset.Union(_standardInstanceFamilies, strset.New("p", "g", "inf", "x", "f", "mac", "vt", "dl", "trn", "im", "is", "hpc"))
 
 const (
 	// 11 inbound rules

@@ -222,7 +222,7 @@ func main() {
 		json.Unmarshal(jsonBytes, &k8sVersionMap)
 	}
 
-	k8sVersion := "1.21"
+	k8sVersion := "1.22"
 
 	if k8sVersionMap[k8sVersion] == nil {
 		k8sVersionMap[k8sVersion] = map[string]map[string]string{}

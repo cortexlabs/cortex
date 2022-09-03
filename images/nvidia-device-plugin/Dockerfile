@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM nvidia/k8s-device-plugin:v0.9.0
+FROM nvidia/k8s-device-plugin:v0.11.0

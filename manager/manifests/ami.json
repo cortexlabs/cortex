@@ -1,119 +1,119 @@
 {
-	"1.21": {
+	"1.22": {
 		"af-south-1": {
-			"accelerated_amd64": "ami-025dc029a1dc8a447",
-			"cpu_amd64": "ami-0a33218cbb220257a",
-			"cpu_arm64": "ami-06bd0cb9bbb7c77f0"
+			"accelerated_amd64": "ami-060db0c99048ca916",
+			"cpu_amd64": "ami-05b1996f962e1a840",
+			"cpu_arm64": "ami-03156c2c7ecbe55ca"
 		},
 		"ap-east-1": {
-			"accelerated_amd64": "ami-07f3c8621386dc03c",
-			"cpu_amd64": "ami-0d724b49767b9a49b",
-			"cpu_arm64": "ami-0614e3e896b791eef"
+			"accelerated_amd64": "ami-0ac2ce8b81291a5f1",
+			"cpu_amd64": "ami-0bcbff72f7d2bb056",
+			"cpu_arm64": "ami-07e2412bfc3c401b5"
 		},
 		"ap-northeast-1": {
-			"accelerated_amd64": "ami-0d3f682690ca072bd",
-			"cpu_amd64": "ami-0ca74b89a242639f0",
-			"cpu_arm64": "ami-0d249f366988ad290"
+			"accelerated_amd64": "ami-0daf96135f91047cf",
+			"cpu_amd64": "ami-05955794c71f6cde9",
+			"cpu_arm64": "ami-035ae428df1978df6"
 		},
 		"ap-northeast-2": {
-			"accelerated_amd64": "ami-0f5f7915b2d5d7125",
-			"cpu_amd64": "ami-0073aeb06ceb4b0dc",
-			"cpu_arm64": "ami-0918febf0539afda4"
+			"accelerated_amd64": "ami-040df236ed16db21b",
+			"cpu_amd64": "ami-0f2bcb5a524a100a4",
+			"cpu_arm64": "ami-0c4d775e231b413f5"
 		},
 		"ap-northeast-3": {
-			"accelerated_amd64": "ami-0f4878f2278b6612b",
-			"cpu_amd64": "ami-09f25941f432ecef7",
-			"cpu_arm64": "ami-0bcf3e4a422851190"
+			"accelerated_amd64": "ami-0bbe7685e20d96d41",
+			"cpu_amd64": "ami-09b5be21ab02366ed",
+			"cpu_arm64": "ami-03412067ed8e25694"
 		},
 		"ap-south-1": {
-			"accelerated_amd64": "ami-0113e019b93a70680",
-			"cpu_amd64": "ami-0eacabf972c23fd71",
-			"cpu_arm64": "ami-0046d459331656a8b"
+			"accelerated_amd64": "ami-0a373620de38ec67d",
+			"cpu_amd64": "ami-02c0a86da73ff476d",
+			"cpu_arm64": "ami-055c892f309c8766d"
 		},
 		"ap-southeast-1": {
-			"accelerated_amd64": "ami-08bd8cf63cda64859",
-			"cpu_amd64": "ami-04c33e5aa8fd573a3",
-			"cpu_arm64": "ami-0ab7c1fc1a061dfd2"
+			"accelerated_amd64": "ami-006821bdff8e4bcb6",
+			"cpu_amd64": "ami-09d066ada84539c8b",
+			"cpu_arm64": "ami-06b35c1ca0ddc31c2"
 		},
 		"ap-southeast-2": {
-			"accelerated_amd64": "ami-0e965d3963edf3429",
-			"cpu_amd64": "ami-045371401c5f70a1e",
-			"cpu_arm64": "ami-0e7bbd7f54faec844"
+			"accelerated_amd64": "ami-04ab748d420d0c991",
+			"cpu_amd64": "ami-0471c8c731aff64c4",
+			"cpu_arm64": "ami-0bf89cf1628a1835f"
 		},
 		"ca-central-1": {
-			"accelerated_amd64": "ami-02ccc38ce3b2e8b5c",
-			"cpu_amd64": "ami-007c58561b6e76a62",
-			"cpu_arm64": "ami-0618d6d6c362a240c"
+			"accelerated_amd64": "ami-0cf22a8efb72853d5",
+			"cpu_amd64": "ami-03dc7e20ad86871af",
+			"cpu_arm64": "ami-0cc7b246694710794"
 		},
 		"eu-central-1": {
-			"accelerated_amd64": "ami-02cfaaaee0a4fa7d7",
-			"cpu_amd64": "ami-02b3f04ab50ffd9f1",
-			"cpu_arm64": "ami-0b2fcf546a685ed06"
+			"accelerated_amd64": "ami-0f6759a0eb110c0b1",
+			"cpu_amd64": "ami-0f0bee6c186e51fd3",
+			"cpu_arm64": "ami-024f7b2f337648f01"
 		},
 		"eu-north-1": {
-			"accelerated_amd64": "ami-0708b097b499b612a",
-			"cpu_amd64": "ami-0bb38f97f38be3ee7",
-			"cpu_arm64": "ami-0818186aa978937eb"
+			"accelerated_amd64": "ami-0b00a6e259d3bb3f0",
+			"cpu_amd64": "ami-0cb92e7e44afc2fe2",
+			"cpu_arm64": "ami-0559329495f812c1d"
 		},
 		"eu-south-1": {
-			"accelerated_amd64": "ami-0c1c28315532970dc",
-			"cpu_amd64": "ami-01da8104cafabb4c3",
-			"cpu_arm64": "ami-09d983716aff43a49"
+			"accelerated_amd64": "ami-0a07fabae484c3acb",
+			"cpu_amd64": "ami-076e155512c7ccd51",
+			"cpu_arm64": "ami-0e21d55220a1ce340"
 		},
 		"eu-west-1": {
-			"accelerated_amd64": "ami-04cc39269f29dc16b",
-			"cpu_amd64": "ami-06efe6b9d402e8674",
-			"cpu_arm64": "ami-01dc0aa438e3214c2"
+			"accelerated_amd64": "ami-0ce94487e6828454f",
+			"cpu_amd64": "ami-03ba20706dab77da5",
+			"cpu_arm64": "ami-04f28ffa44ceadaa6"
 		},
 		"eu-west-2": {
-			"accelerated_amd64": "ami-029ae37b9eafa8388",
-			"cpu_amd64": "ami-054bc408163e6a046",
-			"cpu_arm64": "ami-02e4a480758e78935"
+			"accelerated_amd64": "ami-09ba6f26d6f9bafb1",
+			"cpu_amd64": "ami-08b4681872300c3d1",
+			"cpu_arm64": "ami-07dd0d8548066837c"
 		},
 		"eu-west-3": {
-			"accelerated_amd64": "ami-0148b129074bf8c38",
-			"cpu_amd64": "ami-008ccec5b800d034b",
-			"cpu_arm64": "ami-0ef270e1076823073"
+			"accelerated_amd64": "ami-018ab5c8ff8b25e33",
+			"cpu_amd64": "ami-02ec360db9d1c78aa",
+			"cpu_arm64": "ami-030f5a65291bee0cf"
 		},
 		"me-south-1": {
-			"accelerated_amd64": "ami-00328776871b1339a",
-			"cpu_amd64": "ami-0a67d85486c644c97",
-			"cpu_arm64": "ami-0a3fe276aa5cbbc4c"
+			"accelerated_amd64": "ami-04af060694de1bde4",
+			"cpu_amd64": "ami-0da6a4f209e783387",
+			"cpu_arm64": "ami-037082471a912a223"
 		},
 		"sa-east-1": {
-			"accelerated_amd64": "ami-0638cfccb15dea18d",
-			"cpu_amd64": "ami-06b6a6aa8ef4d3a84",
-			"cpu_arm64": "ami-08af912bbde1d07b7"
+			"accelerated_amd64": "ami-022752810a1fe5dbb",
+			"cpu_amd64": "ami-0ce71a979799fcfe1",
+			"cpu_arm64": "ami-04ba15cc4ce9eec0c"
 		},
 		"us-east-1": {
-			"accelerated_amd64": "ami-0bccab1add79c4ea3",
-			"cpu_amd64": "ami-019904275ee6b71a3",
-			"cpu_arm64": "ami-06a5a40edd8c8489a"
+			"accelerated_amd64": "ami-05ed50f0d1f4bcf18",
+			"cpu_amd64": "ami-0d5cbb67678bc879c",
+			"cpu_arm64": "ami-013845c4dfca498f6"
 		},
 		"us-east-2": {
-			"accelerated_amd64": "ami-05d64c4009e735507",
-			"cpu_amd64": "ami-04635d3effed08298",
-			"cpu_arm64": "ami-0158cbdf1e391f1fc"
+			"accelerated_amd64": "ami-00bc47f895d9384a0",
+			"cpu_amd64": "ami-0c0c07bda9db344ec",
+			"cpu_arm64": "ami-01c1233f0498cd796"
 		},
 		"us-gov-east-1": {
-			"accelerated_amd64": "ami-005ae015eca2894fe",
-			"cpu_amd64": "ami-069d7295743f3ad82",
-			"cpu_arm64": "ami-05f1684d482e06780"
+			"accelerated_amd64": "ami-0a1f4110c37454db8",
+			"cpu_amd64": "ami-03a40d00b52a4b7d4",
+			"cpu_arm64": "ami-01d8133657b1e33e5"
 		},
 		"us-gov-west-1": {
-			"accelerated_amd64": "ami-0951512b46c784af2",
-			"cpu_amd64": "ami-03af95c8c3bd1cc09",
-			"cpu_arm64": "ami-0daf20aa5d2fb013f"
+			"accelerated_amd64": "ami-03d3d9405fd000a27",
+			"cpu_amd64": "ami-05067e9caa5a2b27b",
+			"cpu_arm64": "ami-0c775d2df44eafd24"
 		},
 		"us-west-1": {
-			"accelerated_amd64": "ami-0a0bbe83e8e246633",
-			"cpu_amd64": "ami-07ce6c47faac88aa3",
-			"cpu_arm64": "ami-0984fddf68f7a1af3"
+			"accelerated_amd64": "ami-0dff3ce23d6001ee4",
+			"cpu_amd64": "ami-0c68a0cdb2f0ae2b7",
+			"cpu_arm64": "ami-0fe9484a6f1e7b2f1"
 		},
 		"us-west-2": {
-			"accelerated_amd64": "ami-0cb0ebf0188779ab1",
-			"cpu_amd64": "ami-002539dd2c532d0a5",
-			"cpu_arm64": "ami-0f4fd63f996848076"
+			"accelerated_amd64": "ami-077be0d48d8abb41b",
+			"cpu_amd64": "ami-045759229c0add028",
+			"cpu_arm64": "ami-08850c88dbabfc43b"
 		}
 	}
 }
