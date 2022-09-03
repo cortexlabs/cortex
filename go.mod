@@ -43,7 +43,7 @@ require (
 	k8s.io/apimachinery v0.22.11
 	k8s.io/client-go v0.22.11
 	k8s.io/metrics v0.22.11
-	sigs.k8s.io/aws-iam-authenticator v0.5.3
+	sigs.k8s.io/aws-iam-authenticator v0.5.9
 	sigs.k8s.io/controller-runtime v0.10.3
 )
 
