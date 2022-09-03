@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	CortexVersion      = "0.42.0" // CORTEX_VERSION
+	CortexVersion      = "0.42.1" // CORTEX_VERSION
 	CortexVersionMinor = "0.42"   // CORTEX_VERSION_MINOR
 
 	DefaultNamespace    = "default"

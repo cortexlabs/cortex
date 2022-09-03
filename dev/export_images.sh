@@ -22,7 +22,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 # CORTEX_VERSION
-cortex_version=0.42.0
+cortex_version=0.42.1
 
 # user set variables
 ecr_region=$1
