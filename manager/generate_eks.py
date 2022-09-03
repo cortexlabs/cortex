@@ -402,7 +402,7 @@ def generate_eks(
         "addons": [
             {
                 "name": "vpc-cni",
-                "version": "1.11.0",
+                "version": "1.11.3",
             },
         ],
     }
