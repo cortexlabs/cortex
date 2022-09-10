@@ -25,7 +25,10 @@ def run():
     Runs the CLI from terminal.
     """
     try:
-        process = subprocess.run([get_cli_path()] + sys.argv[1:], cwd=os.getcwd())
+        env = os.environ.copy()
+        if "AWS_VPC_K8S_CNI_LOG_FILE" not in env:
+            env["AWS_VPC_K8S_CNI_LOG_FILE"] = "/dev/null"
+        process = subprocess.run([get_cli_path()] + sys.argv[1:], cwd=os.getcwd(), env=env)
     except KeyboardInterrupt:
         sys.exit(130)  # Ctrl + C
     sys.exit(process.returncode)
@@ -51,6 +54,8 @@ def run_cli(
 
     env = os.environ.copy()
     env["CORTEX_CLI_INVOKER"] = "python"
+    if "AWS_VPC_K8S_CNI_LOG_FILE" not in env:
+        env["AWS_VPC_K8S_CNI_LOG_FILE"] = "/dev/null"
     process = subprocess.Popen(
         [get_cli_path()] + args,
         stderr=subprocess.PIPE,
