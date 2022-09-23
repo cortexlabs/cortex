@@ -12,7 +12,7 @@
 <!-- CORTEX_VERSION_README -->
 ```bash
 # install the cortex CLI
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.42.0/get-cli.sh)"
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.42.1/get-cli.sh)"
 
 # create a cluster
 cortex cluster up cluster.yaml
@@ -105,32 +105,32 @@ The docker images used by the cluster can also be overridden. They can be config
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
-image_manager: quay.io/cortexlabs/manager:0.42.0
-image_operator: quay.io/cortexlabs/operator:0.42.0
-image_controller_manager: quay.io/cortexlabs/controller-manager:0.42.0
-image_autoscaler: quay.io/cortexlabs/autoscaler:0.42.0
-image_proxy: quay.io/cortexlabs/proxy:0.42.0
-image_async_gateway: quay.io/cortexlabs/async-gateway:0.42.0
-image_activator: quay.io/cortexlabs/activator:0.42.0
-image_enqueuer: quay.io/cortexlabs/enqueuer:0.42.0
-image_dequeuer: quay.io/cortexlabs/dequeuer:0.42.0
-image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:0.42.0
-image_metrics_server: quay.io/cortexlabs/metrics-server:0.42.0
-image_nvidia_device_plugin: quay.io/cortexlabs/nvidia-device-plugin:0.42.0
-image_neuron_device_plugin: quay.io/cortexlabs/neuron-device-plugin:0.42.0
-image_neuron_scheduler: quay.io/cortexlabs/neuron-scheduler:0.42.0
-image_fluent_bit: quay.io/cortexlabs/fluent-bit:0.42.0
-image_istio_proxy: quay.io/cortexlabs/istio-proxy:0.42.0
-image_istio_pilot: quay.io/cortexlabs/istio-pilot:0.42.0
-image_prometheus: quay.io/cortexlabs/prometheus:0.42.0
-image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:0.42.0
-image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:0.42.0
-image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:0.42.0
-image_prometheus_dcgm_exporter: quay.io/cortexlabs/prometheus-dcgm-exporter:0.42.0
-image_prometheus_kube_state_metrics: quay.io/cortexlabs/prometheus-kube-state-metrics:0.42.0
-image_prometheus_node_exporter: quay.io/cortexlabs/prometheus-node-exporter:0.42.0
-image_kube_rbac_proxy: quay.io/cortexlabs/kube-rbac-proxy:0.42.0
-image_grafana: quay.io/cortexlabs/grafana:0.42.0
-image_event_exporter: quay.io/cortexlabs/event-exporter:0.42.0
-image_kubexit: quay.io/cortexlabs/kubexit:0.42.0
+image_manager: quay.io/cortexlabs/manager:0.42.1
+image_operator: quay.io/cortexlabs/operator:0.42.1
+image_controller_manager: quay.io/cortexlabs/controller-manager:0.42.1
+image_autoscaler: quay.io/cortexlabs/autoscaler:0.42.1
+image_proxy: quay.io/cortexlabs/proxy:0.42.1
+image_async_gateway: quay.io/cortexlabs/async-gateway:0.42.1
+image_activator: quay.io/cortexlabs/activator:0.42.1
+image_enqueuer: quay.io/cortexlabs/enqueuer:0.42.1
+image_dequeuer: quay.io/cortexlabs/dequeuer:0.42.1
+image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:0.42.1
+image_metrics_server: quay.io/cortexlabs/metrics-server:0.42.1
+image_nvidia_device_plugin: quay.io/cortexlabs/nvidia-device-plugin:0.42.1
+image_neuron_device_plugin: quay.io/cortexlabs/neuron-device-plugin:0.42.1
+image_neuron_scheduler: quay.io/cortexlabs/neuron-scheduler:0.42.1
+image_fluent_bit: quay.io/cortexlabs/fluent-bit:0.42.1
+image_istio_proxy: quay.io/cortexlabs/istio-proxy:0.42.1
+image_istio_pilot: quay.io/cortexlabs/istio-pilot:0.42.1
+image_prometheus: quay.io/cortexlabs/prometheus:0.42.1
+image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:0.42.1
+image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:0.42.1
+image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:0.42.1
+image_prometheus_dcgm_exporter: quay.io/cortexlabs/prometheus-dcgm-exporter:0.42.1
+image_prometheus_kube_state_metrics: quay.io/cortexlabs/prometheus-kube-state-metrics:0.42.1
+image_prometheus_node_exporter: quay.io/cortexlabs/prometheus-node-exporter:0.42.1
+image_kube_rbac_proxy: quay.io/cortexlabs/kube-rbac-proxy:0.42.1
+image_grafana: quay.io/cortexlabs/grafana:0.42.1
+image_event_exporter: quay.io/cortexlabs/event-exporter:0.42.1
+image_kubexit: quay.io/cortexlabs/kubexit:0.42.1
 ```
