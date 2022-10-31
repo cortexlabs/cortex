@@ -1901,7 +1901,7 @@ data:
               "value": "None"
             },
             "datasource": null,
-            "definition": "label_values(cortex_async_queue_length{api_kind=\"AsyncAPI\"}, api_name)",
+            "definition": "label_values(cortex_async_queued{api_kind=\"AsyncAPI\"}, api_name)",
             "description": null,
             "error": null,
             "hide": 0,
@@ -1911,7 +1911,7 @@ data:
             "name": "api_name",
             "options": [],
             "query": {
-              "query": "label_values(cortex_async_queue_length{api_kind=\"AsyncAPI\"}, api_name)",
+              "query": "label_values(cortex_async_queued{api_kind=\"AsyncAPI\"}, api_name)",
               "refId": "StandardVariableQuery"
             },
             "refresh": 1,
