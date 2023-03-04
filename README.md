@@ -6,6 +6,8 @@
 
 <br>
 
+Note: This project is no longer actively maintained by its original authors.
+
 # Production infrastructure for machine learning at scale
 
 Deploy, manage, and scale machine learning models in production.
