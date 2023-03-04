@@ -105,7 +105,7 @@ func validateJobSubmissionSchema(submission *schema.BatchJobSubmission) error {
 func validateJobSubmission(submission *schema.BatchJobSubmission) error {
 	err := validateJobSubmissionSchema(submission)
 	if err != nil {
-		return errors.Append(err, fmt.Sprintf("\n\njob submission schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+		return errors.Append(err, fmt.Sprintf("\n\njob submission schema can be found at https://docs.cortexlabs.com/v/%s/", consts.CortexVersionMinor))
 	}
 
 	if submission.FilePathLister != nil {

@@ -91,7 +91,7 @@ func Deploy(configFileName string, configBytes []byte, force bool) ([]schema.Dep
 
 	err = ValidateClusterAPIs(apiConfigs)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortexlabs.com/v/%s/", consts.CortexVersionMinor))
 		return nil, err
 	}
 
@@ -459,7 +459,7 @@ func getPastAPIDeploys(apiName string) ([]schema.APIVersion, error) {
 	return apiVersions, nil
 }
 
-//checkIfUsedByTrafficSplitter checks if api is used by a deployed TrafficSplitter
+// checkIfUsedByTrafficSplitter checks if api is used by a deployed TrafficSplitter
 func checkIfUsedByTrafficSplitter(apiName string) error {
 	virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
 	if err != nil {

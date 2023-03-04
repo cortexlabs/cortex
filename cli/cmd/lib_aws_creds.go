@@ -54,7 +54,7 @@ func promptIfNotAdmin(awsClient *aws.Client, disallowPrompt bool) {
 	}
 
 	if !awsClient.IsAdmin() {
-		warningStr := fmt.Sprintf("warning: your IAM user%s does not have administrator access. Please attach the AdministratorAccess policy to your IAM user (or to a group that your IAM user belongs to), or visit https://docs.cortex.dev/v/%s/ to view the minimum permissions required to run `cortex cluster` commands.\n\n", accessKeyMsg, consts.CortexVersionMinor)
+		warningStr := fmt.Sprintf("warning: your IAM user%s does not have administrator access. Please attach the AdministratorAccess policy to your IAM user (or to a group that your IAM user belongs to), or visit https://docs.cortexlabs.com/v/%s/ to view the minimum permissions required to run `cortex cluster` commands.\n\n", accessKeyMsg, consts.CortexVersionMinor)
 		if disallowPrompt {
 			fmt.Print(warningStr)
 		} else {

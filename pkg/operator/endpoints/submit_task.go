@@ -62,7 +62,7 @@ func SubmitTaskJob(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(bodyBytes, &submission)
 	if err != nil {
 		respondError(w, r, errors.Append(err,
-			fmt.Sprintf("\n\ntask job submission schema can be found at https://docs.cortex.dev/v/%s/",
+			fmt.Sprintf("\n\ntask job submission schema can be found at https://docs.cortexlabs.com/v/%s/",
 				consts.CortexVersionMinor)),
 		)
 		return

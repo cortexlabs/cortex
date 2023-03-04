@@ -27,6 +27,6 @@ if ! eksctl utils describe-stacks --cluster=$CORTEX_CLUSTER_NAME --region=$CORTE
 fi
 
 eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --verbose=0 | (grep -v "saved kubeconfig as" || true)
-out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
+out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortexlabs.com/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
 
 kubectl get -n=default configmap cluster-config -o json | jq -r '.data."cluster.yaml"' >> $cluster_config_out_path

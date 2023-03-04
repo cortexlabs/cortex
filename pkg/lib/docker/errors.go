@@ -73,7 +73,7 @@ func ErrorImageInaccessible(image string, cause error) error {
 	}
 
 	if strings.Contains(cause.Error(), "auth") {
-		message += fmt.Sprintf("\n\nif you would like to use a private docker registry, see https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor)
+		message += fmt.Sprintf("\n\nif you would like to use a private docker registry, see https://docs.cortexlabs.com/v/%s/", consts.CortexVersionMinor)
 	}
 
 	return errors.WithStack(&errors.Error{

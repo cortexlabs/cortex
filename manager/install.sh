@@ -83,7 +83,7 @@ function cluster_up() {
 
   echo -e "\ncortex is ready!"
   if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
-    echo -e "\nnote: you will need to configure VPC Peering to connect to your cluster: https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"
+    echo -e "\nnote: you will need to configure VPC Peering to connect to your cluster: https://docs.cortexlabs.com/v/${CORTEX_VERSION_MINOR}/"
   fi
 
   print_endpoints
@@ -200,7 +200,7 @@ function check_eks() {
 
 function write_kubeconfig() {
   eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --verbose=0 | (grep -v "saved kubeconfig as" || true)
-  out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
+  out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortexlabs.com/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
 }
 
 function setup_namespaces() {

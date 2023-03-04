@@ -41,6 +41,6 @@ setup(
     ],
     dependency_links=[f"file://{cortex_client_dir}#egg=cortex"],
     author="Cortex Labs",
-    author_email="dev@cortex.dev",
+    author_email="dev@cortexlabs.com",
     description="Cortex E2E tests package",
 )

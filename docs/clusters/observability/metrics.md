@@ -73,7 +73,7 @@ You can use any of these metrics to set up your own dashboards.
 
 You can scrape metrics from the in-cluster Prometheus server via the `/federate` endpoint and push them to monitoring solutions such as Datadog.
 
-The steps for exporting metrics from Prometheus will vary based on your monitoring solution. Here are a few high-level steps to get you started. We will be using Datadog as an example; feel free to reach out to us on [Slack](https://community.cortex.dev/) if you need help setting up your monitoring tool.
+The steps for exporting metrics from Prometheus will vary based on your monitoring solution. Here are a few high-level steps to get you started. We will be using Datadog as an example; feel free to reach out to us on [Slack](https://community.cortexlabs.com/) if you need help setting up your monitoring tool.
 
 ### Configure kubectl
 

@@ -1,4 +1,4 @@
-**[Website](https://www.cortex.dev)** • **[Slack](https://community.cortex.dev)** • **[Docs](https://docs.cortex.dev)**
+**[Docs](https://docs.cortexlabs.com)** • **[Slack](https://community.cortexlabs.com)**
 
 <br>
 

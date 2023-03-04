@@ -1,1 +1,1 @@
-Cost-effective serverless computing - [docs.cortex.dev](https://www.docs.cortex.dev)
+Cost-effective serverless computing - [docs.cortexlabs.com](https://www.docs.cortexlabs.com)

@@ -653,7 +653,7 @@ func ExtractAPIConfigs(configBytes []byte, configFileName string) ([]userconfig.
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortexlabs.com/v/%s/", consts.CortexVersionMinor))
 		}
 
 		errs = cr.Struct(&api, data, apiValidation(resourceStruct))
@@ -662,7 +662,7 @@ func ExtractAPIConfigs(configBytes []byte, configFileName string) ([]userconfig.
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortexlabs.com/v/%s/", consts.CortexVersionMinor))
 		}
 		api.Index = i
 		api.FileName = configFileName

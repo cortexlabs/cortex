@@ -72,7 +72,7 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath s
 func readUserClusterConfigFile(clusterConfig *clusterconfig.Config, filePath string) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.FullConfigValidation, filePath)
 	if errors.HasError(errs) {
-		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortexlabs.com/v/%s/", consts.CortexVersionMinor))
 	}
 
 	return nil
@@ -83,7 +83,7 @@ func getNewClusterAccessConfig(clusterConfigFile string) (*clusterconfig.AccessC
 
 	errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, clusterConfigFile)
 	if errors.HasError(errs) {
-		return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+		return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortexlabs.com/v/%s/", consts.CortexVersionMinor))
 	}
 
 	return accessConfig, nil
@@ -105,7 +105,7 @@ func getClusterAccessConfigWithCache(hasClusterFlags bool) (*clusterconfig.Acces
 	if _flagClusterConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
 		if errors.HasError(errs) {
-			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortexlabs.com/v/%s/", consts.CortexVersionMinor))
 		}
 	}
 
@@ -134,7 +134,7 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string) (*
 
 	err = clusterConfig.ValidateOnInstall(awsClient)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortexlabs.com/v/%s/", consts.CortexVersionMinor))
 		return nil, errors.Wrap(err, clusterConfigFile)
 	}
 
@@ -154,7 +154,7 @@ func getConfigureClusterConfig(awsClient *aws.Client, k8sClient *k8s.Client, sta
 
 	configureChanges, err := newUserClusterConfig.ValidateOnConfigure(awsClient, k8sClient, cachedClusterConfig, stacks.NodeGroupsStacks)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortexlabs.com/v/%s/", consts.CortexVersionMinor))
 		return nil, clusterconfig.ConfigureChanges{}, errors.Wrap(err, newClusterConfigFile)
 	}
 
@@ -286,7 +286,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.ClusterName, privateSubnetMsg)
 
 	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-		fmt.Print(fmt.Sprintf("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see https://docs.cortex.dev/v/%s/)\n\n", consts.CortexVersionMinor))
+		fmt.Print(fmt.Sprintf("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see https://docs.cortexlabs.com/v/%s/)\n\n", consts.CortexVersionMinor))
 	}
 
 	if len(clusterConfig.Subnets) > 0 {
@@ -294,11 +294,11 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	}
 
 	if len(clusterConfig.NodeGroups) > 1 && len(ngNameToSpotInstancesUsed) > 0 {
-		fmt.Printf("warning: you've enabled spot instances for %s %s; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", s.PluralS("nodegroup", len(ngNameToSpotInstancesUsed)), s.StrsAnd(maps.StrMapKeysInt(ngNameToSpotInstancesUsed)), consts.CortexVersionMinor)
+		fmt.Printf("warning: you've enabled spot instances for %s %s; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortexlabs.com/v/%s/ for more information\n\n", s.PluralS("nodegroup", len(ngNameToSpotInstancesUsed)), s.StrsAnd(maps.StrMapKeysInt(ngNameToSpotInstancesUsed)), consts.CortexVersionMinor)
 	}
 
 	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortexlabs.com/v/%s/ for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit("would you like to continue?", "", exitMessage)
 	}
 }
@@ -332,7 +332,7 @@ func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChang
 	fmt.Println()
 
 	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortexlabs.com/v/%s/ for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", newCc.ClusterName, newCc.Region), "", exitMessage)
 	}
 }

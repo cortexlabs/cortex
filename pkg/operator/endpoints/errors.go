@@ -42,7 +42,7 @@ const (
 func ErrorAPIVersionMismatch(operatorVersion string, clientVersion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPIVersionMismatch,
-		Message: fmt.Sprintf("your CLI version (%s) doesn't match your Cortex operator version (%s); please update your cluster by following the instructions at https://docs.cortex.dev, or update your CLI (pip install cortex==%s)", clientVersion, operatorVersion, operatorVersion),
+		Message: fmt.Sprintf("your CLI version (%s) doesn't match your Cortex operator version (%s); please update your cluster by following the instructions at https://docs.cortexlabs.com, or update your CLI (pip install cortex==%s)", clientVersion, operatorVersion, operatorVersion),
 	})
 }
 

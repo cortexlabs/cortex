@@ -81,12 +81,12 @@ setup(
     name="cortex",
     version="master",  # CORTEX_VERSION
     description="Cost-effective serverless computing",
-    author="cortex.dev",
-    author_email="dev@cortex.dev",
+    author="cortexlabs.com",
+    author_email="dev@cortexlabs.com",
     license="Apache License 2.0",
     long_description_content_type="text/markdown",
     long_description=long_description,
-    url="https://www.cortex.dev",
+    url="https://www.cortexlabs.com",
     setup_requires=(["setuptools", "requests", "wheel"]),
     packages=find_packages(),
     package_data={"cortex.binary": ["cli"]},
@@ -117,7 +117,7 @@ setup(
     project_urls={
         "Bug Reports": "https://github.com/cortexlabs/cortex/issues",
         "Community": "https://gitter.im/cortexlabs/cortex",
-        "Docs": "https://docs.cortex.dev",
+        "Docs": "https://docs.cortexlabs.com",
         "Source Code": "https://github.com/cortexlabs/cortex",
     },
 )
