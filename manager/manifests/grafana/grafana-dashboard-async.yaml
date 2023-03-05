@@ -117,7 +117,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(cortex_async_request_count{api_name=\"$api_name\"}[1m])) by (api_name)",
+              "expr": "sum(rate(cortex_async_request_count{api_name=~\"$api_name\"}[1m])) by (api_name)",
               "interval": "",
               "legendFormat": "{{api_name}}",
               "refId": "Request Rate"
@@ -210,26 +210,26 @@ data:
           "targets": [
             {
               "exemplar": true,
-              "expr": "sum(cortex_async_active{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}) by (api_name)",
+              "expr": "sum(cortex_async_active{api_kind=\"AsyncAPI\",api_name=~\"$api_name\"}) by (api_name)",
               "hide": false,
               "interval": "",
-              "legendFormat": "active",
+              "legendFormat": "{{api_name}} active",
               "refId": "Active"
             },
             {
               "exemplar": true,
-              "expr": "sum(cortex_async_queued{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}) by (api_name)",
+              "expr": "sum(cortex_async_queued{api_kind=\"AsyncAPI\",api_name=~\"$api_name\"}) by (api_name)",
               "hide": false,
               "interval": "",
-              "legendFormat": "queued",
+              "legendFormat": "{{api_name}} queued",
               "refId": "Queued"
             },
             {
               "exemplar": true,
-              "expr": "sum(cortex_async_in_flight{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}) by (api_name)",
+              "expr": "sum(cortex_async_in_flight{api_kind=\"AsyncAPI\",api_name=~\"$api_name\"}) by (api_name)",
               "hide": true,
               "interval": "",
-              "legendFormat": "in flight",
+              "legendFormat": "{{api_name}} in flight",
               "refId": "In Flight"
             }
           ],
@@ -320,7 +320,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(cortex_async_request_count{api_kind=\"AsyncAPI\",api_name=\"$api_name\",status_code=~\"2.+\"}[1m])) by (api_name, status_code)",
+              "expr": "sum(rate(cortex_async_request_count{api_kind=\"AsyncAPI\",api_name=~\"$api_name\",status_code=~\"2.+\"}[1m])) by (api_name, status_code)",
               "interval": "",
               "legendFormat": "{{api_name}}",
               "refId": "2XX"
@@ -411,7 +411,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(kube_deployment_status_replicas_available{deployment=\"api-$api_name\"}) by (deployment)",
+              "expr": "sum(kube_deployment_status_replicas_available{deployment=~\"api-$api_name\"}) by (deployment)",
               "interval": "",
               "legendFormat": "{{deployment}}",
               "refId": "Active Replicas"
@@ -513,7 +513,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(cortex_async_request_count{api_kind=\"AsyncAPI\",api_name=\"$api_name\",status_code=~\"4.+\"}[1m])) by (api_name, status_code)",
+              "expr": "sum(rate(cortex_async_request_count{api_kind=\"AsyncAPI\",api_name=~\"$api_name\",status_code=~\"4.+\"}[1m])) by (api_name, status_code)",
               "interval": "",
               "legendFormat": "{{api_name}}",
               "refId": "4XX"
@@ -606,7 +606,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(cortex_async_request_count{api_kind=\"AsyncAPI\",api_name=\"$api_name\",status_code=~\"5.+\"}[1m])) by (api_name, status_code)",
+              "expr": "sum(rate(cortex_async_request_count{api_kind=\"AsyncAPI\",api_name=~\"$api_name\",status_code=~\"5.+\"}[1m])) by (api_name, status_code)",
               "interval": "",
               "legendFormat": "{{api_name}}",
               "refId": "5XX"
@@ -698,7 +698,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum by (api_name, le) (rate(cortex_async_latency_bucket{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}[1m])))",
+              "expr": "histogram_quantile(0.99, sum by (api_name, le) (rate(cortex_async_latency_bucket{api_kind=\"AsyncAPI\",api_name=~\"$api_name\"}[1m])))",
               "interval": "",
               "legendFormat": "{{api_name}}",
               "refId": "A"
@@ -790,7 +790,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.90, sum by (api_name, le) (rate(cortex_async_latency_bucket{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}[1m])))",
+              "expr": "histogram_quantile(0.90, sum by (api_name, le) (rate(cortex_async_latency_bucket{api_kind=\"AsyncAPI\",api_name=~\"$api_name\"}[1m])))",
               "hide": false,
               "interval": "",
               "legendFormat": "{{api_name}}",
@@ -883,7 +883,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.50, sum by (api_name, le) (rate(cortex_async_latency_bucket{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}[1m])))",
+              "expr": "histogram_quantile(0.50, sum by (api_name, le) (rate(cortex_async_latency_bucket{api_kind=\"AsyncAPI\",api_name=~\"$api_name\"}[1m])))",
               "hide": false,
               "interval": "",
               "legendFormat": "{{api_name}}",
@@ -976,7 +976,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(cortex_async_latency_sum{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}[1m])) by (api_name) / \nsum(rate(cortex_async_latency_count{api_kind=\"AsyncAPI\",api_name=\"$api_name\"}[1m])) by (api_name)",
+              "expr": "sum(rate(cortex_async_latency_sum{api_kind=\"AsyncAPI\",api_name=~\"$api_name\"}[1m])) by (api_name) / \nsum(rate(cortex_async_latency_count{api_kind=\"AsyncAPI\",api_name=~\"$api_name\"}[1m])) by (api_name)",
               "hide": false,
               "interval": "",
               "legendFormat": "{{api_name}}",
@@ -1901,7 +1901,7 @@ data:
               "value": "None"
             },
             "datasource": null,
-            "definition": "label_values(cortex_async_queue_length{api_kind=\"AsyncAPI\"}, api_name)",
+            "definition": "label_values(cortex_async_queued{api_kind=\"AsyncAPI\"}, api_name)",
             "description": null,
             "error": null,
             "hide": 0,
@@ -1911,7 +1911,7 @@ data:
             "name": "api_name",
             "options": [],
             "query": {
-              "query": "label_values(cortex_async_queue_length{api_kind=\"AsyncAPI\"}, api_name)",
+              "query": "label_values(cortex_async_queued{api_kind=\"AsyncAPI\"}, api_name)",
               "refId": "StandardVariableQuery"
             },
             "refresh": 1,
