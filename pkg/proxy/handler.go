@@ -37,7 +37,7 @@ func Handler(breaker *Breaker, next http.Handler) http.HandlerFunc {
 		if err := breaker.Maybe(r.Context(), func() {
 			next.ServeHTTP(w, r)
 		}); err != nil {
-			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrRequestQueueFull) {
+			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrRequestQueueFull) || errors.Is(err, ErrQueueTimeout) {
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)

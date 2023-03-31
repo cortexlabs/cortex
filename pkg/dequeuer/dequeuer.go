@@ -84,6 +84,7 @@ func (d *SQSDequeuer) ReceiveMessage() (*sqs.Message, error) {
 		MessageAttributeNames: aws.StringSlice(_messageAttributes),
 		VisibilityTimeout:     d.visibilityTimeout,
 		WaitTimeSeconds:       d.waitTimeSeconds,
+		AttributeNames:        aws.StringSlice([]string{sqs.MessageSystemAttributeNameSentTimestamp}),
 	})
 
 	if err != nil {

@@ -57,6 +57,7 @@ func main() {
 	flag.StringVar(&clusterUID, "cluster-uid", "", "cluster unique identifier")
 	flag.StringVar(&probesPath, "probes-path", "", "path to the probes spec")
 	flag.StringVar(&queueURL, "queue", "", "target queue URL from which the api messages will be dequeued")
+	// TODO add queue_timeout_seconds
 	flag.StringVar(&apiKind, "api-kind", "", fmt.Sprintf("api kind (%s|%s)", userconfig.BatchAPIKind.String(), userconfig.AsyncAPIKind.String()))
 	flag.StringVar(&apiName, "api-name", "", "api name")
 	flag.StringVar(&jobID, "job-id", "", "job ID")
