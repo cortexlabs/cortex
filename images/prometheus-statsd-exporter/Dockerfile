@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM prom/statsd-exporter:v0.22.4
+FROM prom/statsd-exporter:v0.23.1

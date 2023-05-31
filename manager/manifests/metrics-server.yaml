@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 # Modifications Copyright 2022 Cortex Labs, Inc.
-# Source: https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.1/components.yaml
+# Source: https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.3/components.yaml
 
 apiVersion: v1
 kind: ServiceAccount
