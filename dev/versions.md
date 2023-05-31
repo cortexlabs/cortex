@@ -7,8 +7,8 @@
 1. Update `generate_eks.py` if necessary
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired, and logs in `cortex cluster up` look good.
 1. Update eksctl on your dev
-   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.107.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
-1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.107.0/userdocs/src/usage/minimum-iam-policies.md
+   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.143.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.143.0/userdocs/src/usage/minimum-iam-policies.md
 
 ## Kubernetes
 
@@ -86,11 +86,11 @@ wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aw
      ```shell
         mkdir -p $HOME/temp
         cd $HOME/temp
-        wget https://dl.google.com/go/go1.17.3.linux-amd64.tar.gz && \
-        tar -xvf go1.17.3.linux-amd64.tar.gz && \
+        wget https://dl.google.com/go/go1.20.4.linux-amd64.tar.gz && \
+        tar -xvf go1.20.4.linux-amd64.tar.gz && \
         sudo rm -rf /usr/local/go && \
         sudo mv -f go /usr/local && \
-        rm go1.17.3.linux-amd64.tar.gz && \
+        rm go1.20.4.linux-amd64.tar.gz && \
         if [ -f $HOME/.bash_profile ]; then source $HOME/.bash_profile; else source $HOME/.bashrc; fi && \
         cd - && \
         go version
@@ -198,7 +198,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 
 ## Cluster autoscaler
 
-1. Find the latest patch release for our current version of k8s (e.g. k8s v1.17 -> cluster-autocluster v1.17.3)
+1. Find the latest patch release for our current version of k8s (e.g. k8s v1.17 -> cluster-autocluster v1.20.4)
    on [GitHub](https://github.com/kubernetes/autoscaler/releases) and check the changelog
 1. In the [GitHub Repo](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/aws),
    set the tree to the tag for the chosen release, and open `cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml`
