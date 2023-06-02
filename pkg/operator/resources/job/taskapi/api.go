@@ -131,7 +131,7 @@ func deleteS3Resources(apiName string) error {
 }
 
 // GetAllAPIs returns all task APIs, for each API returning the most recently submitted job and all running jobs
-func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job, pods []kcore.Pod) ([]schema.APIResponse, error) {
+func GetAllAPIs(virtualServices []*istioclientnetworking.VirtualService, k8sJobs []kbatch.Job, pods []kcore.Pod) ([]schema.APIResponse, error) {
 	taskAPIsMap := map[string]*schema.APIResponse{}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
@@ -149,7 +149,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	for i := range virtualServices {
 		apiName := virtualServices[i].Labels["apiName"]
 
-		metadata, err := spec.MetadataFromVirtualService(&virtualServices[i])
+		metadata, err := spec.MetadataFromVirtualService(virtualServices[i])
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}
