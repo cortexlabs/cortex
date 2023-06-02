@@ -106,7 +106,7 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 			},
 		},
 		ReadinessProbe: &kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				HTTPGet: &kcore.HTTPGetAction{
 					Path: "/healthz",
 					Port: intstr.FromInt(int(consts.AdminPortInt32)),
@@ -153,7 +153,7 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 			},
 		},
 		ReadinessProbe: &kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				HTTPGet: &kcore.HTTPGetAction{
 					Path: "/healthz",
 					Port: intstr.FromInt(int(consts.AdminPortInt32)),
@@ -211,7 +211,7 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 			},
 		},
 		ReadinessProbe: &kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				HTTPGet: &kcore.HTTPGetAction{
 					Path: "/healthz",
 					Port: intstr.FromInt(int(consts.AdminPortInt32)),

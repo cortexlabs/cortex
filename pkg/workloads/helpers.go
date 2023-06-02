@@ -62,7 +62,7 @@ func GetProbeSpec(probe *userconfig.Probe) *kcore.Probe {
 	}
 
 	return &kcore.Probe{
-		Handler: kcore.Handler{
+		ProbeHandler: kcore.ProbeHandler{
 			HTTPGet:   httpGetAction,
 			TCPSocket: tcpSocketAction,
 			Exec:      execAction,
@@ -98,7 +98,7 @@ func GetLifecycleSpec(preStop *userconfig.PreStop) *kcore.Lifecycle {
 	}
 
 	return &kcore.Lifecycle{
-		PreStop: &kcore.Handler{
+		PreStop: &kcore.LifecycleHandler{
 			HTTPGet: httpGetAction,
 			Exec:    execAction,
 		},
