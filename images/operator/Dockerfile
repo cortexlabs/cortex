@@ -14,7 +14,7 @@
 
 FROM golang:1.20.4 as builder
 
-RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.27.2/bin/linux/amd64/kubectl && \
+RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.26.5/bin/linux/amd64/kubectl && \
     mv ./kubectl /tmp/kubectl
 
 COPY go.mod go.sum /workspace/
