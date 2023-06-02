@@ -22,7 +22,7 @@ WORKDIR /go/src/github.com/brancz/kube-rbac-proxy
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build --installsuffix cgo -o kube-rbac-proxy github.com/brancz/kube-rbac-proxy \
     && cp kube-rbac-proxy /usr/local/bin
 
-FROM alpine:3.8
+FROM alpine:3.18
 RUN apk add -U --no-cache ca-certificates && rm -rf /var/cache/apk/*
 COPY --from=builder /usr/local/bin/kube-rbac-proxy .
 ENTRYPOINT ["./kube-rbac-proxy"]

@@ -20,6 +20,6 @@ WORKDIR /k8s.io/autoscaler/cluster-autoscaler
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build --installsuffix cgo -o cluster-autoscaler k8s.io/autoscaler/cluster-autoscaler \
     && cp cluster-autoscaler /usr/local/bin
 
-FROM alpine:3.8
+FROM alpine:3.18
 RUN apk add -U --no-cache ca-certificates && rm -rf /var/cache/apk/*
 COPY --from=builder /usr/local/bin/cluster-autoscaler .

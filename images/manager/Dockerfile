@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.7-alpine3.16
+FROM python:3.7-alpine3.18
 
 WORKDIR /root
 

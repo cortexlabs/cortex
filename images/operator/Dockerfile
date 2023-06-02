@@ -33,7 +33,7 @@ COPY cmd/operator cmd/operator
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -installsuffix cgo -o operator ./cmd/operator
 
 
-FROM alpine:3.15
+FROM alpine:3.18
 
 COPY --from=builder /tmp/kubectl /usr/local/bin/kubectl
 RUN chmod +x /usr/local/bin/kubectl
