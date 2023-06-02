@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM quay.io/prometheus/node-exporter:v1.3.1
+FROM quay.io/prometheus/node-exporter:v1.5.0
