@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/math"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"go.uber.org/zap"
 )
@@ -98,7 +98,7 @@ func (d *SQSDequeuer) ReceiveMessage() (*sqs.Message, error) {
 }
 
 func (d *SQSDequeuer) Start(messageHandler MessageHandler, readinessProbeFunc func() bool) error {
-	numWorkers := math.MaxInt(d.config.Workers, 1)
+	numWorkers := libmath.MaxInt(d.config.Workers, 1)
 
 	d.log.Infof("Starting %d workers", numWorkers)
 	errCh := make(chan error)

@@ -39,27 +39,28 @@ type CloudWatchDashboard struct {
 }
 
 // Example:
-// CloudWatchWidget{
-// 	"type":"metric",
-// 	"x":0,
-// 	"y":0,
-// 	"width":12,
-// 	"height":6,
-// 	"properties":{
-// 	   "metrics":[
-// 		  [
-// 			 "AWS/EC2",
-// 			 "CPUUtilization",
-// 			 "InstanceId",
-// 			 "i-012345"
-// 		  ]
-// 	   ],
-// 	   "period":300,
-// 	   "stat":"Average",
-// 	   "region":"us-east-1",
-// 	   "title":"EC2 Instance CPU"
-// 	}
-//  }
+//
+//	CloudWatchWidget{
+//		"type":"metric",
+//		"x":0,
+//		"y":0,
+//		"width":12,
+//		"height":6,
+//		"properties":{
+//		   "metrics":[
+//			  [
+//				 "AWS/EC2",
+//				 "CPUUtilization",
+//				 "InstanceId",
+//				 "i-012345"
+//			  ]
+//		   ],
+//		   "period":300,
+//		   "stat":"Average",
+//		   "region":"us-east-1",
+//		   "title":"EC2 Instance CPU"
+//		}
+//	 }
 type CloudWatchWidget struct {
 	Type       string                 `json:"type"`
 	X          int                    `json:"x"`
@@ -238,14 +239,15 @@ func (c *Client) DoesDashboardExist(dashboardName string) (bool, error) {
 
 // TextWidget creates new text widget
 // Example:
-// title_widget = {
-//     "type": "text",
-//     "x": x,
-//     "y": y,
-//     "width": wewidthi,
-//     "height": height,
-//     "properties": {"markdown": markdown},
-// }
+//
+//	title_widget = {
+//	    "type": "text",
+//	    "x": x,
+//	    "y": y,
+//	    "width": wewidthi,
+//	    "height": height,
+//	    "properties": {"markdown": markdown},
+//	}
 func TextWidget(x int, y int, width int, height int, markdown string) CloudWatchWidget {
 	return CloudWatchWidget{Type: "text", X: x, Y: y, Width: width, Height: height, Properties: map[string]interface{}{"markdown": markdown}}
 }

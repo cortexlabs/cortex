@@ -32,7 +32,7 @@ spec:
       sourceLabels: [__name__]
     port: https-metrics
     relabelings:
-    - action: replace  
+    - action: replace
       sourceLabels:
       - __metrics_path__
       targetLabel: metrics_path

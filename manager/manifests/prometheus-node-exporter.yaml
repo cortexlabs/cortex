@@ -126,7 +126,7 @@ spec:
               - SYS_TIME
               drop:
               - ALL
-            readOnlyRootFilesystem: true              
+            readOnlyRootFilesystem: true
           volumeMounts:
             - mountPath: /host/sys
               mountPropagation: HostToContainer
@@ -167,7 +167,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsGroup: 65532
             runAsNonRoot: true
-            runAsUser: 65532              
+            runAsUser: 65532
       hostNetwork: true
       hostPID: true
       nodeSelector:
