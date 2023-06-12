@@ -31,7 +31,7 @@ import (
 	kclientdynamic "k8s.io/client-go/dynamic"
 	kclientset "k8s.io/client-go/kubernetes"
 	kclientapps "k8s.io/client-go/kubernetes/typed/apps/v1"
-	kclientautoscaling "k8s.io/client-go/kubernetes/typed/autoscaling/v2beta2"
+	kclientautoscaling "k8s.io/client-go/kubernetes/typed/autoscaling/v2"
 	kclientbatch "k8s.io/client-go/kubernetes/typed/batch/v1"
 	kclientcore "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclientextensions "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
@@ -116,7 +116,7 @@ func New(namespace string, inCluster bool, restConfig *kclientrest.Config, schem
 	client.deploymentClient = client.clientSet.AppsV1().Deployments(namespace)
 	client.jobClient = client.clientSet.BatchV1().Jobs(namespace)
 	client.ingressClient = client.clientSet.ExtensionsV1beta1().Ingresses(namespace)
-	client.hpaClient = client.clientSet.AutoscalingV2beta2().HorizontalPodAutoscalers(namespace)
+	client.hpaClient = client.clientSet.AutoscalingV2().HorizontalPodAutoscalers(namespace)
 	return client, nil
 }
 
