@@ -14,8 +14,8 @@
 
 ARG TARGETARCH, TARGETOS
 
-FROM golang:1.20.4 AS builder
-RUN git clone -b cluster-autoscaler-1.27.2-cortex --depth 1 https://github.com/tfriedel/autoscaler /k8s.io/autoscaler
+FROM golang:1.19.7 AS builder
+RUN git clone -b cluster-autoscaler-1.26.3-cortex --depth 1 https://github.com/tfriedel/autoscaler /k8s.io/autoscaler
 WORKDIR /k8s.io/autoscaler/cluster-autoscaler
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build --installsuffix cgo -o cluster-autoscaler k8s.io/autoscaler/cluster-autoscaler \
     && cp cluster-autoscaler /usr/local/bin
