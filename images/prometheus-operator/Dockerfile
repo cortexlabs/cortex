@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM quay.io/prometheus-operator/prometheus-operator:v0.65.2
+FROM quay.io/prometheus-operator/prometheus-operator:v0.62.0
