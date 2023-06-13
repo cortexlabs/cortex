@@ -252,7 +252,7 @@ spec:
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:              
+            nodeSelectorTerms:
               - matchExpressions:
                   - key: "node.kubernetes.io/instance-type"
                     operator: In

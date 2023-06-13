@@ -11,6 +11,10 @@ github.com/Microsoft/go-winio v0.6.0/go.mod h1:cTAf44im0RAYeL23bpB+fzCyDH2MJiz2B
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 h1:TngWCqHvy9oXAN6lEVMRuU21PR1EtLVZJmdB18Gu3Rw=
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5/go.mod h1:lmUJ/7eu/Q8D7ML55dXQrVaamCz2vxCfdQBasLZfHKk=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
+github.com/PEAT-AI/go-input v0.0.0-20200503032952-8b67a7a7b28d h1:awQnSm+E3uhy6WtRPQohpsR4U4Ps78tKrlOOiaP1aQc=
+github.com/PEAT-AI/go-input v0.0.0-20200503032952-8b67a7a7b28d/go.mod h1:7GjOFQPpsupWZ9Pjp4NuQ8It9MGwYT74g4EDHg8HkAw=
+github.com/PEAT-AI/yaml v0.0.0-20230613125823-9ef823ab7fd0 h1:IhIsDC4FsJYvGFDc9gO0lxxwfJMviq9tBOReLucfx2Q=
+github.com/PEAT-AI/yaml v0.0.0-20230613125823-9ef823ab7fd0/go.mod h1:ateQBvDh6yh85CC6yBc/opZgz6qLeaMnOA623fRaWHo=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/aws/amazon-vpc-cni-k8s v1.13.0 h1:Phuy+6mOo4w6aHG2gl0RVl2m8k+2FmYqTSa8qsn04zg=
@@ -45,10 +49,6 @@ github.com/containerd/containerd v1.6.15/go.mod h1:U2NnBPIhzJDm59xF7xB2MMHnKtggp
 github.com/containerd/continuity v0.3.0 h1:nisirsYROK15TAMVukJOUyGJjz4BNQJBVsNvAXZJ/eg=
 github.com/containerd/continuity v0.3.0/go.mod h1:wJEAIwKOm/pBZuBd0JmeTvnLquTB1Ag8espWhkykbPM=
 github.com/coreos/go-systemd/v22 v22.3.2/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
-github.com/cortexlabs/go-input v0.0.0-20200503032952-8b67a7a7b28d h1:2SmODObcy2ekPA0eLFlR/+Vu5Yo2hoVbNMJ+vWzinpo=
-github.com/cortexlabs/go-input v0.0.0-20200503032952-8b67a7a7b28d/go.mod h1:rxijm42+fHjyPbFGqUTzUUhioEVg5LUi+w53dlY0WUM=
-github.com/PEAT-AI/yaml v0.0.0-20210628201654-31e52ba8433b h1:jS+jWCjvtnZJ9f9GGR9eA6EgPBhKZ3ILUvTmMglYzyw=
-github.com/PEAT-AI/yaml v0.0.0-20210628201654-31e52ba8433b/go.mod h1:qYZ6ij3BG8ss8YpnSPcpdl9BCWIWyStg8OcyVOFlJKI=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=

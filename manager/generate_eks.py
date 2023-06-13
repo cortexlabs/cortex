@@ -346,7 +346,7 @@ def generate_eks(
     operator_nodegroup = default_nodegroup(cluster_config)
     operator_settings = {
         "ami": get_ami(ami_map, "t3.medium"),
-        "amiFamily": AMI_FAMILY, 
+        "amiFamily": AMI_FAMILY,
         "name": "cx-operator",
         "instanceType": "t3.medium",
         "minSize": 2,
@@ -363,7 +363,7 @@ def generate_eks(
     prometheus_nodegroup = default_nodegroup(cluster_config)
     prometheus_settings = {
         "ami": get_ami(ami_map, prometheus_instance_type),
-        "amiFamily": AMI_FAMILY, 
+        "amiFamily": AMI_FAMILY,
         "name": "cx-prometheus",
         "instanceType": prometheus_instance_type,
         "minSize": 1,

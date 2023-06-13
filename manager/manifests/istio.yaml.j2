@@ -105,7 +105,7 @@ spec:
             scaleTargetRef:
               apiVersion: apps/v1
               kind: Deployment
-              name: ingressgateway-operator                        
+              name: ingressgateway-operator
       - name: ingressgateway-apis
         enabled: true
         namespace: istio-system
@@ -165,7 +165,7 @@ spec:
             scaleTargetRef:
               apiVersion: apps/v1
               kind: Deployment
-              name: ingressgateway-apis                        
+              name: ingressgateway-apis
   values:
     global:
       autoscalingv2API: true

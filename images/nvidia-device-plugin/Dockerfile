@@ -13,4 +13,3 @@
 # limitations under the License.
 
 FROM nvcr.io/nvidia/k8s-device-plugin:v0.14.0
-
