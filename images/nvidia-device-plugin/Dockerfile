@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM nvcr.io/nvidia/k8s-device-plugin:v0.14.0-ubuntu20.04
+FROM nvcr.io/nvidia/k8s-device-plugin:v0.14.0
 
