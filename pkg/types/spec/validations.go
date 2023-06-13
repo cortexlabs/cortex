@@ -775,9 +775,10 @@ func validateContainers(
 			return errors.Wrap(ErrorFieldMustBeSpecifiedForKind(userconfig.CommandKey, kind), s.Index(i), userconfig.CommandKey)
 		}
 
-		if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
-			return errors.Wrap(err, s.Index(i), userconfig.ImageKey)
-		}
+		// FIXME (tfriedel): re-enable this code once we know to handle it
+		// if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
+		// 	return errors.Wrap(err, s.Index(i), userconfig.ImageKey)
+		// }
 
 		for key := range container.Env {
 			if strings.HasPrefix(key, "CORTEX_") || strings.HasPrefix(key, "KUBEXIT_") {
