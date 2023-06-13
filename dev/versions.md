@@ -122,15 +122,15 @@ wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aw
 _note: docker client installation may be able to be improved,
 see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 
-### cortexlabs/yaml
+### PEAT-AI/yaml
 
 1. Check [go-yaml/yaml](https://github.com/go-yaml/yaml/commits/v2) to see if there were new releases
-   since [cortexlabs/yaml](https://github.com/cortexlabs/yaml/commits/v2)
-1. `git clone git@github.com:cortexlabs/yaml.git && cd yaml`
+   since [PEAT-AI/yaml](https://github.com/PEAT-AI/yaml/commits/v2)
+1. `git clone git@github.com:PEAT-AI/yaml.git && cd yaml`
 1. `git remote add upstream https://github.com/go-yaml/yaml && git fetch upstream`
 1. `git merge upstream/v2`
 1. `git push origin v2`
-1. Follow the "Update non-versioned modules" instructions using the desired commit sha for `cortexlabs/yaml`
+1. Follow the "Update non-versioned modules" instructions using the desired commit sha for `PEAT-AI/yaml`
 
 ### cortexlabs/go-input
 
@@ -148,7 +148,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 1. `go get k8s.io/client-go@v0.20.15 && go get k8s.io/apimachinery@v0.20.15 && go get k8s.io/api@v0.20.15`
 1. `go get istio.io/client-go@v1.11.8 && go get istio.io/api@1.11.8`
 1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.13.0`
-1. `go get github.com/cortexlabs/yaml@31e52ba8433b683c471ef92cf1711fe67671dac5`
+1. `go get github.com/PEAT-AI/yaml@31e52ba8433b683c471ef92cf1711fe67671dac5`
 1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
 1. `go get github.com/xlab/treeprint@v1.1.0`
 1. `go get -u sigs.k8s.io/controller-runtime@v0.14.6`

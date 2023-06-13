@@ -47,8 +47,8 @@ github.com/containerd/continuity v0.3.0/go.mod h1:wJEAIwKOm/pBZuBd0JmeTvnLquTB1A
 github.com/coreos/go-systemd/v22 v22.3.2/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/cortexlabs/go-input v0.0.0-20200503032952-8b67a7a7b28d h1:2SmODObcy2ekPA0eLFlR/+Vu5Yo2hoVbNMJ+vWzinpo=
 github.com/cortexlabs/go-input v0.0.0-20200503032952-8b67a7a7b28d/go.mod h1:rxijm42+fHjyPbFGqUTzUUhioEVg5LUi+w53dlY0WUM=
-github.com/cortexlabs/yaml v0.0.0-20210628201654-31e52ba8433b h1:jS+jWCjvtnZJ9f9GGR9eA6EgPBhKZ3ILUvTmMglYzyw=
-github.com/cortexlabs/yaml v0.0.0-20210628201654-31e52ba8433b/go.mod h1:qYZ6ij3BG8ss8YpnSPcpdl9BCWIWyStg8OcyVOFlJKI=
+github.com/PEAT-AI/yaml v0.0.0-20210628201654-31e52ba8433b h1:jS+jWCjvtnZJ9f9GGR9eA6EgPBhKZ3ILUvTmMglYzyw=
+github.com/PEAT-AI/yaml v0.0.0-20210628201654-31e52ba8433b/go.mod h1:qYZ6ij3BG8ss8YpnSPcpdl9BCWIWyStg8OcyVOFlJKI=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=

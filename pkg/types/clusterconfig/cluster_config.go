@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PEAT-AI/yaml"
 	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -43,7 +44,6 @@ import (
 	libstr "github.com/cortexlabs/cortex/pkg/lib/strings"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/structs"
-	"github.com/cortexlabs/yaml"
 )
 
 const (

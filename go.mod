@@ -6,8 +6,8 @@ require (
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/aws/amazon-vpc-cni-k8s v1.13.0
 	github.com/aws/aws-sdk-go v1.44.213
-	github.com/cortexlabs/go-input v0.0.0-20200503032952-8b67a7a7b28d
-	github.com/cortexlabs/yaml v0.0.0-20210628201654-31e52ba8433b
+	github.com/PEAT-AI/go-input v0.0.0-20200503032952-8b67a7a7b28d
+	github.com/PEAT-AI/yaml v0.0.0-20210628201654-31e52ba8433b
 	github.com/davecgh/go-spew v1.1.1
 	github.com/denormal/go-gitignore v0.0.0-20180930084346-ae8ad1d07817
 	github.com/docker/docker v20.10.21+incompatible
