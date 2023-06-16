@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2021, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2019, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 # Modifications Copyright 2022 Cortex Labs, Inc.
-# Source: https://github.com/NVIDIA/k8s-device-plugin/blob/v0.11.0/nvidia-device-plugin.yml
+# Source: https://github.com/NVIDIA/k8s-device-plugin/blob/v0.14.0/nvidia-device-plugin.yml
 
 apiVersion: apps/v1
 kind: DaemonSet
@@ -34,16 +33,12 @@ spec:
         name: nvidia-device-plugin-ds
     spec:
       tolerations:
-        # This toleration is deprecated. Kept here for backward compatibility
-        # See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
-        - key: CriticalAddonsOnly
-          operator: Exists
-        - key: nvidia.com/gpu
-          operator: Exists
-          effect: NoSchedule
-        - key: workload
-          operator: Exists
-          effect: NoSchedule
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: workload
+        operator: Exists
+        effect: NoSchedule
       # Mark this pod as a critical add-on; when enabled, the critical add-on
       # scheduler reserves resources for critical add-on pods so that they can
       # be rescheduled after a failure.
@@ -52,7 +47,9 @@ spec:
       containers:
         - image: $CORTEX_IMAGE_NVIDIA_DEVICE_PLUGIN
           name: nvidia-device-plugin-ctr
-          args: ["--fail-on-init-error=false"]
+          env:
+            - name: FAIL_ON_INIT_ERROR
+              value: "false"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

@@ -257,7 +257,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 	var deployments []kapps.Deployment
 	var k8sTaskJobs []kbatch.Job
 	var taskAPIPods []kcore.Pod
-	var virtualServices []istioclientnetworking.VirtualService
+	var virtualServices []*istioclientnetworking.VirtualService
 	var batchJobList batch.BatchJobList
 
 	err := parallel.RunFirstErr(
@@ -308,9 +308,9 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	var batchAPIVirtualServices []istioclientnetworking.VirtualService
-	var taskAPIVirtualServices []istioclientnetworking.VirtualService
-	var trafficSplitterVirtualServices []istioclientnetworking.VirtualService
+	var batchAPIVirtualServices []*istioclientnetworking.VirtualService
+	var taskAPIVirtualServices []*istioclientnetworking.VirtualService
+	var trafficSplitterVirtualServices []*istioclientnetworking.VirtualService
 
 	for _, vs := range virtualServices {
 		switch vs.Labels["apiKind"] {

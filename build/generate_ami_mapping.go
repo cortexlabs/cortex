@@ -158,17 +158,17 @@ func SupportedRegions() []string {
 		RegionEUWest3,
 		RegionEUNorth1,
 		RegionEUCentral1,
-		RegionEUSouth1,
+		//RegionEUSouth1,
 		RegionAPNorthEast1,
 		RegionAPNorthEast2,
 		RegionAPNorthEast3,
 		RegionAPSouthEast1,
 		RegionAPSouthEast2,
 		RegionAPSouth1,
-		RegionAPEast1,
-		RegionMESouth1,
+		//RegionAPEast1,
+		//RegionMESouth1,
 		RegionSAEast1,
-		RegionAFSouth1,
+		//RegionAFSouth1,
 		RegionUSGovWest1,
 		RegionUSGovEast1,
 		// RegionCNNorthwest1,
@@ -222,7 +222,7 @@ func main() {
 		json.Unmarshal(jsonBytes, &k8sVersionMap)
 	}
 
-	k8sVersion := "1.22"
+	k8sVersion := "1.26"
 
 	if k8sVersionMap[k8sVersion] == nil {
 		k8sVersionMap[k8sVersion] = map[string]map[string]string{}

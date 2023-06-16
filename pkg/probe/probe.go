@@ -65,7 +65,7 @@ func NewDefaultProbe(target string, logger *zap.SugaredLogger) *Probe {
 
 	return &Probe{
 		Probe: &kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				TCPSocket: &kcore.TCPSocketAction{
 					Port: intstr.FromString(targetURL.Port()),
 					Host: targetURL.Hostname(),

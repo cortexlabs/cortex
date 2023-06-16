@@ -19,7 +19,8 @@ from collections import namedtuple
 import re
 import yaml
 
-K8S_VERSION = "1.22"
+K8S_VERSION = "1.26"
+AMI_FAMILY = "AmazonLinux2"
 
 ParsedInstanceType = namedtuple(
     "ParsedInstanceType", ["family", "generation", "capabilities", "size"]
@@ -80,7 +81,7 @@ def default_nodegroup(cluster_config):
             [
                 "#!/bin/bash",
                 "source /var/lib/cloud/scripts/eksctl/bootstrap.helper.sh",
-                f"/etc/eks/bootstrap.sh {cluster_config['cluster_name']} --container-runtime dockerd --kubelet-extra-args \"--node-labels=${{NODE_LABELS}} --register-with-taints=${{NODE_TAINTS}}\"",
+                f"/etc/eks/bootstrap.sh {cluster_config['cluster_name']} --container-runtime containerd --kubelet-extra-args \"--node-labels=${{NODE_LABELS}} --register-with-taints=${{NODE_TAINTS}}\"",
             ]
         ),
     }
@@ -250,6 +251,7 @@ def get_worker_nodegroup(ami_map: dict, nodegroup_config: dict, cluster_config: 
     """
     worker_nodegroup = default_nodegroup(cluster_config)
     worker_nodegroup["ami"] = get_ami(ami_map, nodegroup_config["instance_type"])
+    worker_nodegroup["amiFamily"] = AMI_FAMILY
 
     apply_worker_settings(worker_nodegroup, nodegroup_config)
     apply_clusterconfig(worker_nodegroup, nodegroup_config)
@@ -344,6 +346,7 @@ def generate_eks(
     operator_nodegroup = default_nodegroup(cluster_config)
     operator_settings = {
         "ami": get_ami(ami_map, "t3.medium"),
+        "amiFamily": AMI_FAMILY,
         "name": "cx-operator",
         "instanceType": "t3.medium",
         "minSize": 2,
@@ -360,6 +363,7 @@ def generate_eks(
     prometheus_nodegroup = default_nodegroup(cluster_config)
     prometheus_settings = {
         "ami": get_ami(ami_map, prometheus_instance_type),
+        "amiFamily": AMI_FAMILY,
         "name": "cx-prometheus",
         "instanceType": prometheus_instance_type,
         "minSize": 1,
@@ -402,7 +406,7 @@ def generate_eks(
         "addons": [
             {
                 "name": "vpc-cni",
-                "version": "1.11.3",
+                "version": "1.12.6",
             },
         ],
     }

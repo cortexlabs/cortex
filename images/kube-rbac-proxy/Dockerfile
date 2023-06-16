@@ -16,14 +16,15 @@
 
 ARG TARGETARCH, TARGETOS
 
-FROM golang:1.18 AS builder
-RUN git clone -b v0.13.0 --depth 1 https://github.com/brancz/kube-rbac-proxy /go/src/github.com/brancz/kube-rbac-proxy
-WORKDIR /go/src/github.com/brancz/kube-rbac-proxy
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build --installsuffix cgo -o kube-rbac-proxy github.com/brancz/kube-rbac-proxy \
-    && cp kube-rbac-proxy /usr/local/bin
+FROM golang:1.20.4 AS builder
+RUN git clone -b v0.14.1 --depth 1 https://github.com/brancz/kube-rbac-proxy /go/src/github.com/brancz/kube-rbac-proxy
+WORKDIR /go/src/github.com/brancz/kube-rbac-proxy/cmd/kube-rbac-proxy
+RUN go mod download
+RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build --installsuffix cgo -o kube-rbac-proxy .
+RUN cp kube-rbac-proxy /usr/local/bin
 
-FROM alpine:3.8
+FROM alpine:3.18
 RUN apk add -U --no-cache ca-certificates && rm -rf /var/cache/apk/*
-COPY --from=builder /usr/local/bin/kube-rbac-proxy .
-ENTRYPOINT ["./kube-rbac-proxy"]
+COPY --from=builder /usr/local/bin/kube-rbac-proxy /kube-rbac-proxy
+ENTRYPOINT ["/kube-rbac-proxy"]
 EXPOSE 8080

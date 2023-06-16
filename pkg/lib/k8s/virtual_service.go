@@ -237,7 +237,7 @@ func (c *Client) DeleteVirtualService(name string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) ListVirtualServices(opts *kmeta.ListOptions) ([]istioclientnetworking.VirtualService, error) {
+func (c *Client) ListVirtualServices(opts *kmeta.ListOptions) ([]*istioclientnetworking.VirtualService, error) {
 	if opts == nil {
 		opts = &kmeta.ListOptions{}
 	}
@@ -251,18 +251,18 @@ func (c *Client) ListVirtualServices(opts *kmeta.ListOptions) ([]istioclientnetw
 	return vsList.Items, nil
 }
 
-func (c *Client) ListVirtualServicesByLabels(labels map[string]string) ([]istioclientnetworking.VirtualService, error) {
+func (c *Client) ListVirtualServicesByLabels(labels map[string]string) ([]*istioclientnetworking.VirtualService, error) {
 	opts := &kmeta.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(labels).String(),
 	}
 	return c.ListVirtualServices(opts)
 }
 
-func (c *Client) ListVirtualServicesByLabel(labelKey string, labelValue string) ([]istioclientnetworking.VirtualService, error) {
+func (c *Client) ListVirtualServicesByLabel(labelKey string, labelValue string) ([]*istioclientnetworking.VirtualService, error) {
 	return c.ListVirtualServicesByLabels(map[string]string{labelKey: labelValue})
 }
 
-func (c *Client) ListVirtualServicesWithLabelKeys(labelKeys ...string) ([]istioclientnetworking.VirtualService, error) {
+func (c *Client) ListVirtualServicesWithLabelKeys(labelKeys ...string) ([]*istioclientnetworking.VirtualService, error) {
 	opts := &kmeta.ListOptions{
 		LabelSelector: LabelExistsSelector(labelKeys...),
 	}

@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM quay.io/prometheus/prometheus:v2.28.0
+FROM prom/prometheus:v2.41.0

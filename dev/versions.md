@@ -7,8 +7,8 @@
 1. Update `generate_eks.py` if necessary
 1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired, and logs in `cortex cluster up` look good.
 1. Update eksctl on your dev
-   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.107.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
-1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.107.0/userdocs/src/usage/minimum-iam-policies.md
+   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.143.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.143.0/userdocs/src/usage/minimum-iam-policies.md
 
 ## Kubernetes
 
@@ -86,11 +86,11 @@ wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aw
      ```shell
         mkdir -p $HOME/temp
         cd $HOME/temp
-        wget https://dl.google.com/go/go1.17.3.linux-amd64.tar.gz && \
-        tar -xvf go1.17.3.linux-amd64.tar.gz && \
+        wget https://dl.google.com/go/go1.20.4.linux-amd64.tar.gz && \
+        tar -xvf go1.20.4.linux-amd64.tar.gz && \
         sudo rm -rf /usr/local/go && \
         sudo mv -f go /usr/local && \
-        rm go1.17.3.linux-amd64.tar.gz && \
+        rm go1.20.4.linux-amd64.tar.gz && \
         if [ -f $HOME/.bash_profile ]; then source $HOME/.bash_profile; else source $HOME/.bashrc; fi && \
         cd - && \
         go version
@@ -122,15 +122,15 @@ wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aw
 _note: docker client installation may be able to be improved,
 see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 
-### cortexlabs/yaml
+### PEAT-AI/yaml
 
 1. Check [go-yaml/yaml](https://github.com/go-yaml/yaml/commits/v2) to see if there were new releases
-   since [cortexlabs/yaml](https://github.com/cortexlabs/yaml/commits/v2)
-1. `git clone git@github.com:cortexlabs/yaml.git && cd yaml`
+   since [PEAT-AI/yaml](https://github.com/PEAT-AI/yaml/commits/v2)
+1. `git clone git@github.com:PEAT-AI/yaml.git && cd yaml`
 1. `git remote add upstream https://github.com/go-yaml/yaml && git fetch upstream`
 1. `git merge upstream/v2`
 1. `git push origin v2`
-1. Follow the "Update non-versioned modules" instructions using the desired commit sha for `cortexlabs/yaml`
+1. Follow the "Update non-versioned modules" instructions using the desired commit sha for `PEAT-AI/yaml`
 
 ### cortexlabs/go-input
 
@@ -147,11 +147,11 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
 1. `go get k8s.io/client-go@v0.20.15 && go get k8s.io/apimachinery@v0.20.15 && go get k8s.io/api@v0.20.15`
 1. `go get istio.io/client-go@v1.11.8 && go get istio.io/api@1.11.8`
-1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.11.0`
-1. `go get github.com/cortexlabs/yaml@31e52ba8433b683c471ef92cf1711fe67671dac5`
+1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.13.0`
+1. `go get github.com/PEAT-AI/yaml@31e52ba8433b683c471ef92cf1711fe67671dac5`
 1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
-1. `go get github.com/xlab/treeprint@v1.0.0`
-1. `go get -u sigs.k8s.io/controller-runtime@v0.8.3`
+1. `go get github.com/xlab/treeprint@v1.1.0`
+1. `go get -u sigs.k8s.io/controller-runtime@v0.14.6`
 1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.13' >> go.mod`
 1. `go get -u github.com/docker/distribution`
 1. `go mod tidy`
@@ -169,7 +169,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 1. Update the version in `images/nvidia-device-plugin/Dockerfile` ([releases](https://github.com/NVIDIA/k8s-device-plugin/releases)
    , [Dockerhub](https://hub.docker.com/r/nvidia/k8s-device-plugin))
 1. In the [GitHub Repo](https://github.com/NVIDIA/k8s-device-plugin), find the latest release and go to this file (
-   replacing the version number): <https://github.com/NVIDIA/k8s-device-plugin/blob/v0.6.0/nvidia-device-plugin.yml>
+   replacing the version number): <https://github.com/NVIDIA/k8s-device-plugin/blob/v0.14.0/nvidia-device-plugin.yml>
 1. Copy the contents to `manager/manifests/nvidia.yaml`
     1. Update the link at the top of the file to the URL you copied from
     1. Check that your diff is reasonable (and put back any of our modifications, e.g. the image path, rolling update
@@ -198,7 +198,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 
 ## Cluster autoscaler
 
-1. Find the latest patch release for our current version of k8s (e.g. k8s v1.17 -> cluster-autocluster v1.17.3)
+1. Find the latest patch release for our current version of k8s (e.g. k8s v1.17 -> cluster-autocluster v1.20.4)
    on [GitHub](https://github.com/kubernetes/autoscaler/releases) and check the changelog
 1. In the [GitHub Repo](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/aws),
    set the tree to the tag for the chosen release, and open `cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml`

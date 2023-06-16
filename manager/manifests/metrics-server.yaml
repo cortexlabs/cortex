@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 # Modifications Copyright 2022 Cortex Labs, Inc.
-# Source: https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.1/components.yaml
+# Source: https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.3/components.yaml
 
 apiVersion: v1
 kind: ServiceAccount
@@ -150,7 +150,7 @@ spec:
       containers:
         - args:
             - --cert-dir=/tmp
-            - --secure-port=4443
+            - --secure-port=10250
             - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
             - --kubelet-use-node-status-port
             - --metric-resolution=15s
@@ -165,7 +165,7 @@ spec:
             periodSeconds: 10
           name: metrics-server
           ports:
-            - containerPort: 4443
+            - containerPort: 10250
               name: https
               protocol: TCP
           readinessProbe:
@@ -178,8 +178,8 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 50m
-              memory: 100Mi
+              cpu: 100m
+              memory: 200Mi
             limits:
               cpu: 200m
               memory: 500Mi

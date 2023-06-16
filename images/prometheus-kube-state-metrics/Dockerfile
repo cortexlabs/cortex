@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.1.0
+FROM registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.8.2
