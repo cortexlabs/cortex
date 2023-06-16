@@ -428,6 +428,7 @@ function install_ebs_csi_driver() {
   fi
   oidc_id=$(aws eks describe-cluster --name $CORTEX_CLUSTER_NAME --region $CORTEX_REGION --query "cluster.identity.oidc.issuer" --output text | cut -d '/' -f 5)
   eksctl utils associate-iam-oidc-provider --cluster $CORTEX_CLUSTER_NAME --region $CORTEX_REGION --approve
+  role_name="AmazonEKS_EBS_CSI_DriverRole_${CORTEX_CLUSTER_NAME}"
   eksctl create iamserviceaccount \
     --name ebs-csi-controller-sa \
     --namespace kube-system \
@@ -436,8 +437,8 @@ function install_ebs_csi_driver() {
     --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy \
     --approve \
     --role-only \
-    --role-name AmazonEKS_EBS_CSI_DriverRole
-  eksctl create addon --name aws-ebs-csi-driver --cluster $CORTEX_CLUSTER_NAME --region $CORTEX_REGION --service-account-role-arn arn:aws:iam::$aws_account_id:role/AmazonEKS_EBS_CSI_DriverRole --force
+    --role-name $role_name
+  eksctl create addon --name aws-ebs-csi-driver --cluster $CORTEX_CLUSTER_NAME --region $CORTEX_REGION --service-account-role-arn arn:aws:iam::$aws_account_id:role/$role_name --force
 }
 
 function update_networking() {
