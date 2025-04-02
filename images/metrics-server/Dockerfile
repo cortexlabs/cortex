@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM k8s.gcr.io/metrics-server/metrics-server:v0.6.1
+FROM registry.k8s.io/metrics-server/metrics-server:v0.6.3

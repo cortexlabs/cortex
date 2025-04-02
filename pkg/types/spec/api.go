@@ -89,17 +89,17 @@ func MetadataFromVirtualService(vs *istioclientnetworking.VirtualService) (*Meta
 
 /*
 * ID (uniquely identifies an api configuration for a given deployment)
-	* DeploymentID (used for refreshing a deployment)
-	* SpecID (uniquely identifies api configuration specified by user)
-		* PodID (an ID representing the pod spec)
-			* Resource
-				* Containers
-				* Compute
-			* Pod
-		* Deployment Strategy
-		* Autoscaling
-		* Networking
-		* APIs
+  - DeploymentID (used for refreshing a deployment)
+  - SpecID (uniquely identifies api configuration specified by user)
+  - PodID (an ID representing the pod spec)
+  - Resource
+  - Containers
+  - Compute
+  - Pod
+  - Deployment Strategy
+  - Autoscaling
+  - Networking
+  - APIs
 
 initialDeploymentTime is Time.UnixNano()
 */

@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM grafana/grafana:8.0.4
+FROM grafana/grafana:9.5.2

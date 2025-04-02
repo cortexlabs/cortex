@@ -22,10 +22,10 @@ To install Go on linux, run:
 
 ```bash
 mkdir -p ~/bin && \
-wget https://dl.google.com/go/go1.17.3.linux-amd64.tar.gz && \
-sudo tar -xvf go1.17.3.linux-amd64.tar.gz && \
+wget https://dl.google.com/go/go1.20.4.linux-amd64.tar.gz && \
+sudo tar -xvf go1.20.4.linux-amd64.tar.gz && \
 sudo mv go /usr/local && \
-rm go1.17.3.linux-amd64.tar.gz && \
+rm go1.20.4.linux-amd64.tar.gz && \
 echo 'export PATH="/usr/local/go/bin:$HOME/go/bin:$PATH"' >> $HOME/.bashrc
 ```
 

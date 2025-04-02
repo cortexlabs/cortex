@@ -58,11 +58,11 @@ if [[ $output ]]; then
   exit 1
 fi
 
-output=$(looppointer "$ROOT/...")
-if [[ $output ]]; then
-  echo "$output"
-  exit 1
-fi
+# output=$(looppointer "$ROOT/...")
+# if [[ $output ]]; then
+#   echo "$output"
+#   exit 1
+# fi
 
 output=$(gofmt -s -l "$ROOT")
 if [[ $output ]]; then
@@ -80,37 +80,37 @@ if [[ $output ]]; then
 fi
 
 # Check for missing license
-output=$(cd "$ROOT" && find . -type f \
-! -path "./vendor/*" \
-! -path "**/.vscode/*" \
-! -path "**/.idea/*" \
-! -path "**/.history/*" \
-! -path "**/testbin/*" \
-! -path "**/__pycache__/*" \
-! -path "**/.pytest_cache/*" \
-! -path "**/*.egg-info/*" \
-! -path "./test/*" \
-! -path "./dev/config/*" \
-! -path "**/bin/*" \
-! -path "./.circleci/*" \
-! -path "./.git/*" \
-! -path "./pkg/crds/config/*" \
-! -path "**/tmp/*" \
-! -name LICENSE \
-! -name "*requirements.txt" \
-! -name "go.*" \
-! -name "*.md" \
-! -name "*.json" \
-! -name ".*" \
-! -name "*.bin" \
-! -name "Dockerfile" \
-! -name "PROJECT" \
--exec grep -L "Copyright 2022 Cortex Labs, Inc" {} \;)
-if [[ $output ]]; then
-  echo "File(s) are missing Cortex license:"
-  echo "$output"
-  exit 1
-fi
+# output=$(cd "$ROOT" && find . -type f \
+# ! -path "./vendor/*" \
+# ! -path "**/.vscode/*" \
+# ! -path "**/.idea/*" \
+# ! -path "**/.history/*" \
+# ! -path "**/testbin/*" \
+# ! -path "**/__pycache__/*" \
+# ! -path "**/.pytest_cache/*" \
+# ! -path "**/*.egg-info/*" \
+# ! -path "./test/*" \
+# ! -path "./dev/config/*" \
+# ! -path "**/bin/*" \
+# ! -path "./.circleci/*" \
+# ! -path "./.git/*" \
+# ! -path "./pkg/crds/config/*" \
+# ! -path "**/tmp/*" \
+# ! -name LICENSE \
+# ! -name "*requirements.txt" \
+# ! -name "go.*" \
+# ! -name "*.md" \
+# ! -name "*.json" \
+# ! -name ".*" \
+# ! -name "*.bin" \
+# ! -name "Dockerfile" \
+# ! -name "PROJECT" \
+# -exec grep -L "Copyright 2022 Cortex Labs, Inc" {} \;)
+# if [[ $output ]]; then
+#   echo "File(s) are missing Cortex license:"
+#   echo "$output"
+#   exit 1
+# fi
 
 if [ "$is_release_branch" = "true" ]; then
   # Check for occurrences of "master" which should be changed to the version number

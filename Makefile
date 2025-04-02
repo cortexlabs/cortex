@@ -155,6 +155,12 @@ images-dev-skip-push:
 images-manager-skip-push:
 	@./dev/registry.sh update-single manager --skip-push
 
+images-manager:
+	@./dev/registry.sh update-single manager
+	
+images-nvidia-device-plugin:
+	@./dev/registry.sh update-single nvidia-device-plugin
+
 images-clean-cache:
 	@./dev/registry.sh clean-cache
 

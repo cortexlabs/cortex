@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.17.3 as builder
+FROM golang:1.20.4 as builder
 
-RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.23.6/bin/linux/amd64/kubectl && \
+RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.26.5/bin/linux/amd64/kubectl && \
     mv ./kubectl /tmp/kubectl
 
 COPY go.mod go.sum /workspace/
@@ -33,7 +33,7 @@ COPY cmd/operator cmd/operator
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -installsuffix cgo -o operator ./cmd/operator
 
 
-FROM alpine:3.15
+FROM alpine:3.18
 
 COPY --from=builder /tmp/kubectl /usr/local/bin/kubectl
 RUN chmod +x /usr/local/bin/kubectl

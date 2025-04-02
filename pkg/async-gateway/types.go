@@ -25,7 +25,7 @@ import (
 // UserResponse represents the user's API response, which has to be JSON serializable
 type UserResponse = map[string]interface{}
 
-//CreateWorkloadResponse represents the response returned to the user on workload creation
+// CreateWorkloadResponse represents the response returned to the user on workload creation
 type CreateWorkloadResponse struct {
 	ID string `json:"id"`
 }

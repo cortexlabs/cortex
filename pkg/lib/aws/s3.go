@@ -583,18 +583,20 @@ func (c *Client) DownloadDirFromS3(bucket string, s3Dir string, localDirPath str
 // localDirPath: ~/downloads
 //
 // shouldTrimDirPrefix = true
-//   prefix: "test/dir"
-//   result: [~/downloads/dir/1.txt, ~/downloads/dir2/1.txt, ~/downloads/directions.txt]
 //
-//   prefix: "test/dir/"
-//   result: [~/downloads/1.txt]
+//	prefix: "test/dir"
+//	result: [~/downloads/dir/1.txt, ~/downloads/dir2/1.txt, ~/downloads/directions.txt]
+//
+//	prefix: "test/dir/"
+//	result: [~/downloads/1.txt]
 //
 // shouldTrimDirPrefix = false
-//   prefix: "test/dir"
-//   result: [~/downloads/test/dir/1.txt, ~/downloads/test/dir2/1.txt, ~/downloads/test/directions.txt]
 //
-//   prefix: "test/dir/"
-//   result: [~/downloads/test/dir/1.txt]
+//	prefix: "test/dir"
+//	result: [~/downloads/test/dir/1.txt, ~/downloads/test/dir2/1.txt, ~/downloads/test/directions.txt]
+//
+//	prefix: "test/dir/"
+//	result: [~/downloads/test/dir/1.txt]
 func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath string, shouldTrimDirPrefix bool, maxFiles *int64) error {
 	if _, err := files.CreateDirIfMissing(localDirPath); err != nil {
 		return err

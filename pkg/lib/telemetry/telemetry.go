@@ -29,7 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/getsentry/sentry-go"
-	"gopkg.in/segmentio/analytics-go.v3"
+	"github.com/segmentio/analytics-go/v3"
 )
 
 var _sentryDSN = "https://5cea3d2d67194d028f7191fcc6ebca14@sentry.io/1825326"

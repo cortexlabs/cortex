@@ -38,11 +38,15 @@ spec:
             - type: Resource
               resource:
                 name: cpu
-                targetAverageUtilization: 90
+                target:
+                  type: Utilization
+                  averageUtilization: 90
             - type: Resource
               resource:
                 name: memory
-                targetAverageUtilization: 90
+                target:
+                  type: Utilization
+                  averageUtilization: 90
           scaleTargetRef:
             apiVersion: apps/v1
             kind: Deployment
@@ -88,7 +92,6 @@ spec:
             limits:
               cpu: 1000m
               memory: 1024Mi
-          replicaCount: 1
           hpaSpec:
             minReplicas: 1
             maxReplicas: 1
@@ -96,7 +99,9 @@ spec:
               - type: Resource
                 resource:
                   name: cpu
-                  targetAverageUtilization: 80
+                  target:
+                    type: Utilization
+                    averageUtilization: 80
             scaleTargetRef:
               apiVersion: apps/v1
               kind: Deployment
@@ -141,7 +146,6 @@ spec:
             limits:
               cpu: 1500m
               memory: 1024Mi
-          replicaCount: 1
           hpaSpec:
             minReplicas: 1
             maxReplicas: 100
@@ -149,17 +153,22 @@ spec:
               - type: Resource
                 resource:
                   name: cpu
-                  targetAverageUtilization: 90
+                  target:
+                    type: Utilization
+                    averageUtilization: 90
               - type: Resource
                 resource:
-                  name: mem
-                  targetAverageUtilization: 90
+                  name: memory
+                  target:
+                    type: Utilization
+                    averageUtilization: 90
             scaleTargetRef:
               apiVersion: apps/v1
               kind: Deployment
               name: ingressgateway-apis
   values:
     global:
+      autoscalingv2API: true
       defaultResources:
         requests:
           cpu: 10m

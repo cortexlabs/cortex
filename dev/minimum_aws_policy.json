@@ -35,7 +35,7 @@
         {
             "Effect": "Allow",
             "Action": [
-                "logs:ListTagsLogGroup",
+                "logs:ListTagsForResource",
                 "iam:GetRole",
                 "logs:TagLogGroup",
                 "ssm:GetParameters",
@@ -53,7 +53,7 @@
             "Effect": "Allow",
             "Action": [
                 "iam:CreateInstanceProfile",
-                "logs:ListTagsLogGroup",
+                "logs:ListTagsForResource",
                 "logs:DescribeLogStreams",
                 "iam:TagRole",
                 "iam:GetPolicy",

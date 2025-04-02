@@ -100,7 +100,7 @@ Replace the following placeholders with their respective values in the policy te
         {
             "Effect": "Allow",
             "Action": [
-                "logs:ListTagsLogGroup",
+                "logs:ListTagsForResource",
                 "iam:GetRole",
                 "logs:TagLogGroup",
                 "ssm:GetParameters",
@@ -118,7 +118,7 @@ Replace the following placeholders with their respective values in the policy te
             "Effect": "Allow",
             "Action": [
                 "iam:CreateInstanceProfile",
-                "logs:ListTagsLogGroup",
+                "logs:ListTagsForResource",
                 "logs:DescribeLogStreams",
                 "iam:TagRole",
                 "iam:GetPolicy",

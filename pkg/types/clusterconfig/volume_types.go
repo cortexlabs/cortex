@@ -36,7 +36,7 @@ var _availableVolumeTypes = []string{
 	"st1",
 }
 
-//VolumeTypeFromString turns string into StorageType
+// VolumeTypeFromString turns string into StorageType
 func VolumeTypeFromString(s string) VolumeType {
 	for i := 0; i < len(_availableVolumeTypes); i++ {
 		if s == _availableVolumeTypes[i] {

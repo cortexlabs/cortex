@@ -5,7 +5,7 @@
 <!-- CORTEX_VERSION_README -->
 ```bash
 # install the CLI
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.42.1/get-cli.sh)"
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.42.2/get-cli.sh)"
 
 # create a cluster
 cortex cluster up cluster.yaml

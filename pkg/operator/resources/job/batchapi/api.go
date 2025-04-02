@@ -130,7 +130,7 @@ func deleteS3Resources(apiName string) error {
 }
 
 // GetAllAPIs returns all batch apis, for each API returning the most recently submitted job and all running jobs
-func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJobList []batch.BatchJob) ([]schema.APIResponse, error) {
+func GetAllAPIs(virtualServices []*istioclientnetworking.VirtualService, batchJobList []batch.BatchJob) ([]schema.APIResponse, error) {
 	batchAPIsMap := map[string]*schema.APIResponse{}
 
 	jobIDToBatchJobMap := map[string]*batch.BatchJob{}
@@ -142,7 +142,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJob
 
 	for i := range virtualServices {
 		apiName := virtualServices[i].Labels["apiName"]
-		metadata, err := spec.MetadataFromVirtualService(&virtualServices[i])
+		metadata, err := spec.MetadataFromVirtualService(virtualServices[i])
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("api %s", apiName))
 		}

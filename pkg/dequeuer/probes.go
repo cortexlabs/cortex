@@ -50,7 +50,7 @@ func HasTCPProbeTargetingUserPod(probes []*probe.Probe, userPort int) bool {
 		if pb == nil {
 			continue
 		}
-		if pb.Handler.TCPSocket != nil && pb.Handler.TCPSocket.Port.IntValue() == userPort {
+		if pb.ProbeHandler.TCPSocket != nil && pb.ProbeHandler.TCPSocket.Port.IntValue() == userPort {
 			return true
 		}
 	}

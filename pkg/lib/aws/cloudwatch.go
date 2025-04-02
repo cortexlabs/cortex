@@ -17,13 +17,17 @@ limitations under the License.
 package aws
 
 import (
-	"encoding/json"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+    "fmt"
+    "encoding/json"
+    "github.com/aws/aws-sdk-go/aws"
+    "github.com/aws/aws-sdk-go/aws/session"
+    "github.com/aws/aws-sdk-go/service/cloudwatch"
+    "github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+    "github.com/cortexlabs/cortex/pkg/lib/errors"
+    "github.com/aws/aws-sdk-go/service/sts"
 )
+
+
 
 var (
 	_dashboardMinWidthUnits  = 1
@@ -39,27 +43,28 @@ type CloudWatchDashboard struct {
 }
 
 // Example:
-// CloudWatchWidget{
-// 	"type":"metric",
-// 	"x":0,
-// 	"y":0,
-// 	"width":12,
-// 	"height":6,
-// 	"properties":{
-// 	   "metrics":[
-// 		  [
-// 			 "AWS/EC2",
-// 			 "CPUUtilization",
-// 			 "InstanceId",
-// 			 "i-012345"
-// 		  ]
-// 	   ],
-// 	   "period":300,
-// 	   "stat":"Average",
-// 	   "region":"us-east-1",
-// 	   "title":"EC2 Instance CPU"
-// 	}
-//  }
+//
+//	CloudWatchWidget{
+//		"type":"metric",
+//		"x":0,
+//		"y":0,
+//		"width":12,
+//		"height":6,
+//		"properties":{
+//		   "metrics":[
+//			  [
+//				 "AWS/EC2",
+//				 "CPUUtilization",
+//				 "InstanceId",
+//				 "i-012345"
+//			  ]
+//		   ],
+//		   "period":300,
+//		   "stat":"Average",
+//		   "region":"us-east-1",
+//		   "title":"EC2 Instance CPU"
+//		}
+//	 }
 type CloudWatchWidget struct {
 	Type       string                 `json:"type"`
 	X          int                    `json:"x"`
@@ -79,18 +84,36 @@ type CloudWatchWidgetGrid struct {
 	Widgets      []CloudWatchWidget `json:"widgets"`
 }
 
-func (c *Client) DoesLogGroupExist(logGroup string) (bool, error) {
-	_, err := c.CloudWatchLogs().ListTagsLogGroup(&cloudwatchlogs.ListTagsLogGroupInput{
-		LogGroupName: aws.String(logGroup),
-	})
-	if err != nil {
-		if IsErrCode(err, "ResourceNotFoundException") {
-			return false, nil
-		}
-		return false, errors.Wrap(err, "log group "+logGroup)
-	}
+func (c *Client) getAccountID() (string, error) {
+    svc := sts.New(session.Must(session.NewSession()))
+    input := &sts.GetCallerIdentityInput{}
+    result, err := svc.GetCallerIdentity(input)
+    if err != nil {
+        return "", errors.Wrap(err, "failed to get account ID")
+    }
+    return *result.Account, nil
+}
 
-	return true, nil
+func (c *Client) DoesLogGroupExist(logGroup string) (bool, error) {
+    accountID, err := c.getAccountID()
+    if err != nil {
+        return false, err
+    }
+
+    region := *c.CloudWatchLogs().Config.Region
+    resourceArn := fmt.Sprintf("arn:aws:logs:%s:%s:log-group:%s", region, accountID, logGroup)
+
+    _, err = c.CloudWatchLogs().ListTagsForResource(&cloudwatchlogs.ListTagsForResourceInput{
+        ResourceArn: aws.String(resourceArn),
+    })
+    if err != nil {
+        if IsErrCode(err, "ResourceNotFoundException") {
+            return false, nil
+        }
+        return false, errors.Wrap(err, "log group "+logGroup)
+    }
+
+    return true, nil
 }
 
 func (c *Client) CreateLogGroup(logGroup string, tags map[string]string) error {
@@ -238,14 +261,15 @@ func (c *Client) DoesDashboardExist(dashboardName string) (bool, error) {
 
 // TextWidget creates new text widget
 // Example:
-// title_widget = {
-//     "type": "text",
-//     "x": x,
-//     "y": y,
-//     "width": wewidthi,
-//     "height": height,
-//     "properties": {"markdown": markdown},
-// }
+//
+//	title_widget = {
+//	    "type": "text",
+//	    "x": x,
+//	    "y": y,
+//	    "width": wewidthi,
+//	    "height": height,
+//	    "properties": {"markdown": markdown},
+//	}
 func TextWidget(x int, y int, width int, height int, markdown string) CloudWatchWidget {
 	return CloudWatchWidget{Type: "text", X: x, Y: y, Width: width, Height: height, Properties: map[string]interface{}{"markdown": markdown}}
 }

@@ -35,14 +35,14 @@ func TestDefaultTCPProbeNotPresent(t *testing.T) {
 
 	probes := []*probe.Probe{
 		probe.NewProbe(&kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				Exec: &kcore.ExecAction{
 					Command: []string{"/bin/bash", "python", "test.py"},
 				},
 			},
 		}, log),
 		probe.NewProbe(&kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				HTTPGet: &kcore.HTTPGetAction{
 					Path: "some-path",
 					Port: intstr.FromInt(12345),
@@ -51,7 +51,7 @@ func TestDefaultTCPProbeNotPresent(t *testing.T) {
 			},
 		}, log),
 		probe.NewProbe(&kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				TCPSocket: &kcore.TCPSocketAction{
 					Port: intstr.FromInt(8447),
 					Host: "localhost",
@@ -73,14 +73,14 @@ func TestDefaultTCPProbePresent(t *testing.T) {
 
 	probes := []*probe.Probe{
 		probe.NewProbe(&kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				Exec: &kcore.ExecAction{
 					Command: []string{"/bin/bash", "python", "test.py"},
 				},
 			},
 		}, log),
 		probe.NewProbe(&kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				HTTPGet: &kcore.HTTPGetAction{
 					Path: "some-path",
 					Port: intstr.FromInt(12345),
@@ -89,7 +89,7 @@ func TestDefaultTCPProbePresent(t *testing.T) {
 			},
 		}, log),
 		probe.NewProbe(&kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				TCPSocket: &kcore.TCPSocketAction{
 					Port: userPodPort,
 					Host: "localhost",

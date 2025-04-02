@@ -192,6 +192,8 @@ func TestAutoscaler_AutoscaleFn(t *testing.T) {
 	}
 
 	for i, tt := range cases {
+		localTT := tt
+		localI := i
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -203,13 +205,13 @@ func TestAutoscaler_AutoscaleFn(t *testing.T) {
 					return nil
 				},
 				GetInFlightRequestsFunc: func(apiName string, window time.Duration) (*float64, error) {
-					return pointer.Float64(tt.inFlight), nil
+					return pointer.Float64(localTT.inFlight), nil
 				},
 				GetAutoscalingSpecFunc: func(apiName string) (*userconfig.Autoscaling, error) {
-					return &cases[i].autoscalingSpec, nil
+					return &cases[localI].autoscalingSpec, nil
 				},
 				CurrentRequestedReplicasFunc: func(apiName string) (int32, error) {
-					return tt.currentReplicas, nil
+					return localTT.currentReplicas, nil
 				},
 			}
 
@@ -227,7 +229,7 @@ func TestAutoscaler_AutoscaleFn(t *testing.T) {
 				Kind: userconfig.RealtimeAPIKind,
 			}
 
-			autoScaler.recs[apiName] = generateRecommendationTimeline(t, tt.recommendationTimeline, interval)
+			autoScaler.recs[apiName] = generateRecommendationTimeline(t, localTT.recommendationTimeline, interval)
 			autoscaleFn, err := autoScaler.autoscaleFn(api)
 			require.NoError(t, err)
 
@@ -236,7 +238,7 @@ func TestAutoscaler_AutoscaleFn(t *testing.T) {
 			err = autoscaleFn()
 			require.NoError(t, err)
 
-			require.Equal(t, tt.expectedRequest, latestRequest)
+			require.Equal(t, localTT.expectedRequest, latestRequest)
 		})
 	}
 

@@ -19,7 +19,7 @@ Clone the Cortex repo using the release tag corresponding to your version (which
 <!-- CORTEX_VERSION_README -->
 
 ```bash
-export CORTEX_VERSION=0.42.1
+export CORTEX_VERSION=0.42.2
 git clone --depth 1 --branch v$CORTEX_VERSION https://github.com/cortexlabs/cortex.git
 ```
 

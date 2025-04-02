@@ -59,7 +59,9 @@ func CheckValidInstanceType(instanceType string) error {
 // the first group is the instance family, e.g. "m", "t", "g", "inf", ...
 // the second group is a generation number for that series, e.g. 3, 4, ...
 // the third group is optional, and is a set of single-character capabilities
-//   "g" represents ARM (graviton), "a" for AMD, "n" for fast networking, "d" for fast storage, etc.
+//
+//	"g" represents ARM (graviton), "a" for AMD, "n" for fast networking, "d" for fast storage, etc.
+//
 // the fourth and final group (after the dot) is the instance size, e.g. "large"
 func ParseInstanceType(instanceType string) (ParsedInstanceType, error) {
 	if err := CheckValidInstanceType(instanceType); err != nil {
