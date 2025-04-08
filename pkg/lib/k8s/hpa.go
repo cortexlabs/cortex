@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	kautoscaling "k8s.io/api/autoscaling/v2beta2"
+	kautoscaling "k8s.io/api/autoscaling/v2"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"

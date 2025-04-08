@@ -102,7 +102,7 @@ func TestProbeHTTPFailure(t *testing.T) {
 
 	pb := probe.NewProbe(
 		&kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				HTTPGet: &kcore.HTTPGetAction{
 					Path: "/healthz",
 					Port: intstr.FromString("12345"),
@@ -147,7 +147,7 @@ func TestProbeHTTPSuccess(t *testing.T) {
 
 	pb := probe.NewProbe(
 		&kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				HTTPGet: &kcore.HTTPGetAction{
 					Path: "/healthz",
 					Port: intstr.FromString(targetURL.Port()),

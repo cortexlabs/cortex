@@ -19,6 +19,7 @@ package files
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -52,7 +53,7 @@ func TestPrintFileTree(t *testing.T) {
     └── 5
         └── 6.txt
 `
-
+	expectedTree = strings.ReplaceAll(expectedTree, "\u00a0", " ")
 	cwd = ""
 	expectedHeader = "/1/2/"
 	require.Equal(t, expectedHeader+expectedTree, FileTree(filesList, cwd, DirsSorted))
@@ -112,6 +113,7 @@ func TestPrintFileTree(t *testing.T) {
         ├── 1
         └── 2
 `
+	expectedTree = strings.ReplaceAll(expectedTree, "\u00a0", " ")
 	require.Equal(t, "/"+expectedTree, FileTree(filesList, cwd, DirsSorted))
 
 	expectedTree = `
@@ -136,6 +138,7 @@ func TestPrintFileTree(t *testing.T) {
         ├── 1
         └── 2
 `
+	expectedTree = strings.ReplaceAll(expectedTree, "\u00a0", " ")
 	require.Equal(t, "/"+expectedTree, FileTree(filesList, cwd, DirsOnBottom))
 
 	expectedTree = `
@@ -160,6 +163,7 @@ func TestPrintFileTree(t *testing.T) {
 ├── 1
 └── 2
 `
+	expectedTree = strings.ReplaceAll(expectedTree, "\u00a0", " ")
 	require.Equal(t, "/"+expectedTree, FileTree(filesList, cwd, DirsOnTop))
 }
 

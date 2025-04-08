@@ -22,6 +22,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"errors"
+
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -64,7 +66,7 @@ func (c *client) Awaken(api userconfig.Resource) error {
 			errMsg = errMsg + fmt.Sprintf(": %s", string(bodyBytes))
 		}
 
-		return fmt.Errorf(errMsg)
+		return errors.New(errMsg)
 	}
 
 	return nil

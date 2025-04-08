@@ -37,23 +37,29 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	dockertypes "github.com/docker/docker/api/types"
-	dockerclient "github.com/docker/docker/client"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/registry"
+	"github.com/docker/docker/api/types/system"
+	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/docker/docker/pkg/term"
+	"github.com/moby/term"
 )
+
+// Define a type alias for image.PullOptions to avoid import issues
+type PullOptions = image.PullOptions
 
 var NoAuth string
 
 var _cachedClient *Client
 
 func init() {
-	NoAuth, _ = EncodeAuthConfig(dockertypes.AuthConfig{})
+	NoAuth, _ = EncodeAuthConfig(registry.AuthConfig{})
 }
 
 type Client struct {
-	*dockerclient.Client
-	Info dockertypes.Info
+	*client.Client
+	Info system.Info
 }
 
 func GetDockerClient() (*Client, error) {
@@ -61,7 +67,7 @@ func GetDockerClient() (*Client, error) {
 		return _cachedClient, nil
 	}
 
-	baseClient, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+	baseClient, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, WrapDockerError(err)
 	}
@@ -101,7 +107,7 @@ func AWSAuthConfig(awsClient *aws.Client) (string, error) {
 		return "", err
 	}
 
-	auth := dockertypes.AuthConfig{
+	auth := registry.AuthConfig{
 		Username:      ecrAuthConfig.Username,
 		Password:      ecrAuthConfig.AccessToken,
 		ServerAddress: ecrAuthConfig.ProxyEndpoint,
@@ -121,7 +127,7 @@ func AWSAuthConfig(awsClient *aws.Client) (string, error) {
 }
 
 func WrapDockerError(err error) error {
-	if dockerclient.IsErrConnectionFailed(err) {
+	if client.IsErrConnectionFailed(err) {
 		return ErrorConnectToDockerDaemon()
 	}
 
@@ -150,7 +156,7 @@ func PullImage(image string, encodedAuthConfig string, pullVerbosity PullVerbosi
 		return false, nil
 	}
 
-	pullOutput, err := dockerClient.ImagePull(context.Background(), image, dockertypes.ImagePullOptions{
+	pullOutput, err := dockerClient.ImagePull(context.Background(), image, PullOptions{
 		RegistryAuth: encodedAuthConfig,
 	})
 	if err != nil {
@@ -228,8 +234,7 @@ func StreamDockerLogs(containerID string, containerIDs ...string) error {
 
 func StreamDockerLogsFn(containerID string, dockerClient *Client) func() error {
 	return func() error {
-		// Use ContainerLogs() so lines are only printed once they end in \n
-		logsOutput, err := dockerClient.ContainerLogs(context.Background(), containerID, dockertypes.ContainerLogsOptions{
+		logsOutput, err := dockerClient.ContainerLogs(context.Background(), containerID, container.LogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 			Follow:     true,
@@ -267,7 +272,7 @@ func CopyToContainer(containerID string, input *archive.Input, containerPath str
 		return err
 	}
 
-	err = dockerClient.CopyToContainer(context.Background(), containerID, "/", buf, dockertypes.CopyToContainerOptions{
+	err = dockerClient.CopyToContainer(context.Background(), containerID, "/", buf, container.CopyToContainerOptions{
 		AllowOverwriteDirWithFile: true,
 	})
 	if err != nil {
@@ -305,7 +310,7 @@ func CopyFromContainer(containerID string, containerPath string, localDir string
 	return nil
 }
 
-func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {
+func EncodeAuthConfig(authConfig registry.AuthConfig) (string, error) {
 	encoded, err := json.Marshal(authConfig)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to encode docker login credentials")
@@ -322,7 +327,7 @@ func CheckImageAccessible(dockerClient *Client, dockerImage, authConfig string) 
 }
 
 func CheckImageExistsLocally(dockerClient *Client, dockerImage string) error {
-	images, err := dockerClient.ImageList(context.Background(), dockertypes.ImageListOptions{})
+	images, err := dockerClient.ImageList(context.Background(), image.ListOptions{})
 	if err != nil {
 		return WrapDockerError(err)
 	}

@@ -97,21 +97,22 @@ setup(
     },
     install_requires=(
         [
-            "importlib-resources; python_version < '3.7'",
-            "pyyaml>=5.4.1",
-            "sentry-sdk>=1.4.3",
+            "importlib-resources; python_version <= '3.12'",
+            "pyyaml>=6.0",
+            "sentry-sdk>=1.25.0",
         ]
     ),
-    python_requires=">=3.6",
+    python_requires=">=3.9",
     cmdclass={
         "install": InstallBinary,
     },
     classifiers=[
         "Operating System :: MacOS",
-        "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
+        "Operating System :: POSIX :: Linux",        
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Intended Audience :: Developers",
     ],
     project_urls={

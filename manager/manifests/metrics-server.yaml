@@ -1,20 +1,3 @@
-# Copyright 2021 The Kubernetes Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# Modifications Copyright 2022 Cortex Labs, Inc.
-# Source: https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.1/components.yaml
-
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -33,15 +16,15 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-view: "true"
   name: system:aggregated-metrics-reader
 rules:
-  - apiGroups:
-      - metrics.k8s.io
-    resources:
-      - pods
-      - nodes
-    verbs:
-      - get
-      - list
-      - watch
+- apiGroups:
+  - metrics.k8s.io
+  resources:
+  - pods
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -50,21 +33,21 @@ metadata:
     k8s-app: metrics-server
   name: system:metrics-server
 rules:
-  - apiGroups:
-      - ""
-    resources:
-      - nodes/metrics
-    verbs:
-      - get
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-      - nodes
-    verbs:
-      - get
-      - list
-      - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes/metrics
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -78,9 +61,9 @@ roleRef:
   kind: Role
   name: extension-apiserver-authentication-reader
 subjects:
-  - kind: ServiceAccount
-    name: metrics-server
-    namespace: kube-system
+- kind: ServiceAccount
+  name: metrics-server
+  namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -93,9 +76,9 @@ roleRef:
   kind: ClusterRole
   name: system:auth-delegator
 subjects:
-  - kind: ServiceAccount
-    name: metrics-server
-    namespace: kube-system
+- kind: ServiceAccount
+  name: metrics-server
+  namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -108,9 +91,9 @@ roleRef:
   kind: ClusterRole
   name: system:metrics-server
 subjects:
-  - kind: ServiceAccount
-    name: metrics-server
-    namespace: kube-system
+- kind: ServiceAccount
+  name: metrics-server
+  namespace: kube-system
 ---
 apiVersion: v1
 kind: Service
@@ -121,10 +104,10 @@ metadata:
   namespace: kube-system
 spec:
   ports:
-    - name: https
-      port: 443
-      protocol: TCP
-      targetPort: https
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: https
   selector:
     k8s-app: metrics-server
 ---
@@ -148,56 +131,61 @@ spec:
         k8s-app: metrics-server
     spec:
       containers:
-        - args:
-            - --cert-dir=/tmp
-            - --secure-port=4443
-            - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-            - --kubelet-use-node-status-port
-            - --metric-resolution=15s
-          image: $CORTEX_IMAGE_METRICS_SERVER
-          imagePullPolicy: Always
-          livenessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /livez
-              port: https
-              scheme: HTTPS
-            periodSeconds: 10
-          name: metrics-server
-          ports:
-            - containerPort: 4443
-              name: https
-              protocol: TCP
-          readinessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /readyz
-              port: https
-              scheme: HTTPS
-            initialDelaySeconds: 20
-            periodSeconds: 10
-          resources:
-            requests:
-              cpu: 50m
-              memory: 100Mi
-            limits:
-              cpu: 200m
-              memory: 500Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 1000
-          volumeMounts:
-            - mountPath: /tmp
-              name: tmp-dir
+      - args:
+        - --cert-dir=/tmp
+        - --secure-port=10250
+        - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+        - --kubelet-use-node-status-port
+        - --metric-resolution=15s
+        image: $CORTEX_IMAGE_METRICS_SERVER
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /livez
+            port: https
+            scheme: HTTPS
+          periodSeconds: 10
+        name: metrics-server
+        ports:
+        - containerPort: 10250
+          name: https
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readyz
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 200m
+            memory: 500Mi            
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-dir
       nodeSelector:
         kubernetes.io/os: linux
       priorityClassName: system-cluster-critical
       serviceAccountName: metrics-server
       volumes:
-        - emptyDir: {}
-          name: tmp-dir
+      - emptyDir: {}
+        name: tmp-dir
 ---
 apiVersion: apiregistration.k8s.io/v1
 kind: APIService

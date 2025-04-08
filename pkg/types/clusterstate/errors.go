@@ -44,7 +44,7 @@ func ErrorClusterAlreadyExists(stacks ClusterStacks) error {
 
 func ErrorUnexpectedClusterState(stacks ClusterStacks) error {
 	msg := fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; if your CloudFormation stacks are updating, please wait for them to complete. Otherwise, run `cortex cluster down` to delete the cluster\n\n", stacks.clusterName, stacks.region)
-	msg += fmt.Sprintf(stacks.TableString())
+	msg += stacks.TableString()
 	return errors.WithStack(&errors.Error{
 		Kind:     ErrUnexpectedClusterState,
 		Message:  msg,

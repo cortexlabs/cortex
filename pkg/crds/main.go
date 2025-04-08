@@ -40,6 +40,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	batchcontrollers "github.com/cortexlabs/cortex/pkg/crds/controllers/batch"
@@ -107,11 +109,11 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "7cc92962.cortex.dev",
+		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

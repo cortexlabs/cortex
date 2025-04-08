@@ -104,7 +104,7 @@ func TestHandlerSuccessHTTP(t *testing.T) {
 
 	pb := probe.NewProbe(
 		&kcore.Probe{
-			Handler: kcore.Handler{
+			ProbeHandler: kcore.ProbeHandler{
 				HTTPGet: &kcore.HTTPGetAction{
 					Path:        "/",
 					Port:        intstr.FromString(targetURL.Port()),

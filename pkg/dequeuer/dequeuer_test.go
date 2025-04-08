@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -77,13 +76,24 @@ func TestMain(m *testing.M) {
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	// the minio client does not do service discovery for you (i.e. it does not check if connection can be established), so we have to use the health check
 	if err := pool.Retry(func() error {
-		url := fmt.Sprintf("http://%s/health", localStackEndpoint)
-		resp, err := http.Get(url)
+		// Try to create a test queue to verify SQS is working
+		sess, err := session.NewSessionWithOptions(session.Options{
+			Config: aws.Config{
+				Credentials:      credentials.NewStaticCredentials("test", "test", ""),
+				Endpoint:         aws.String(localStackEndpoint),
+				Region:           aws.String(_localStackDefaultRegion),
+				DisableSSL:       aws.Bool(true),
+			},
+		})
 		if err != nil {
 			return err
 		}
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("status code not OK")
+		sqsClient := sqs.New(sess)
+		_, err = sqsClient.CreateQueue(&sqs.CreateQueueInput{
+			QueueName: aws.String("test-health-check"),
+		})
+		if err != nil {
+			return err
 		}
 		return nil
 	}); err != nil {

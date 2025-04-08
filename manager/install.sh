@@ -42,7 +42,12 @@ function cluster_up() {
 
   echo -n "￮ configuring networking (this will take a few minutes) "
   setup_ipvs
+  echo "setup_ipvs done. setup_istio starts..."
   setup_istio
+  echo "setup_istio done."
+  echo "installing ebs csi driver..."
+  install_ebs_csi_driver
+  echo "installed ebs csi driver"
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 | kubectl apply -f - >/dev/null
   echo "✓"
 
@@ -62,7 +67,29 @@ function cluster_up() {
   echo "✓"
 
   echo -n "￮ configuring metrics "
-  envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
+  # Simplify the metrics-server installation with better error handling
+  if kubectl get deployment metrics-server -n kube-system >/dev/null 2>&1; then
+    echo "EKS metrics-server found, removing it before installing Cortex version..."
+    # Delete the EKS version (deployment, service and API service)
+    kubectl delete deployment metrics-server -n kube-system --ignore-not-found=true
+    kubectl delete service metrics-server -n kube-system --ignore-not-found=true
+    kubectl delete apiservice v1beta1.metrics.k8s.io --ignore-not-found=true
+    # Wait a bit for resources to be fully deleted
+    sleep 5
+  fi
+  
+  # Delete the API service again to be sure (sometimes it can get stuck)
+  kubectl delete apiservice v1beta1.metrics.k8s.io --ignore-not-found=true
+  
+  # Check if CORTEX_IMAGE_METRICS_SERVER is set
+  if [ -z "$CORTEX_IMAGE_METRICS_SERVER" ]; then
+    echo "Warning: CORTEX_IMAGE_METRICS_SERVER not set, using a default value"
+    export CORTEX_IMAGE_METRICS_SERVER="970653281915.dkr.ecr.ap-south-1.amazonaws.com/cortexlabs/metrics-server:0.44.0"
+  fi
+  
+  # Apply the full metrics-server manifest
+  envsubst < manifests/metrics-server.yaml | kubectl apply -f -
+  
   setup_prometheus
   setup_grafana
   echo "✓"
@@ -204,8 +231,13 @@ function write_kubeconfig() {
 }
 
 function setup_namespaces() {
+  # Ensure istio-system namespace exists before patching
+  kubectl create namespace istio-system --dry-run=client -o yaml | kubectl apply -f -
+
   # doing a patch to prevent getting the kubectl.kubernetes.io/last-applied-configuration annotation warning
   kubectl patch namespace default -p '{"metadata": {"labels": {"istio-discovery": "enabled"}}}' >/dev/null
+  # Also label the istio-system namespace for discovery
+  kubectl patch namespace istio-system -p '{"metadata": {"labels": {"istio-discovery": "enabled"}}}' >/dev/null
   kubectl apply -f manifests/namespaces.yaml >/dev/null
 }
 
@@ -234,7 +266,7 @@ function setup_configmap() {
 }
 
 function setup_prometheus() {
-  envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
+  envsubst < manifests/prometheus-operator.yaml | kubectl apply --server-side -f - >/dev/null
   envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-kubelet-exporter.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-kube-state-metrics.yaml | kubectl apply -f - >/dev/null
@@ -389,7 +421,8 @@ function setup_ipvs() {
   kube_proxy_pod=$(kubectl get pod -n kube-system -l k8s-app=kube-proxy -o jsonpath='{.items[*].metadata.name}' | cut -d " " -f1)
 
   # export kube-proxy's current config
-  kubectl exec -it -n kube-system ${kube_proxy_pod} -- cat /var/lib/kube-proxy-config/config > proxy_config.yaml
+  #kubectl exec -it -n kube-system ${kube_proxy_pod} -- cat /var/lib/kube-proxy-config/config > proxy_config.yaml
+  kubectl get configmap kube-proxy-config -n kube-system -o yaml > proxy_config.yaml
 
   # upgrade proxy mode from the exported kube-proxy config
   python upgrade_kube_proxy_mode.py proxy_config.yaml > upgraded_proxy_config.yaml
@@ -411,6 +444,28 @@ function setup_istio() {
 
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
   output_if_error istio-${ISTIO_VERSION}/bin/istioctl install --skip-confirmation --filename /workspace/istio.yaml
+}
+
+function install_ebs_csi_driver() {
+  aws_account_id=$(aws sts get-caller-identity --query "Account" --output text)
+  # assert aws_account_id is not empty
+  if [ -z "$aws_account_id" ]; then
+    echo "unable to get aws account id"
+    exit 1
+  fi
+  oidc_id=$(aws eks describe-cluster --name $CORTEX_CLUSTER_NAME --region $CORTEX_REGION --query "cluster.identity.oidc.issuer" --output text | cut -d '/' -f 5)
+  eksctl utils associate-iam-oidc-provider --cluster $CORTEX_CLUSTER_NAME --region $CORTEX_REGION --approve
+  role_name="AmazonEKS_EBS_CSI_DriverRole_${CORTEX_CLUSTER_NAME}"
+  eksctl create iamserviceaccount \
+    --name ebs-csi-controller-sa \
+    --namespace kube-system \
+    --cluster $CORTEX_CLUSTER_NAME \
+    --region $CORTEX_REGION \
+    --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy \
+    --approve \
+    --role-only \
+    --role-name $role_name
+  eksctl create addon --name aws-ebs-csi-driver --cluster $CORTEX_CLUSTER_NAME --region $CORTEX_REGION --service-account-role-arn arn:aws:iam::$aws_account_id:role/$role_name --force
 }
 
 function update_networking() {

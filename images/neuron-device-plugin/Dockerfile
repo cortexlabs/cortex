@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM public.ecr.aws/neuron/neuron-device-plugin:1.8.2.0
+FROM public.ecr.aws/neuron/neuron-device-plugin:2.12.7.0

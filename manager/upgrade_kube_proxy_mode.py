@@ -22,6 +22,7 @@ def main():
     kube_proxy_config_file = sys.argv[1]
     with open(kube_proxy_config_file, "r") as f:
         kube_proxy_config = yaml.safe_load(f)
+    kube_proxy_config = yaml.safe_load(kube_proxy_config["data"]["config"])
 
     kube_proxy_config["mode"] = "ipvs"  # IP Virtual Server
     kube_proxy_config["ipvs"]["scheduler"] = "rr"  # round robin

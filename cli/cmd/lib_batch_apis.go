@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/PEAT-AI/yaml"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/cli/types/flags"
@@ -31,7 +32,6 @@ import (
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/status"
-	"github.com/cortexlabs/yaml"
 )
 
 const (

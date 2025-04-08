@@ -24,6 +24,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/PEAT-AI/yaml"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -36,7 +37,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/yaml"
 )
 
 var _cliConfigValidation = &cr.StructValidation{

@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
+	"github.com/PEAT-AI/yaml"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -43,7 +43,6 @@ import (
 	libstr "github.com/cortexlabs/cortex/pkg/lib/strings"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/structs"
-	"github.com/cortexlabs/yaml"
 )
 
 const (
@@ -1618,10 +1617,6 @@ func validateInstanceType(instanceType string) (string, error) {
 	}
 	if isTrainium {
 		return "", ErrorTrainiumInstancesNotSupported(instanceType)
-	}
-
-	if _, ok := awsutils.InstanceNetworkingLimits[instanceType]; !ok {
-		return "", ErrorInstanceTypeNotSupportedByCortex(instanceType)
 	}
 
 	return instanceType, nil

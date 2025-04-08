@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.17.3 as builder
+FROM golang:1.24.0 as builder
 
 WORKDIR /workspace
 COPY go.mod go.mod

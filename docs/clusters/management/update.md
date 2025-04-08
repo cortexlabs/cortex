@@ -59,8 +59,8 @@ If you are spinning a up a new cluster with a different Cortex version, first in
 <!-- CORTEX_VERSION_README x2 -->
 
 ```bash
-# download the desired CLI version, replace 0.42.1 with the desired version (Note the "v"):
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.42.1/get-cli.sh)"
+# download the desired CLI version, replace 0.42.2 with the desired version (Note the "v"):
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.42.2/get-cli.sh)"
 
 # confirm Cortex CLI version
 cortex version
@@ -74,11 +74,11 @@ You can use different Cortex CLIs to interact with the different versioned clust
 <!-- CORTEX_VERSION_README x4 -->
 
 ```bash
-# download the desired CLI version, replace 0.42.1 with the desired version (Note the "v"):
-CORTEX_INSTALL_PATH=$(pwd)/cortex0.42.1 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.42.1/get-cli.sh)"
+# download the desired CLI version, replace 0.42.2 with the desired version (Note the "v"):
+CORTEX_INSTALL_PATH=$(pwd)/cortex0.42.2 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.42.2/get-cli.sh)"
 
 # confirm cortex CLI version
-./cortex0.42.1 version
+./cortex0.42.2 version
 ```
 
 ### Deploy the APIs to your new cluster

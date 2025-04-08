@@ -33,6 +33,7 @@ spec:
         - --proxy-mode=ipvs
         - --ipvs-scheduler=rr
         - --config=/var/lib/kube-proxy/config
+        - --hostname-override=$(NODE_NAME)
         env:
         - name: KUBE_PROXY_MODE
           value: ipvs

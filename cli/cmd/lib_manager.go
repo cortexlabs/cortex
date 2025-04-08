@@ -28,6 +28,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/PEAT-AI/yaml"
 	"github.com/cortexlabs/cortex/cli/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
@@ -37,8 +38,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
-	"github.com/cortexlabs/yaml"
-	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 )
 
@@ -75,13 +74,13 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 		fmt.Println()
 	}
 
-	containerInfo, err := dockerClient.ContainerCreate(context.Background(), containerConfig, nil, nil, "")
+	containerInfo, err := dockerClient.ContainerCreate(context.Background(), containerConfig, nil, nil, nil, "")
 	if err != nil {
 		return "", nil, docker.WrapDockerError(err)
 	}
 
 	removeContainer := func() {
-		_ = dockerClient.ContainerRemove(context.Background(), containerInfo.ID, dockertypes.ContainerRemoveOptions{
+		_ = dockerClient.ContainerRemove(context.Background(), containerInfo.ID, container.RemoveOptions{
 			RemoveVolumes: true,
 			Force:         true,
 		})
@@ -108,13 +107,13 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 		}
 	}
 
-	err = dockerClient.ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
+	err = dockerClient.ContainerStart(context.Background(), containerInfo.ID, container.StartOptions{})
 	if err != nil {
 		return "", nil, docker.WrapDockerError(err)
 	}
 
 	// Use ContainerAttach() since that allows logs to be streamed even if they don't end in new lines
-	logsOutput, err := dockerClient.ContainerAttach(context.Background(), containerInfo.ID, dockertypes.ContainerAttachOptions{
+	logsOutput, err := dockerClient.ContainerAttach(context.Background(), containerInfo.ID, container.AttachOptions{
 		Stream: true,
 		Stdout: true,
 		Stderr: true,

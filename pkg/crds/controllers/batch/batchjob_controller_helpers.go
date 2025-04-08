@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/PEAT-AI/yaml"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -41,7 +42,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
-	"github.com/cortexlabs/yaml"
 	cache "github.com/patrickmn/go-cache"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"

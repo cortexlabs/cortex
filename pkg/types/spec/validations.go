@@ -37,7 +37,7 @@ import (
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	dockertypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/registry"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -775,9 +775,10 @@ func validateContainers(
 			return errors.Wrap(ErrorFieldMustBeSpecifiedForKind(userconfig.CommandKey, kind), s.Index(i), userconfig.CommandKey)
 		}
 
-		if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
-			return errors.Wrap(err, s.Index(i), userconfig.ImageKey)
-		}
+		// FIXME (tfriedel): re-enable this code once we know to handle it
+		// if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
+		// 	return errors.Wrap(err, s.Index(i), userconfig.ImageKey)
+		// }
 
 		for key := range container.Env {
 			if strings.HasPrefix(key, "CORTEX_") || strings.HasPrefix(key, "KUBEXIT_") {
@@ -971,9 +972,9 @@ func getDockerAuthStrFromK8s(dockerClient *docker.Client, k8sClient *k8s.Client)
 		return "", ErrorUnexpectedDockerSecretData("should contain a single set of credentials", secretData)
 	}
 
-	var dockerAuth dockertypes.AuthConfig
+	var dockerAuth registry.AuthConfig
 	for registryAddress, creds := range authSecret.Auths {
-		dockerAuth = dockertypes.AuthConfig{
+		dockerAuth = registry.AuthConfig{
 			Username:      creds.Username,
 			Password:      creds.Password,
 			ServerAddress: registryAddress,
