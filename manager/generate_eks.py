@@ -319,9 +319,9 @@ def generate_eks(
             "name": name,
             "region": region,
             "version": K8S_VERSION,
+            "tags": cluster_config["tags"],
         },
     }
-
     if add_cortex_node_groups:
         node_group_names = add_cortex_node_groups.split(",")
         eks["nodeGroups"] = []
