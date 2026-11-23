@@ -52,7 +52,7 @@ func (e *Endpoint) CreateWorkload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	apiName := r.Header.Get(consts.CortexAPINameHeader)
-	if requestID == "" {
+	if apiName == "" {
 		respondPlainText(w, http.StatusBadRequest, fmt.Sprintf("error: missing %s key in request header", consts.CortexAPINameHeader))
 		return
 	}
